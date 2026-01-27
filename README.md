@@ -10,34 +10,96 @@
 - **数据备份**：支持导出/导入 JSON 数据文件
 - **深色模式**：支持跟随系统或手动切换
 - **响应式设计**：支持桌面和移动端
+- **模块化架构**：清晰的代码组织和功能分离
 - **零依赖**：纯原生 HTML/CSS/JavaScript，无第三方库
 
 ## 技术栈
 
-- HTML5
-- CSS3（自定义 CSS 变量实现主题切换）
-- Vanilla JavaScript（原生 JavaScript）
+- **构建工具**: Vite
+- **HTML5**
+- **CSS3**（自定义 CSS 变量实现主题切换，模块化样式）
+- **Vanilla JavaScript**（原生 JavaScript，ES 模块）
 
-## 使用方法
+## 项目结构
+
+```
+dashmark/
+├── src/
+│   ├── app.js                    # 主应用入口
+│   ├── storage.js                # 数据存储层（localStorage 操作）
+│   ├── modules/                  # 功能模块
+│   │   ├── theme.js              # 主题管理
+│   │   ├── search.js             # 搜索功能
+│   │   ├── bookmarks.js          # 书签展示
+│   │   ├── managePanel.js        # 管理面板
+│   │   ├── modals.js             # 模态框管理
+│   │   ├── linkManager.js        # 链接管理
+│   │   ├── groupManager.js       # 分组管理
+│   │   └── searchEngineManager.js # 搜索引擎管理
+│   └── styles/                   # 样式模块
+│       ├── variables.css         # CSS 变量（主题定义）
+│       ├── base.css              # 基础样式
+│       ├── components.css        # 组件样式
+│       ├── layout.css            # 布局样式
+│       ├── manage-panel.css      # 管理面板样式
+│       ├── modal.css             # 模态框样式
+│       └── responsive.css        # 响应式样式
+├── dist/                         # 构建输出目录
+├── index.html                    # HTML 入口文件
+├── package.json                  # 项目配置
+└── README.md                     # 项目说明
+```
+
+## 开发
+
+### 安装依赖
+
+```bash
+npm install
+```
+
+### 开发模式
+
+```bash
+npm run dev
+```
+
+启动开发服务器，默认地址为 `http://localhost:5173`
+
+### 生产构建
+
+```bash
+npm run build
+```
+
+构建输出到 `dist/` 目录
+
+### 预览生产构建
+
+```bash
+npm run preview
+```
 
 ### 直接打开
 
 1. 克隆或下载此项目
-2. 在浏览器中打开 `index.html`
-
-### 本地服务器（可选）
-
-```bash
-# 使用 Python 启动简单 HTTP 服务器
-python -m http.server 8000
-
-# 或使用 Node.js 的 http-server
-npx http-server
-```
-
-然后访问 `http://localhost:8000`
+2. 在浏览器中打开 `index.html`（需确保样式文件路径正确）
 
 ## 核心功能使用说明
+
+## 核心功能使用说明
+
+### 模块说明
+
+- **storage.js**: 数据持久化层，提供所有 CRUD 操作
+- **modules/theme.js**: 主题切换逻辑（浅色/深色/跟随系统）
+- **modules/search.js**: 搜索功能实现
+- **modules/bookmarks.js**: 书签展示和交互
+- **modules/managePanel.js**: 管理面板整体逻辑
+- **modules/modals.js**: 模态框通用功能
+- **modules/linkManager.js**: 链接的增删改查
+- **modules/groupManager.js**: 分组的增删改查
+- **modules/searchEngineManager.js**: 搜索引擎配置管理
 
 ### 添加分组和链接
 

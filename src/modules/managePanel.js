@@ -147,7 +147,6 @@ function handleImport(e) {
     function (data) {
       alert('数据导入成功');
       e.target.value = ''; // 重置文件输入
-      renderBookmarks();
       renderManageContent();
     },
     function (error) {
@@ -155,13 +154,4 @@ function handleImport(e) {
       e.target.value = ''; // 重置文件输入
     }
   );
-}
-
-/**
- * 渲染书签(用于导入后刷新)
- */
-function renderBookmarks() {
-  import('./bookmarks.js').then(module => {
-    module.renderBookmarks();
-  });
 }

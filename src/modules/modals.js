@@ -1,5 +1,7 @@
 // ==================== 模态框管理模块 ====================
 
+import * as groupManager from './groupManager.js';
+
 /**
  * 初始化模态框
  */
@@ -7,7 +9,7 @@ export function initModals() {
   // 分组表单提交
   document.getElementById('group-form').addEventListener('submit', function (e) {
     e.preventDefault();
-    saveGroup();
+    groupManager.saveGroup();
   });
 
   // 点击模态框外部关闭
@@ -25,14 +27,5 @@ export function initModals() {
     if (e.key === 'Escape') {
       modals.forEach(modal => modal.classList.add('hidden'));
     }
-  });
-}
-
-/**
- * 保存分组(从groupManager模块调用)
- */
-function saveGroup() {
-  import('./groupManager.js').then(module => {
-    module.saveGroup();
   });
 }

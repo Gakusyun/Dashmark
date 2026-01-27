@@ -3,12 +3,12 @@
 
 import { initTheme } from './modules/theme.js';
 import { initSearch } from './modules/search.js';
-import { initBookmarks } from './modules/bookmarks.js';
+import { initBookmarks, renderBookmarks } from './modules/bookmarks.js';
 import { initManagePanel, initTabs } from './modules/managePanel.js';
 import { initModals } from './modules/modals.js';
-import { closeLinkModal } from './modules/linkManager.js';
-import { closeGroupModal } from './modules/groupManager.js';
-import { closeSearchEngineModal } from './modules/searchEngineManager.js';
+import * as linkManager from './modules/linkManager.js';
+import * as groupManager from './modules/groupManager.js';
+import * as searchEngineManager from './modules/searchEngineManager.js';
 
 // ==================== 应用初始化 ====================
 
@@ -23,6 +23,9 @@ document.addEventListener('DOMContentLoaded', function () {
 
 // ==================== 将函数暴露给全局 (用于 HTML 中的 onclick) ====================
 
-window.closeLinkModal = closeLinkModal;
-window.closeGroupModal = closeGroupModal;
-window.closeSearchEngineModal = closeSearchEngineModal;
+window.closeLinkModal = linkManager.closeLinkModal;
+window.closeGroupModal = groupManager.closeGroupModal;
+window.closeSearchEngineModal = searchEngineManager.closeSearchEngineModal;
+
+// 暴露书签刷新函数供其他模块调用
+window.refreshBookmarks = renderBookmarks;

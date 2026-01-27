@@ -1,6 +1,18 @@
 // ==================== 链接管理模块 ====================
 
-import { getLinks, addLink, updateLink, deleteLink, batchDeleteLinks as batchDeleteLinksStorage } from '../storage.js';
+import { getGroups, getLinks, addLink, updateLink, deleteLink, batchDeleteLinks as batchDeleteLinksStorage } from '../storage.js';
+
+// 刷新书签显示的辅助函数
+function refreshBookmarks() {
+  if (window.refreshBookmarks) {
+    window.refreshBookmarks();
+  }
+}
+
+// 刷新分组列表的辅助函数
+function refreshGroupsList() {
+  import('./groupManager.js').then(m => m.renderGroupsList());
+}
 
 let selectedLinks = new Set();
 
@@ -95,12 +107,10 @@ export function openEditLinkModal(linkId) {
  * 打开链接模态框
  */
 function openLinkModal(link = null) {
-  const { getGroups, addGroup } = import('../storage.js').then(m => m);
-  import('../storage.js').then(({ getGroups, addGroup }) => {
-    const modal = document.getElementById('link-modal');
-    const title = document.getElementById('link-modal-title');
-    const form = document.getElementById('link-form');
-    const groups = getGroups();
+  const modal = document.getElementById('link-modal');
+  const title = document.getElementById('link-modal-title');
+  const form = document.getElementById('link-form');
+  const groups = getGroups();
 
     // 设置标题
     title.textContent = link ? '编辑链接' : '添加链接';
@@ -205,7 +215,8 @@ function openLinkModal(link = null) {
             document.getElementById('link-form').querySelector('button[type="submit"]').disabled = false;
 
             // 重新渲染分组列表以反映更新
-            import('./groupManager.js').then(m => m.renderGroupsList());
+            refreshGroupsList();
+            refreshBookmarks();
           } else {
             // 如果为空,移除输入框
             inputDiv.remove();
@@ -233,7 +244,6 @@ function openLinkModal(link = null) {
       e.preventDefault();
       saveLink();
     };
-  });
 }
 
 /**
@@ -248,39 +258,36 @@ export function closeLinkModal() {
  * 保存链接
  */
 function saveLink() {
-  import('../storage.js').then(({ updateLink, addLink }) => {
-    const id = document.getElementById('link-id').value;
-    const title = document.getElementById('link-title').value.trim();
-    let url = document.getElementById('link-url').value.trim();
-    const groupIds = [];
+  const id = document.getElementById('link-id').value;
+  const title = document.getElementById('link-title').value.trim();
+  let url = document.getElementById('link-url').value.trim();
+  const groupIds = [];
 
-    // 处理 URL:如果没有协议,自动添加 https://
-    if (url && !url.startsWith('http://') && !url.startsWith('https://')) {
-      url = 'https://' + url;
-    }
+  // 处理 URL:如果没有协议,自动添加 https://
+  if (url && !url.startsWith('http://') && !url.startsWith('https://')) {
+    url = 'https://' + url;
+  }
 
-    // 获取选中的分组
-    const checkboxes = document.querySelectorAll('#link-groups input[type="checkbox"]:checked');
-    checkboxes.forEach(cb => groupIds.push(cb.value));
+  // 获取选中的分组
+  const checkboxes = document.querySelectorAll('#link-groups input[type="checkbox"]:checked');
+  checkboxes.forEach(cb => groupIds.push(cb.value));
 
-    // 验证至少选择一个分组
-    if (groupIds.length === 0) {
-      alert('请至少选择一个分组');
-      return;
-    }
+  // 验证至少选择一个分组
+  if (groupIds.length === 0) {
+    alert('请至少选择一个分组');
+    return;
+  }
 
-    if (id) {
-      // 更新链接
-      updateLink(id, title, url, groupIds);
-    } else {
-      // 添加链接
-      addLink(title, url, groupIds);
-    }
+  if (id) {
+    // 更新链接
+    updateLink(id, title, url, groupIds);
+  } else {
+    // 添加链接
+    addLink(title, url, groupIds);
+  }
 
-    closeLinkModal();
-    renderLinksList();
-    import('./bookmarks.js').then(m => m.renderBookmarks());
-  });
+  closeLinkModal();
+  renderLinksList();
 }
 
 /**
@@ -288,11 +295,8 @@ function saveLink() {
  */
 function confirmDeleteLink(linkId) {
   if (confirm('确定要删除这个链接吗?')) {
-    import('../storage.js').then(({ deleteLink }) => {
-      deleteLink(linkId);
-      renderLinksList();
-      import('./bookmarks.js').then(m => m.renderBookmarks());
-    });
+    deleteLink(linkId);
+    renderLinksList();
   }
 }
 
@@ -309,6 +313,5 @@ export function batchDeleteLinks() {
     batchDeleteLinksStorage(Array.from(selectedLinks));
     selectedLinks.clear();
     renderLinksList();
-    import('./bookmarks.js').then(m => m.renderBookmarks());
   }
 }

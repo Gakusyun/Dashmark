@@ -2,6 +2,13 @@
 
 import { getGroups, getLinks, getLinksByGroupId, addGroup, updateGroup, deleteGroup } from '../storage.js';
 
+// 刷新书签显示的辅助函数
+function refreshBookmarks() {
+  if (window.refreshBookmarks) {
+    window.refreshBookmarks();
+  }
+}
+
 /**
  * 渲染分组列表
  */
@@ -114,7 +121,7 @@ export function saveGroup() {
 
   closeGroupModal();
   renderGroupsList();
-  import('./bookmarks.js').then(m => m.renderBookmarks());
+  refreshBookmarks();
 }
 
 /**
@@ -135,5 +142,5 @@ function confirmDeleteGroup(groupId) {
 
   deleteGroup(groupId);
   renderGroupsList();
-  import('./bookmarks.js').then(m => m.renderBookmarks());
+  refreshBookmarks();
 }
