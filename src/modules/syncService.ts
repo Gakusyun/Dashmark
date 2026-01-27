@@ -14,6 +14,7 @@ import {
   uploadFile,
   listFiles,
   deleteFile,
+  testConnection as testWebDAVConnection,
   type WebDAVError
 } from './webdav.ts';
 
@@ -133,8 +134,7 @@ export async function testConnection(): Promise<boolean> {
   }
 
   try {
-    const webdav = await import('./webdav.ts');
-    return await webdav.testConnection(config);
+    return await testWebDAVConnection(config);
   } catch (error) {
     console.error('Test connection failed:', error);
     return false;

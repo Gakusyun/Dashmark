@@ -10,7 +10,7 @@ import * as linkManager from './modules/linkManager.ts';
 import * as groupManager from './modules/groupManager.ts';
 import * as searchEngineManager from './modules/searchEngineManager.ts';
 import { initWebDAVManager } from './modules/webdavManager.ts';
-import { checkAndAutoSync } from './modules/syncService.ts';
+import { checkAndAutoSync, scheduleAutoSync } from './modules/syncService.ts';
 
 // 扩展 Window 接口以包含全局函数
 declare global {
@@ -35,6 +35,11 @@ document.addEventListener('DOMContentLoaded', function () {
 
   // 检查是否需要自动同步
   checkAndAutoSync();
+
+  // 监听数据保存事件，触发自动同步
+  window.addEventListener('data-saved', () => {
+    scheduleAutoSync();
+  });
 });
 
 // ==================== 将函数暴露给全局 (用于 HTML 中的 onclick) ====================

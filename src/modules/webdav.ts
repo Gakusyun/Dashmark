@@ -230,7 +230,6 @@ export async function listFiles(config: WebDAVConfig): Promise<{ name: string; s
 
   for (let i = 0; i < responses.length; i++) {
     const response = responses[i];
-    const href = response.getElementsByTagNameNS('DAV:', 'href')[0]?.textContent || '';
     const displayname = response.getElementsByTagNameNS('DAV:', 'displayname')[0]?.textContent || '';
     const size = parseInt(response.getElementsByTagNameNS('DAV:', 'getcontentlength')[0]?.textContent || '0', 10);
     const lastModified = response.getElementsByTagNameNS('DAV:', 'getlastmodified')[0]?.textContent || '';

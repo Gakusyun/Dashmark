@@ -140,28 +140,15 @@ export function saveData(data: Data): boolean {
   try {
     localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
 
-    // 数据修改后触发同步检查（异步，不阻塞保存）
-    triggerAutoSync();
+    // 触发自定义事件，通知数据已保存
+    const event = new CustomEvent('data-saved');
+    window.dispatchEvent(event);
 
     return true;
   } catch (error) {
     console.error('Failed to save data:', error);
     return false;
   }
-}
-
-/**
- * 触发自动同步检查（异步）
- */
-function triggerAutoSync(): void {
-  // 使用 setTimeout 异步触发，避免阻塞主线程
-  setTimeout(() => {
-    import('./modules/syncService.ts').then(module => {
-      module.scheduleAutoSync();
-    }).catch(error => {
-      console.error('Failed to trigger auto sync:', error);
-    });
-  }, 0);
 }
 
 /**
