@@ -4,11 +4,191 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Hello World</title>
+  <title>Dashmark - 极简起始页</title>
+  <link rel="stylesheet" href="./src/styles.css">
 </head>
 
 <body>
-  Hello world
+  <div class="container">
+    <!-- 顶部操作栏 -->
+    <header class="header">
+      <h1 class="logo btn-manage">Dashmark</h1>
+    </header>
+
+    <!-- 搜索框 -->
+    <div class="search-container">
+      <form id="search-form" class="search-form">
+        <input type="text" id="search-input" class="search-input" placeholder="输入搜索内容..." autocomplete="off">
+        <button type="submit" class="search-btn">搜索</button>
+      </form>
+    </div>
+
+    <!-- 分组和链接展示区 -->
+    <main id="bookmarks-container" class="bookmarks-container">
+      <!-- 动态渲染 -->
+    </main>
+
+    <!-- 底栏 -->
+    <footer class="footer">
+      <a target="_blank" href="https://beian.miit.gov.cn/">鄂ICP备2024069158号-3</a>
+    </footer>
+
+    <!-- 管理面板 -->
+    <div id="manage-panel" class="manage-panel hidden">
+      <div class="panel-content">
+        <div class="panel-header">
+          <h2>管理收藏</h2>
+          <button id="btn-close-panel" class="btn-close">×</button>
+        </div>
+
+        <!-- 标签页 -->
+        <div class="tabs">
+          <button class="tab-btn active" data-tab="links">链接</button>
+          <button class="tab-btn" data-tab="groups">分组</button>
+          <button class="tab-btn" data-tab="settings">设置</button>
+          <button class="tab-btn" data-tab="data">数据</button>
+        </div>
+
+        <!-- 链接标签页 -->
+        <div id="tab-links" class="tab-content active">
+          <div class="tab-actions">
+            <button id="btn-add-link" class="btn-primary">添加链接</button>
+            <button id="btn-batch-delete" class="btn-danger">批量删除</button>
+          </div>
+          <div id="links-list" class="manage-list">
+            <!-- 动态渲染 -->
+          </div>
+        </div>
+
+        <!-- 分组标签页 -->
+        <div id="tab-groups" class="tab-content">
+          <div class="tab-actions">
+            <button id="btn-add-group" class="btn-primary">添加分组</button>
+          </div>
+          <div id="groups-list" class="manage-list">
+            <!-- 动态渲染 -->
+          </div>
+        </div>
+
+        <!-- 设置标签页 -->
+        <div id="tab-settings" class="tab-content">
+          <h3>主题设置</h3>
+          <div class="form-group">
+            <div class="label">深色模式</div>
+            <select id="dark-mode-select" class="form-control">
+              <option value="auto">跟随系统</option>
+              <option value="light">浅色</option>
+              <option value="dark">深色</option>
+            </select>
+          </div>
+
+          <h3>搜索引擎设置</h3>
+          <div class="form-group">
+            <div class="label">默认搜索引擎</div>
+            <select id="default-search-engine" class="form-control">
+              <!-- 动态渲染 -->
+            </select>
+          </div>
+          <div class="tab-actions">
+            <button id="btn-add-search-engine" class="btn-primary">添加搜索引擎</button>
+          </div>
+          <div id="search-engines-list" class="manage-list">
+            <!-- 动态渲染 -->
+          </div>
+        </div>
+
+        <!-- 数据标签页 -->
+        <div id="tab-data" class="tab-content">
+          <div class="data-actions">
+            <button id="btn-export" class="btn-primary">导出数据</button>
+            <button id="btn-import" class="btn-primary">导入数据</button>
+            <input type="file" id="import-file" class="hidden" accept=".json">
+          </div>
+          <p class="help-text">数据以 JSON 格式存储在本地浏览器中。</p>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 链接编辑/添加模态框 -->
+  <div id="link-modal" class="modal hidden">
+    <div class="modal-content">
+      <div class="modal-header">
+        <div id="link-modal-title" class="link-modal-title">添加链接</div>
+        <button class="modal-close" onclick="closeLinkModal()">×</button>
+      </div>
+      <form id="link-form">
+        <input type="hidden" id="link-id">
+        <div class="form-group">
+          <label for="link-title">标题</label>
+          <input type="text" id="link-title" required>
+        </div>
+        <div class="form-group">
+          <label for="link-url">URL</label>
+          <input type="text" id="link-url" required placeholder="example.com 或 https://example.com">
+        </div>
+        <div class="form-group">
+          <label>分组</label>
+          <div id="link-groups" class="checkbox-group">
+            <!-- 动态渲染 -->
+          </div>
+        </div>
+        <div class="modal-actions">
+          <button type="button" class="btn-secondary" onclick="closeLinkModal()">取消</button>
+          <button type="submit" class="btn-primary">保存</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- 分组编辑/添加模态框 -->
+  <div id="group-modal" class="modal hidden">
+    <div class="modal-content">
+      <div class="modal-header">
+        <div class="link-modal-title" id="group-modal-title">添加分组</div>
+        <button class="modal-close" onclick="closeGroupModal()">×</button>
+      </div>
+      <form id="group-form">
+        <input type="hidden" id="group-id">
+        <div class="form-group">
+          <label for="group-name">分组名称 *</label>
+          <input type="text" id="group-name" required>
+        </div>
+        <div class="modal-actions">
+          <button type="button" class="btn-secondary" onclick="closeGroupModal()">取消</button>
+          <button type="submit" class="btn-primary">保存</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- 搜索引擎编辑/添加模态框 -->
+  <div id="search-engine-modal" class="modal hidden">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h3 id="search-engine-modal-title">添加搜索引擎</h3>
+        <button class="modal-close" onclick="closeSearchEngineModal()">×</button>
+      </div>
+      <form id="search-engine-form">
+        <input type="hidden" id="search-engine-id">
+        <div class="form-group">
+          <label for="search-engine-name">名称 *</label>
+          <input type="text" id="search-engine-name" required placeholder="例如：必应">
+        </div>
+        <div class="form-group">
+          <label for="search-engine-url">搜索URL *</label>
+          <input type="text" id="search-engine-url" required placeholder="例如：https://www.bing.com/search?q=">
+          <p class="help-text">URL 中使用 {q} 作为搜索关键词的占位符，例如：https://example.com/search?q={q}</p>
+        </div>
+        <div class="modal-actions">
+          <button type="button" class="btn-secondary" onclick="closeSearchEngineModal()">取消</button>
+          <button type="submit" class="btn-primary">保存</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <script type="module" src="src/app.js"></script>
 </body>
 
 </html>
