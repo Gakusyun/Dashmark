@@ -1,13 +1,13 @@
 // ==================== 搜索功能模块 ====================
 
-import { getSettings, getSearchEngineConfig } from '../storage.js';
+import { getSettings, getSearchEngineConfig } from '../storage.ts';
 
 /**
  * 初始化搜索功能
  */
-export function initSearch() {
+export function initSearch(): void {
   // 监听搜索表单提交
-  const searchForm = document.getElementById('search-form');
+  const searchForm = document.getElementById('search-form') as HTMLFormElement;
   searchForm.addEventListener('submit', function (e) {
     e.preventDefault();
     performSearch();
@@ -21,8 +21,8 @@ export function initSearch() {
 /**
  * 执行搜索
  */
-export function performSearch() {
-  const searchInput = document.getElementById('search-input');
+export function performSearch(): void {
+  const searchInput = document.getElementById('search-input') as HTMLInputElement;
   const query = searchInput.value.trim();
 
   if (!query) {

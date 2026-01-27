@@ -1,21 +1,22 @@
 // ==================== 书签展示模块 ====================
 
-import { getGroups, getLinks } from '../storage.js';
+import { getGroups, getLinks } from '../storage.ts';
+import type { Link, Group } from '../storage.ts';
 
-let currentGroupId = null; // 当前全屏展示的分组ID,null 表示显示全部
+let currentGroupId: string | null = null; // 当前全屏展示的分组ID,null 表示显示全部
 
 /**
  * 初始化书签展示
  */
-export function initBookmarks() {
+export function initBookmarks(): void {
   renderBookmarks();
 }
 
 /**
  * 渲染书签
  */
-export function renderBookmarks() {
-  const container = document.getElementById('bookmarks-container');
+export function renderBookmarks(): void {
+  const container = document.getElementById('bookmarks-container') as HTMLElement;
   const groups = getGroups();
   const links = getLinks();
 
@@ -48,7 +49,7 @@ export function renderBookmarks() {
     groupSection.style.cursor = 'pointer';
     groupSection.addEventListener('click', (e) => {
       // 如果点击的是链接卡片,不触发分组跳转
-      if (e.target.closest('.link-card')) {
+      if (e.target && (e.target as HTMLElement).closest('.link-card')) {
         return;
       }
       currentGroupId = group.id;
@@ -95,7 +96,7 @@ export function renderBookmarks() {
 /**
  * 渲染单个分组
  */
-function renderSingleGroup(container, group, allLinks) {
+function renderSingleGroup(container: HTMLElement, group: Group, allLinks: Link[]): void {
   const groupLinks = allLinks.filter(link => link.groupIds.includes(group.id));
 
   // 返回按钮

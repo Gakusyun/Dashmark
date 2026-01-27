@@ -1,14 +1,24 @@
 // ==================== 主应用入口 ====================
 // 该文件负责初始化所有模块并暴露全局函数
 
-import { initTheme } from './modules/theme.js';
-import { initSearch } from './modules/search.js';
-import { initBookmarks, renderBookmarks } from './modules/bookmarks.js';
-import { initManagePanel, initTabs } from './modules/managePanel.js';
-import { initModals } from './modules/modals.js';
-import * as linkManager from './modules/linkManager.js';
-import * as groupManager from './modules/groupManager.js';
-import * as searchEngineManager from './modules/searchEngineManager.js';
+import { initTheme } from './modules/theme.ts';
+import { initSearch } from './modules/search.ts';
+import { initBookmarks, renderBookmarks } from './modules/bookmarks.ts';
+import { initManagePanel, initTabs } from './modules/managePanel.ts';
+import { initModals } from './modules/modals.ts';
+import * as linkManager from './modules/linkManager.ts';
+import * as groupManager from './modules/groupManager.ts';
+import * as searchEngineManager from './modules/searchEngineManager.ts';
+
+// 扩展 Window 接口以包含全局函数
+declare global {
+  interface Window {
+    closeLinkModal: () => void;
+    closeGroupModal: () => void;
+    closeSearchEngineModal: () => void;
+    refreshBookmarks: () => void;
+  }
+}
 
 // ==================== 应用初始化 ====================
 

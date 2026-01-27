@@ -1,9 +1,10 @@
 // ==================== 分组管理模块 ====================
 
-import { getGroups, getLinks, getLinksByGroupId, addGroup, updateGroup, deleteGroup } from '../storage.js';
+import { getGroups, getLinks, getLinksByGroupId, addGroup, updateGroup, deleteGroup } from '../storage.ts';
+import type { Group } from '../storage.ts';
 
 // 刷新书签显示的辅助函数
-function refreshBookmarks() {
+function refreshBookmarks(): void {
   if (window.refreshBookmarks) {
     window.refreshBookmarks();
   }
@@ -12,8 +13,8 @@ function refreshBookmarks() {
 /**
  * 渲染分组列表
  */
-export function renderGroupsList() {
-  const container = document.getElementById('groups-list');
+export function renderGroupsList(): void {
+  const container = document.getElementById('groups-list') as HTMLElement;
   const groups = getGroups();
   const links = getLinks();
 
@@ -69,14 +70,14 @@ export function renderGroupsList() {
 /**
  * 打开添加分组模态框
  */
-export function openAddGroupModal() {
+export function openAddGroupModal(): void {
   openGroupModal();
 }
 
 /**
  * 打开编辑分组模态框
  */
-export function openEditGroupModal(groupId) {
+export function openEditGroupModal(groupId: string): void {
   const group = getGroups().find(g => g.id === groupId);
   if (group) {
     openGroupModal(group);
@@ -86,14 +87,14 @@ export function openEditGroupModal(groupId) {
 /**
  * 打开分组模态框
  */
-function openGroupModal(group = null) {
-  const modal = document.getElementById('group-modal');
-  const title = document.getElementById('group-modal-title');
+function openGroupModal(group: Group | null = null): void {
+  const modal = document.getElementById('group-modal') as HTMLElement;
+  const title = document.getElementById('group-modal-title') as HTMLElement;
 
   title.textContent = group ? '编辑分组' : '添加分组';
 
-  document.getElementById('group-id').value = group ? group.id : '';
-  document.getElementById('group-name').value = group ? group.name : '';
+  (document.getElementById('group-id') as HTMLInputElement).value = group ? group.id : '';
+  (document.getElementById('group-name') as HTMLInputElement).value = group ? group.name : '';
 
   modal.classList.remove('hidden');
 }
@@ -101,17 +102,18 @@ function openGroupModal(group = null) {
 /**
  * 关闭分组模态框
  */
-export function closeGroupModal() {
-  document.getElementById('group-modal').classList.add('hidden');
-  document.getElementById('group-form').reset();
+export function closeGroupModal(): void {
+  const modal = document.getElementById('group-modal') as HTMLElement;
+  modal.classList.add('hidden');
+  (document.getElementById('group-form') as HTMLFormElement).reset();
 }
 
 /**
  * 保存分组
  */
-export function saveGroup() {
-  const id = document.getElementById('group-id').value;
-  const name = document.getElementById('group-name').value.trim();
+export function saveGroup(): void {
+  const id = (document.getElementById('group-id') as HTMLInputElement).value;
+  const name = (document.getElementById('group-name') as HTMLInputElement).value.trim();
 
   if (id) {
     updateGroup(id, name);
@@ -127,7 +129,7 @@ export function saveGroup() {
 /**
  * 确认删除分组
  */
-function confirmDeleteGroup(groupId) {
+function confirmDeleteGroup(groupId: string): void {
   const links = getLinksByGroupId(groupId);
 
   if (links.length > 0) {

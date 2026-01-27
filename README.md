@@ -25,17 +25,17 @@
 ```
 dashmark/
 ├── src/
-│   ├── app.js                    # 主应用入口
-│   ├── storage.js                # 数据存储层（localStorage 操作）
+│   ├── app.ts                    # 主应用入口
+│   ├── storage.ts                # 数据存储层（localStorage 操作）
 │   ├── modules/                  # 功能模块
-│   │   ├── theme.js              # 主题管理
-│   │   ├── search.js             # 搜索功能
-│   │   ├── bookmarks.js          # 书签展示
-│   │   ├── managePanel.js        # 管理面板
-│   │   ├── modals.js             # 模态框管理
-│   │   ├── linkManager.js        # 链接管理
-│   │   ├── groupManager.js       # 分组管理
-│   │   └── searchEngineManager.js # 搜索引擎管理
+│   │   ├── theme.ts              # 主题管理
+│   │   ├── search.ts             # 搜索功能
+│   │   ├── bookmarks.ts          # 书签展示
+│   │   ├── managePanel.ts        # 管理面板
+│   │   ├── modals.ts             # 模态框管理
+│   │   ├── linkManager.ts        # 链接管理
+│   │   ├── groupManager.ts       # 分组管理
+│   │   └── searchEngineManager.ts # 搜索引擎管理
 │   └── styles/                   # 样式模块
 │       ├── variables.css         # CSS 变量（主题定义）
 │       ├── base.css              # 基础样式
@@ -91,15 +91,15 @@ npm run preview
 
 ### 模块说明
 
-- **storage.js**: 数据持久化层，提供所有 CRUD 操作
-- **modules/theme.js**: 主题切换逻辑（浅色/深色/跟随系统）
-- **modules/search.js**: 搜索功能实现
-- **modules/bookmarks.js**: 书签展示和交互
-- **modules/managePanel.js**: 管理面板整体逻辑
-- **modules/modals.js**: 模态框通用功能
-- **modules/linkManager.js**: 链接的增删改查
-- **modules/groupManager.js**: 分组的增删改查
-- **modules/searchEngineManager.js**: 搜索引擎配置管理
+- **storage.ts**: 数据持久化层，提供所有 CRUD 操作
+- **modules/theme.ts**: 主题切换逻辑（浅色/深色/跟随系统）
+- **modules/search.ts**: 搜索功能实现
+- **modules/bookmarks.ts**: 书签展示和交互
+- **modules/managePanel.ts**: 管理面板整体逻辑
+- **modules/modals.ts**: 模态框通用功能
+- **modules/linkManager.ts**: 链接的增删改查
+- **modules/groupManager.ts**: 分组的增删改查
+- **modules/searchEngineManager.ts**: 搜索引擎配置管理
 
 ### 添加分组和链接
 

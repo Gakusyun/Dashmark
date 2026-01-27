@@ -1,22 +1,22 @@
 // ==================== 搜索引擎管理模块 ====================
 
-import { loadData, getSettings, updateSettings, getAllSearchEngines, addSearchEngine, updateSearchEngine, deleteSearchEngine } from '../storage.js';
+import { loadData, getSettings, updateSettings, getAllSearchEngines, addSearchEngine, updateSearchEngine, deleteSearchEngine } from '../storage.ts';
+import type { SearchEngine } from '../storage.ts';
 
 /**
  * 渲染设置页面
  */
-export function renderSettings() {
+export function renderSettings(): void {
   const settings = getSettings();
-  const data = loadData();
 
   // 渲染主题设置
-  const darkModeSelect = document.getElementById('dark-mode-select');
+  const darkModeSelect = document.getElementById('dark-mode-select') as HTMLSelectElement;
   if (darkModeSelect) {
     darkModeSelect.value = settings.darkMode;
   }
 
   // 渲染默认搜索引擎
-  const defaultSearchEngineSelect = document.getElementById('default-search-engine');
+  const defaultSearchEngineSelect = document.getElementById('default-search-engine') as HTMLSelectElement;
   const allEngines = getAllSearchEngines();
   defaultSearchEngineSelect.innerHTML = '';
   allEngines.forEach(engine => {
@@ -41,10 +41,10 @@ export function renderSettings() {
 /**
  * 渲染搜索引擎列表
  */
-function renderSearchEnginesList() {
-  const container = document.getElementById('search-engines-list');
-  const data = loadData();
-  const userEngines = data.searchEngines;
+function renderSearchEnginesList(): void {
+  const container = document.getElementById('search-engines-list') as HTMLElement;
+  const loadedData = loadData();
+  const userEngines = loadedData.searchEngines;
 
   if (userEngines.length === 0) {
     container.innerHTML = '<div style="text-align: center; padding: 20px; color: var(--text-secondary);">暂无自定义搜索引擎</div>';
@@ -96,16 +96,16 @@ function renderSearchEnginesList() {
 /**
  * 打开添加搜索引擎模态框
  */
-export function openAddSearchEngineModal() {
+export function openAddSearchEngineModal(): void {
   openSearchEngineModal();
 }
 
 /**
  * 打开编辑搜索引擎模态框
  */
-export function openEditSearchEngineModal(engineId) {
-  const data = loadData();
-  const engine = data.searchEngines.find(e => e.id === engineId);
+export function openEditSearchEngineModal(engineId: string): void {
+  const loadedData = loadData();
+  const engine = loadedData.searchEngines.find(e => e.id === engineId);
   if (engine) {
     openSearchEngineModal(engine);
   }
@@ -114,16 +114,16 @@ export function openEditSearchEngineModal(engineId) {
 /**
  * 打开搜索引擎模态框
  */
-function openSearchEngineModal(engine = null) {
-  const modal = document.getElementById('search-engine-modal');
-  const title = document.getElementById('search-engine-modal-title');
-  const form = document.getElementById('search-engine-form');
+function openSearchEngineModal(engine: SearchEngine | null = null): void {
+  const modal = document.getElementById('search-engine-modal') as HTMLElement;
+  const title = document.getElementById('search-engine-modal-title') as HTMLElement;
+  const form = document.getElementById('search-engine-form') as HTMLFormElement;
 
   title.textContent = engine ? '编辑搜索引擎' : '添加搜索引擎';
 
-  document.getElementById('search-engine-id').value = engine ? engine.id : '';
-  document.getElementById('search-engine-name').value = engine ? engine.name : '';
-  document.getElementById('search-engine-url').value = engine ? engine.url : '';
+  (document.getElementById('search-engine-id') as HTMLInputElement).value = engine ? engine.id : '';
+  (document.getElementById('search-engine-name') as HTMLInputElement).value = engine ? engine.name : '';
+  (document.getElementById('search-engine-url') as HTMLInputElement).value = engine ? engine.url : '';
 
   modal.classList.remove('hidden');
 
@@ -136,18 +136,19 @@ function openSearchEngineModal(engine = null) {
 /**
  * 关闭搜索引擎模态框
  */
-export function closeSearchEngineModal() {
-  document.getElementById('search-engine-modal').classList.add('hidden');
-  document.getElementById('search-engine-form').reset();
+export function closeSearchEngineModal(): void {
+  const modal = document.getElementById('search-engine-modal') as HTMLElement;
+  modal.classList.add('hidden');
+  (document.getElementById('search-engine-form') as HTMLFormElement).reset();
 }
 
 /**
  * 保存搜索引擎
  */
-function saveSearchEngine() {
-  const id = document.getElementById('search-engine-id').value;
-  const name = document.getElementById('search-engine-name').value.trim();
-  const url = document.getElementById('search-engine-url').value.trim();
+function saveSearchEngine(): void {
+  const id = (document.getElementById('search-engine-id') as HTMLInputElement).value;
+  const name = (document.getElementById('search-engine-name') as HTMLInputElement).value.trim();
+  const url = (document.getElementById('search-engine-url') as HTMLInputElement).value.trim();
 
   if (id) {
     updateSearchEngine(id, name, url);
@@ -163,7 +164,7 @@ function saveSearchEngine() {
 /**
  * 确认删除搜索引擎
  */
-function confirmDeleteSearchEngine(engineId) {
+function confirmDeleteSearchEngine(engineId: string): void {
   if (confirm('确定要删除这个搜索引擎吗?')) {
     deleteSearchEngine(engineId);
     renderSearchEnginesList();

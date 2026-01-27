@@ -1,13 +1,14 @@
 // ==================== 模态框管理模块 ====================
 
-import * as groupManager from './groupManager.js';
+import * as groupManager from './groupManager.ts';
 
 /**
  * 初始化模态框
  */
-export function initModals() {
+export function initModals(): void {
   // 分组表单提交
-  document.getElementById('group-form').addEventListener('submit', function (e) {
+  const groupForm = document.getElementById('group-form') as HTMLFormElement;
+  groupForm.addEventListener('submit', function (e) {
     e.preventDefault();
     groupManager.saveGroup();
   });
