@@ -11,6 +11,13 @@ function refreshBookmarks(): void {
 }
 
 /**
+ * 获取表单元素的辅助函数
+ */
+function getFormValue(id: string): string {
+  return (document.getElementById(id) as HTMLInputElement).value;
+}
+
+/**
  * 渲染分组列表
  */
 export function renderGroupsList(): void {
@@ -30,39 +37,20 @@ export function renderGroupsList(): void {
 
     const item = document.createElement('div');
     item.className = 'manage-item';
+    item.innerHTML = `
+      <div class="manage-item-info">
+        <div class="manage-item-title">${group.name}</div>
+        <div class="manage-item-subtitle">${groupLinks.length} 个链接</div>
+      </div>
+      <div class="manage-item-actions">
+        <button class="btn-secondary">编辑</button>
+        <button class="btn-danger">删除</button>
+      </div>
+    `;
 
-    const info = document.createElement('div');
-    info.className = 'manage-item-info';
+    item.querySelector('.btn-secondary')?.addEventListener('click', () => openEditGroupModal(group.id));
+    item.querySelector('.btn-danger')?.addEventListener('click', () => confirmDeleteGroup(group.id));
 
-    const title = document.createElement('div');
-    title.className = 'manage-item-title';
-    title.textContent = group.name;
-
-    const subtitle = document.createElement('div');
-    subtitle.className = 'manage-item-subtitle';
-    subtitle.textContent = `${groupLinks.length} 个链接`;
-
-    info.appendChild(title);
-    info.appendChild(subtitle);
-
-    const actions = document.createElement('div');
-    actions.className = 'manage-item-actions';
-
-    const editBtn = document.createElement('button');
-    editBtn.className = 'btn-secondary';
-    editBtn.textContent = '编辑';
-    editBtn.addEventListener('click', () => openEditGroupModal(group.id));
-
-    const deleteBtn = document.createElement('button');
-    deleteBtn.className = 'btn-danger';
-    deleteBtn.textContent = '删除';
-    deleteBtn.addEventListener('click', () => confirmDeleteGroup(group.id));
-
-    actions.appendChild(editBtn);
-    actions.appendChild(deleteBtn);
-
-    item.appendChild(info);
-    item.appendChild(actions);
     container.appendChild(item);
   });
 }
@@ -92,9 +80,8 @@ function openGroupModal(group: Group | null = null): void {
   const title = document.getElementById('group-modal-title') as HTMLElement;
 
   title.textContent = group ? '编辑分组' : '添加分组';
-
-  (document.getElementById('group-id') as HTMLInputElement).value = group ? group.id : '';
-  (document.getElementById('group-name') as HTMLInputElement).value = group ? group.name : '';
+  (document.getElementById('group-id') as HTMLInputElement).value = group?.id || '';
+  (document.getElementById('group-name') as HTMLInputElement).value = group?.name || '';
 
   modal.classList.remove('hidden');
 }
@@ -112,14 +99,10 @@ export function closeGroupModal(): void {
  * 保存分组
  */
 export function saveGroup(): void {
-  const id = (document.getElementById('group-id') as HTMLInputElement).value;
-  const name = (document.getElementById('group-name') as HTMLInputElement).value.trim();
+  const id = getFormValue('group-id');
+  const name = getFormValue('group-name').trim();
 
-  if (id) {
-    updateGroup(id, name);
-  } else {
-    addGroup(name);
-  }
+  id ? updateGroup(id, name) : addGroup(name);
 
   closeGroupModal();
   renderGroupsList();
@@ -131,18 +114,13 @@ export function saveGroup(): void {
  */
 function confirmDeleteGroup(groupId: string): void {
   const links = getLinksByGroupId(groupId);
+  const confirmMsg = links.length > 0
+    ? `该分组下有 ${links.length} 个链接,删除分组将同时删除这些链接。确定要删除吗?`
+    : '确定要删除这个分组吗?';
 
-  if (links.length > 0) {
-    if (!confirm(`该分组下有 ${links.length} 个链接,删除分组将同时删除这些链接。确定要删除吗?`)) {
-      return;
-    }
-  } else {
-    if (!confirm('确定要删除这个分组吗?')) {
-      return;
-    }
+  if (confirm(confirmMsg)) {
+    deleteGroup(groupId);
+    renderGroupsList();
+    refreshBookmarks();
   }
-
-  deleteGroup(groupId);
-  renderGroupsList();
-  refreshBookmarks();
 }

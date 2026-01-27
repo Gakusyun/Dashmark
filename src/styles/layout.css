@@ -16,7 +16,7 @@
   user-select: none;
   padding: 8px 16px;
   border-radius: var(--radius);
-  transition: background var(--transition);
+  transition: all var(--transition);
 }
 
 .logo:hover {
@@ -48,6 +48,11 @@
   font-size: 14px;
   cursor: pointer;
   flex-shrink: 0;
+  transition: all var(--transition);
+}
+
+.search-engine-select:hover {
+  border-color: var(--accent-color);
 }
 
 .search-input {
@@ -59,11 +64,12 @@
   color: var(--text-primary);
   font-size: 16px;
   outline: none;
-  transition: border-color var(--transition);
+  transition: all var(--transition);
 }
 
 .search-input:focus {
   border-color: var(--accent-color);
+  box-shadow: 0 0 0 3px rgba(13, 110, 253, 0.1);
 }
 
 .search-btn {
@@ -75,12 +81,17 @@
   cursor: pointer;
   font-size: 14px;
   font-weight: 500;
-  transition: background var(--transition);
+  transition: all var(--transition);
   flex-shrink: 0;
 }
 
 .search-btn:hover {
   background: var(--accent-hover);
+  transform: translateY(-1px);
+}
+
+.search-btn:active {
+  transform: translateY(0);
 }
 
 /* 分组与链接 */
@@ -94,6 +105,11 @@
   border-radius: var(--radius);
   padding: 20px;
   box-shadow: var(--shadow);
+  transition: all var(--transition);
+}
+
+.group-section:hover {
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
 }
 
 .group-title {
@@ -157,7 +173,7 @@
   color: var(--text-secondary);
   text-decoration: none;
   font-size: 13px;
-  transition: color var(--transition);
+  transition: all var(--transition);
 }
 
 .footer a:hover {

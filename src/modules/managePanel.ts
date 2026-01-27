@@ -9,6 +9,20 @@ import type { ImportSuccessCallback, ImportErrorCallback } from '../storage.ts';
 let currentTab: string = 'links';
 
 /**
+ * 切换管理面板状态
+ */
+function toggleManagePanel(panel: HTMLElement): void {
+  if (panel.classList.contains('active')) {
+    panel.classList.remove('active');
+    setTimeout(() => panel.classList.add('hidden'), 300);
+  } else {
+    panel.classList.remove('hidden');
+    setTimeout(() => panel.classList.add('active'), 10);
+    renderManageContent();
+  }
+}
+
+/**
  * 初始化管理面板
  */
 export function initManagePanel(): void {
@@ -17,40 +31,29 @@ export function initManagePanel(): void {
   const managePanel = document.getElementById('manage-panel') as HTMLElement;
 
   // 点击 Dashmark 打开/关闭管理面板
-  btnManage.addEventListener('click', function (e) {
+  btnManage.addEventListener('click', (e) => {
     e.stopPropagation();
-    if (managePanel.classList.contains('active')) {
-      // 面板已打开,关闭它
-      managePanel.classList.remove('active');
-      setTimeout(() => managePanel.classList.add('hidden'), 300);
-    } else {
-      // 面板未打开,打开它
-      managePanel.classList.remove('hidden');
-      setTimeout(() => managePanel.classList.add('active'), 10);
-      renderManageContent();
-    }
+    toggleManagePanel(managePanel);
   });
 
   // 关闭管理面板
-  btnClosePanel.addEventListener('click', function () {
+  btnClosePanel.addEventListener('click', () => {
     managePanel.classList.remove('active');
     setTimeout(() => managePanel.classList.add('hidden'), 300);
   });
 
-  // 添加链接按钮
-  document.getElementById('btn-add-link')?.addEventListener('click', openAddLinkModal);
+  // 绑定按钮事件
+  const buttonHandlers: Record<string, () => void> = {
+    'btn-add-link': openAddLinkModal,
+    'btn-batch-delete': batchDeleteLinks,
+    'btn-add-group': openAddGroupModal,
+    'btn-add-search-engine': openAddSearchEngineModal,
+    'btn-export': exportData
+  };
 
-  // 批量删除按钮
-  document.getElementById('btn-batch-delete')?.addEventListener('click', batchDeleteLinks);
-
-  // 添加分组按钮
-  document.getElementById('btn-add-group')?.addEventListener('click', openAddGroupModal);
-
-  // 添加搜索引擎按钮
-  document.getElementById('btn-add-search-engine')?.addEventListener('click', openAddSearchEngineModal);
-
-  // 导出数据按钮
-  document.getElementById('btn-export')?.addEventListener('click', exportData);
+  Object.entries(buttonHandlers).forEach(([id, handler]) => {
+    document.getElementById(id)?.addEventListener('click', handler);
+  });
 
   // 导入数据按钮
   const btnImport = document.getElementById('btn-import') as HTMLElement;
@@ -63,8 +66,7 @@ export function initManagePanel(): void {
  * 初始化标签页
  */
 export function initTabs(): void {
-  const tabBtns = document.querySelectorAll('.tab-btn');
-  tabBtns.forEach(btn => {
+  document.querySelectorAll('.tab-btn').forEach(btn => {
     btn.addEventListener('click', function (this: HTMLElement) {
       const tab = this.getAttribute('data-tab');
       if (tab) {
@@ -82,17 +84,13 @@ export function switchTab(tab: string): void {
 
   // 更新标签按钮状态
   document.querySelectorAll('.tab-btn').forEach(btn => {
-    btn.classList.remove('active');
-    if (btn.getAttribute('data-tab') === tab) {
-      btn.classList.add('active');
-    }
+    btn.classList.toggle('active', btn.getAttribute('data-tab') === tab);
   });
 
   // 更新标签内容显示
   document.querySelectorAll('.tab-content').forEach(content => {
-    content.classList.remove('active');
+    content.classList.toggle('active', content.id === `tab-${tab}`);
   });
-  document.getElementById(`tab-${tab}`)?.classList.add('active');
 
   // 渲染对应内容
   renderManageContent();
@@ -102,13 +100,13 @@ export function switchTab(tab: string): void {
  * 渲染管理面板内容
  */
 export function renderManageContent(): void {
-  if (currentTab === 'links') {
-    renderLinksList();
-  } else if (currentTab === 'groups') {
-    renderGroupsList();
-  } else if (currentTab === 'settings') {
-    renderSettings();
-  }
+  const renderers: Record<string, () => void> = {
+    links: renderLinksList,
+    groups: renderGroupsList,
+    settings: renderSettings
+  };
+
+  renderers[currentTab]?.();
 }
 
 /**
@@ -128,13 +126,13 @@ function handleImport(e: Event): void {
 
   const onSuccess: ImportSuccessCallback = function () {
     alert('数据导入成功');
-    target.value = ''; // 重置文件输入
+    target.value = '';
     renderManageContent();
   };
 
   const onError: ImportErrorCallback = function (error: Error) {
     alert('导入失败:' + error.message);
-    target.value = ''; // 重置文件输入
+    target.value = '';
   };
 
   importData(file, onSuccess, onError);

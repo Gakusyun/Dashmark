@@ -14,6 +14,13 @@ function refreshBookmarks(): void {
 let selectedLinks = new Set<string>();
 
 /**
+ * 获取表单元素的辅助函数
+ */
+function getFormValue(id: string): string {
+  return (document.getElementById(id) as HTMLInputElement).value;
+}
+
+/**
  * 渲染链接列表
  */
 export function renderLinksList(): void {
@@ -37,44 +44,27 @@ export function renderLinksList(): void {
     checkbox.type = 'checkbox';
     checkbox.className = 'item-checkbox';
     checkbox.addEventListener('change', function () {
-      if (this.checked) {
-        selectedLinks.add(link.id);
-        item.classList.add('selected');
-      } else {
-        selectedLinks.delete(link.id);
-        item.classList.remove('selected');
-      }
+      const isChecked = this.checked;
+      isChecked ? selectedLinks.add(link.id) : selectedLinks.delete(link.id);
+      item.classList.toggle('selected', isChecked);
     });
 
     const info = document.createElement('div');
     info.className = 'manage-item-info';
-
-    const title = document.createElement('div');
-    title.className = 'manage-item-title';
-    title.textContent = link.title;
-
-    const subtitle = document.createElement('div');
-    subtitle.className = 'manage-item-subtitle';
-    subtitle.textContent = link.url;
-
-    info.appendChild(title);
-    info.appendChild(subtitle);
+    info.innerHTML = `
+      <div class="manage-item-title">${link.title}</div>
+      <div class="manage-item-subtitle">${link.url}</div>
+    `;
 
     const actions = document.createElement('div');
     actions.className = 'manage-item-actions';
+    actions.innerHTML = `
+      <button class="btn-secondary">编辑</button>
+      <button class="btn-danger">删除</button>
+    `;
 
-    const editBtn = document.createElement('button');
-    editBtn.className = 'btn-secondary';
-    editBtn.textContent = '编辑';
-    editBtn.addEventListener('click', () => openEditLinkModal(link.id));
-
-    const deleteBtn = document.createElement('button');
-    deleteBtn.className = 'btn-danger';
-    deleteBtn.textContent = '删除';
-    deleteBtn.addEventListener('click', () => confirmDeleteLink(link.id));
-
-    actions.appendChild(editBtn);
-    actions.appendChild(deleteBtn);
+    actions.querySelector('.btn-secondary')?.addEventListener('click', () => openEditLinkModal(link.id));
+    actions.querySelector('.btn-danger')?.addEventListener('click', () => confirmDeleteLink(link.id));
 
     item.appendChild(checkbox);
     item.appendChild(info);
@@ -109,55 +99,42 @@ function openLinkModal(link: Link | null = null): void {
   const form = document.getElementById('link-form') as HTMLFormElement;
   const groups = getGroups();
 
-  // 设置标题
+  // 设置标题和表单值
   title.textContent = link ? '编辑链接' : '添加链接';
-
-  // 填充表单
-  document.getElementById('link-id') as HTMLInputElement;
-  (document.getElementById('link-id') as HTMLInputElement).value = link ? link.id : '';
-  (document.getElementById('link-title') as HTMLInputElement).value = link ? link.title : '';
-  (document.getElementById('link-url') as HTMLInputElement).value = link ? link.url : '';
+  (document.getElementById('link-id') as HTMLInputElement).value = link?.id || '';
+  (document.getElementById('link-title') as HTMLInputElement).value = link?.title || '';
+  (document.getElementById('link-url') as HTMLInputElement).value = link?.url || '';
 
   // 渲染分组复选框
   const checkboxGroup = document.getElementById('link-groups') as HTMLElement;
-  // 克隆元素以移除所有旧的事件监听器
   const newCheckboxGroup = checkboxGroup.cloneNode(false) as HTMLElement;
   checkboxGroup.parentNode?.replaceChild(newCheckboxGroup, checkboxGroup);
   newCheckboxGroup.innerHTML = '';
 
+  const submitBtn = form.querySelector('button[type="submit"]') as HTMLButtonElement;
+
   if (groups.length === 0) {
     newCheckboxGroup.innerHTML = '<p style="color: var(--text-secondary);">点击此处可添加分组</p>';
-    document.getElementById('link-form')?.querySelector('button[type="submit"]')?.setAttribute('disabled', 'true');
+    submitBtn.disabled = true;
   } else {
-    document.getElementById('link-form')?.querySelector('button[type="submit"]')?.removeAttribute('disabled');
+    submitBtn.disabled = false;
     groups.forEach(group => {
       const label = document.createElement('label');
       label.className = 'checkbox-item';
-
-      const checkbox = document.createElement('input');
-      checkbox.type = 'checkbox';
-      checkbox.value = group.id;
-      if (link && link.groupIds.includes(group.id)) {
-        checkbox.checked = true;
-      }
-
-      const text = document.createElement('span');
-      text.textContent = group.name;
-
-      label.appendChild(checkbox);
-      label.appendChild(text);
+      label.innerHTML = `
+        <input type="checkbox" value="${group.id}" ${link?.groupIds.includes(group.id) ? 'checked' : ''}>
+        <span>${group.name}</span>
+      `;
       newCheckboxGroup.appendChild(label);
     });
   }
 
   // 添加空白处点击事件来创建新分组
   newCheckboxGroup.addEventListener('click', function (e) {
-    // 如果点击的是已有的 checkbox-item 或其子元素,不处理
-    if (e.target && ((e.target as HTMLElement).closest('.checkbox-item') || (e.target as HTMLElement).closest('.new-group-input'))) {
+    if ((e.target as HTMLElement).closest('.checkbox-item') || (e.target as HTMLElement).closest('.new-group-input')) {
       return;
     }
 
-    // 创建新分组输入框
     e.preventDefault();
     e.stopPropagation();
 
@@ -170,63 +147,42 @@ function openLinkModal(link: Link | null = null): void {
     input.className = 'new-group-text-input';
 
     inputDiv.appendChild(input);
-
-    // 插入到复选框组的末尾
     newCheckboxGroup.appendChild(inputDiv);
-
-    // 自动聚焦输入框
     input.focus();
     input.select();
 
-    // 处理回车键
-    input.addEventListener('keydown', function (e) {
+    // 处理回车键和失焦
+    const handleInputSubmit = () => {
+      const groupName = input.value.trim();
+      if (groupName) {
+        const newGroup = addGroup(groupName);
+        inputDiv.remove();
+
+        const label = document.createElement('label');
+        label.className = 'checkbox-item';
+        label.innerHTML = `
+          <input type="checkbox" value="${newGroup.id}" checked>
+          <span>${groupName}</span>
+        `;
+        newCheckboxGroup.appendChild(label);
+        submitBtn.disabled = false;
+        renderGroupsList();
+        refreshBookmarks();
+      } else {
+        inputDiv.remove();
+      }
+    };
+
+    input.addEventListener('keydown', (e) => {
       if (e.key === 'Enter') {
         e.preventDefault();
-        const groupName = input.value.trim();
-
-        if (groupName) {
-          // 创建新分组
-          const newGroup = addGroup(groupName);
-
-          // 移除输入框
-          inputDiv.remove();
-
-          // 创建新的复选框项
-          const label = document.createElement('label');
-          label.className = 'checkbox-item';
-
-          const checkbox = document.createElement('input');
-          checkbox.type = 'checkbox';
-          checkbox.value = newGroup.id;
-          checkbox.checked = true;
-
-          const text = document.createElement('span');
-          text.textContent = groupName;
-
-          label.appendChild(checkbox);
-          label.appendChild(text);
-
-          // 添加到复选框组
-          newCheckboxGroup.appendChild(label);
-
-          // 启用保存按钮
-          document.getElementById('link-form')?.querySelector('button[type="submit"]')?.removeAttribute('disabled');
-
-          // 重新渲染分组列表以反映更新
-          renderGroupsList();
-          refreshBookmarks();
-        } else {
-          // 如果为空,移除输入框
-          inputDiv.remove();
-        }
+        handleInputSubmit();
       } else if (e.key === 'Escape') {
-        // 按 ESC 取消
         inputDiv.remove();
       }
     });
 
-    // 失焦时如果为空则移除输入框
-    input.addEventListener('blur', function () {
+    input.addEventListener('blur', () => {
       setTimeout(() => {
         if (input.value.trim() === '' && inputDiv.parentNode === newCheckboxGroup) {
           inputDiv.remove();
@@ -236,9 +192,7 @@ function openLinkModal(link: Link | null = null): void {
   });
 
   modal.classList.remove('hidden');
-
-  // 表单提交
-  form.onsubmit = function (e) {
+  form.onsubmit = (e) => {
     e.preventDefault();
     saveLink();
   };
@@ -257,10 +211,9 @@ export function closeLinkModal(): void {
  * 保存链接
  */
 function saveLink(): void {
-  const id = (document.getElementById('link-id') as HTMLInputElement).value;
-  const title = (document.getElementById('link-title') as HTMLInputElement).value.trim();
-  let url = (document.getElementById('link-url') as HTMLInputElement).value.trim();
-  const groupIds: string[] = [];
+  const id = getFormValue('link-id');
+  const title = getFormValue('link-title').trim();
+  let url = getFormValue('link-url').trim();
 
   // 处理 URL:如果没有协议,自动添加 https://
   if (url && !url.startsWith('http://') && !url.startsWith('https://')) {
@@ -268,8 +221,9 @@ function saveLink(): void {
   }
 
   // 获取选中的分组
-  const checkboxes = document.querySelectorAll('#link-groups input[type="checkbox"]:checked');
-  checkboxes.forEach(cb => groupIds.push((cb as HTMLInputElement).value));
+  const groupIds: string[] = Array.from(
+    document.querySelectorAll('#link-groups input[type="checkbox"]:checked')
+  ).map(cb => (cb as HTMLInputElement).value);
 
   // 验证至少选择一个分组
   if (groupIds.length === 0) {
@@ -277,13 +231,7 @@ function saveLink(): void {
     return;
   }
 
-  if (id) {
-    // 更新链接
-    updateLink(id, title, url, groupIds);
-  } else {
-    // 添加链接
-    addLink(title, url, groupIds);
-  }
+  id ? updateLink(id, title, url, groupIds) : addLink(title, url, groupIds);
 
   closeLinkModal();
   renderLinksList();

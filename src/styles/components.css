@@ -10,7 +10,7 @@
   cursor: pointer;
   font-size: 14px;
   font-weight: 600;
-  transition: all 0.2s ease;
+  transition: all var(--transition);
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -72,8 +72,8 @@
 
 .form-group label {
   display: block;
-  margin: 0 auto;
   width: 90%;
+  margin: 0 auto;
   margin-bottom: 8px;
   font-weight: 600;
   font-size: 14px;
@@ -81,14 +81,18 @@
 }
 
 .form-group .label {
-  width: 100%;
+  display: block;
+  width: 90%;
   margin-bottom: 8px;
   font-weight: 600;
   font-size: 14px;
   color: var(--text-primary);
 }
 
-.form-control {
+.form-control,
+.form-group input[type="text"],
+.form-group input[type="url"] {
+  display: block;
   width: 100%;
   padding: 12px 14px;
   border: 2px solid var(--border-color);
@@ -97,40 +101,23 @@
   color: var(--text-primary);
   font-size: 14px;
   outline: none;
-  transition: all 0.2s ease;
+  transition: all var(--transition);
   font-family: inherit;
-}
-
-.form-control:focus {
-  border-color: var(--accent-color);
-  box-shadow: 0 0 0 3px rgba(13, 110, 253, 0.1);
-}
-
-.form-control::placeholder {
-  color: var(--text-secondary);
 }
 
 .form-group input[type="text"],
 .form-group input[type="url"] {
-  display: block;
   width: 90%;
   margin: 0 auto;
-  padding: 12px 14px;
-  border: 2px solid var(--border-color);
-  border-radius: 8px;
-  background: var(--bg-primary);
-  color: var(--text-primary);
-  font-size: 14px;
-  outline: none;
-  transition: all 0.2s ease;
-  font-family: inherit;
 }
 
+.form-control:focus,
 .form-group input:focus {
   border-color: var(--accent-color);
   box-shadow: 0 0 0 3px rgba(13, 110, 253, 0.1);
 }
 
+.form-control::placeholder,
 .form-group input::placeholder {
   color: var(--text-secondary);
 }
@@ -146,7 +133,7 @@
 .checkbox-group {
   width: 90%;
   margin: 0 auto;
-  display: block;
+  display: grid;
   grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
   gap: 10px;
   max-height: 200px;
@@ -157,21 +144,26 @@
   border: 2px solid var(--border-color);
 }
 
-.checkbox-group::-webkit-scrollbar {
+/* 滚动条样式 */
+.checkbox-group::-webkit-scrollbar,
+.modal-body::-webkit-scrollbar {
   width: 8px;
 }
 
-.checkbox-group::-webkit-scrollbar-track {
+.checkbox-group::-webkit-scrollbar-track,
+.modal-body::-webkit-scrollbar-track {
   background: var(--bg-tertiary);
   border-radius: 4px;
 }
 
-.checkbox-group::-webkit-scrollbar-thumb {
+.checkbox-group::-webkit-scrollbar-thumb,
+.modal-body::-webkit-scrollbar-thumb {
   background: var(--border-color);
   border-radius: 4px;
 }
 
-.checkbox-group::-webkit-scrollbar-thumb:hover {
+.checkbox-group::-webkit-scrollbar-thumb:hover,
+.modal-body::-webkit-scrollbar-thumb:hover {
   background: var(--text-secondary);
 }
 
@@ -184,7 +176,7 @@
   background: var(--bg-primary);
   border-radius: 6px;
   border: 2px solid var(--border-color);
-  transition: all 0.2s ease;
+  transition: all var(--transition);
 }
 
 .checkbox-item:hover {
@@ -207,7 +199,7 @@
   border-radius: 4px;
   background: var(--bg-primary);
   position: relative;
-  transition: all 0.2s ease;
+  transition: all var(--transition);
   flex-shrink: 0;
 }
 
@@ -265,4 +257,15 @@
   color: var(--text-secondary);
   font-size: 14px;
   line-height: 1.6;
+}
+
+/* 动画 */
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+  }
+
+  to {
+    opacity: 1;
+  }
 }

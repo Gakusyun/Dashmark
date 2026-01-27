@@ -13,6 +13,38 @@ export function initBookmarks(): void {
 }
 
 /**
+ * 创建链接卡片元素
+ */
+function createLinkCard(link: Link): HTMLElement {
+  const card = document.createElement('a');
+  card.className = 'link-card';
+  card.href = link.url;
+  card.target = '_blank';
+  card.rel = 'noopener noreferrer';
+  card.innerHTML = `
+    <div class="link-title">${link.title}</div>
+    <div class="link-url">${link.url}</div>
+  `;
+  return card;
+}
+
+/**
+ * 创建链接网格
+ */
+function createLinksGrid(links: Link[]): HTMLElement {
+  const grid = document.createElement('div');
+  grid.className = 'links-grid';
+
+  if (links.length === 0) {
+    grid.innerHTML = '<div style="color: var(--text-secondary); font-size: 13px;">暂无链接</div>';
+  } else {
+    links.forEach(link => grid.appendChild(createLinkCard(link)));
+  }
+
+  return grid;
+}
+
+/**
  * 渲染书签
  */
 export function renderBookmarks(): void {
@@ -48,7 +80,6 @@ export function renderBookmarks(): void {
     groupSection.className = 'group-section';
     groupSection.style.cursor = 'pointer';
     groupSection.addEventListener('click', (e) => {
-      // 如果点击的是链接卡片,不触发分组跳转
       if (e.target && (e.target as HTMLElement).closest('.link-card')) {
         return;
       }
@@ -60,35 +91,8 @@ export function renderBookmarks(): void {
     groupTitle.className = 'group-title';
     groupTitle.textContent = group.name;
 
-    const linksGrid = document.createElement('div');
-    linksGrid.className = 'links-grid';
-
-    groupLinks.forEach(link => {
-      const linkCard = document.createElement('a');
-      linkCard.className = 'link-card';
-      linkCard.href = link.url;
-      linkCard.target = '_blank';
-      linkCard.rel = 'noopener noreferrer';
-
-      const linkTitle = document.createElement('div');
-      linkTitle.className = 'link-title';
-      linkTitle.textContent = link.title;
-
-      const linkUrl = document.createElement('div');
-      linkUrl.className = 'link-url';
-      linkUrl.textContent = link.url;
-
-      linkCard.appendChild(linkTitle);
-      linkCard.appendChild(linkUrl);
-      linksGrid.appendChild(linkCard);
-    });
-
-    if (groupLinks.length === 0) {
-      linksGrid.innerHTML = '<div style="color: var(--text-secondary); font-size: 13px;">暂无链接</div>';
-    }
-
     groupSection.appendChild(groupTitle);
-    groupSection.appendChild(linksGrid);
+    groupSection.appendChild(createLinksGrid(groupLinks));
     container.appendChild(groupSection);
   });
 }
@@ -118,33 +122,10 @@ function renderSingleGroup(container: HTMLElement, group: Group, allLinks: Link[
   container.appendChild(groupTitle);
 
   // 链接网格
-  const linksGrid = document.createElement('div');
-  linksGrid.className = 'links-grid';
+  const linksGrid = createLinksGrid(groupLinks);
   linksGrid.style.gridTemplateColumns = 'repeat(auto-fill, minmax(120px, 1fr))';
-
-  groupLinks.forEach(link => {
-    const linkCard = document.createElement('a');
-    linkCard.className = 'link-card';
-    linkCard.href = link.url;
-    linkCard.target = '_blank';
-    linkCard.rel = 'noopener noreferrer';
-
-    const linkTitle = document.createElement('div');
-    linkTitle.className = 'link-title';
-    linkTitle.textContent = link.title;
-
-    const linkUrl = document.createElement('div');
-    linkUrl.className = 'link-url';
-    linkUrl.textContent = link.url;
-
-    linkCard.appendChild(linkTitle);
-    linkCard.appendChild(linkUrl);
-    linksGrid.appendChild(linkCard);
-  });
-
   if (groupLinks.length === 0) {
     linksGrid.innerHTML = '<div style="color: var(--text-secondary); font-size: 13px; grid-column: 1/-1;">暂无链接</div>';
   }
-
   container.appendChild(linksGrid);
 }
