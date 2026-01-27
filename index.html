@@ -106,12 +106,73 @@
 
         <!-- 数据标签页 -->
         <div id="tab-data" class="tab-content">
+          <h3>数据备份</h3>
           <div class="data-actions">
             <button id="btn-export" class="btn-primary">导出数据</button>
             <button id="btn-import" class="btn-primary">导入数据</button>
-            <input type="file" id="import-file" class="hidden" accept=".json">
+            <button id="btn-export-webdav" class="btn-secondary">导出 WebDAV 设置</button>
           </div>
+          <input type="file" id="import-file" class="hidden" accept=".json">
           <p class="help-text">数据以 JSON 格式存储在本地浏览器中。</p>
+
+          <h3>WebDAV 同步</h3>
+          <div class="form-group">
+            <div class="label">启用 WebDAV</div>
+            <label class="toggle">
+              <input type="checkbox" id="webdav-enabled">
+              <span class="slider"></span>
+            </label>
+          </div>
+
+          <!-- WebDAV 配置表单（仅当启用时显示） -->
+          <div id="webdav-config-form" class="hidden">
+            <div class="form-group">
+              <label for="webdav-url">服务器地址</label>
+              <input type="text" id="webdav-url" placeholder="https://dav.jianguoyun.com/dav/">
+            </div>
+            <div class="form-group">
+              <label for="webdav-username">用户名</label>
+              <input type="text" id="webdav-username">
+            </div>
+            <div class="form-group">
+              <label for="webdav-password">密码</label>
+              <input type="password" id="webdav-password" placeholder="应用专用密码">
+            </div>
+            <div class="form-group">
+              <label for="webdav-path">存储路径</label>
+              <input type="text" id="webdav-path" value="/dashmark/" placeholder="/dashmark/">
+            </div>
+
+            <div class="form-group">
+              <div class="label">自动同步</div>
+              <label class="toggle">
+                <input type="checkbox" id="webdav-auto-sync">
+                <span class="slider"></span>
+              </label>
+            </div>
+
+            <div class="form-group">
+              <label for="webdav-sync-interval">同步间隔</label>
+              <select id="webdav-sync-interval" class="form-control">
+                <option value="300000">5 分钟</option>
+                <option value="600000">10 分钟</option>
+                <option value="1800000">30 分钟</option>
+                <option value="3600000">1 小时</option>
+                <option value="86400000">1 天</option>
+              </select>
+            </div>
+
+            <div class="sync-status" id="sync-status">
+              <span id="sync-status-text">未启用</span>
+              <span id="sync-status-time"></span>
+            </div>
+
+            <div class="sync-actions">
+              <button id="btn-test-webdav" class="btn-secondary">测试连接</button>
+              <button id="btn-sync-now" class="btn-primary">立即同步</button>
+              <button id="btn-cleanup-cloud" class="btn-secondary">清理云端文件</button>
+            </div>
+          </div>
         </div>
       </div>
     </div>

@@ -5,6 +5,7 @@ import { openAddGroupModal, renderGroupsList } from './groupManager.ts';
 import { openAddSearchEngineModal, renderSettings as renderSearchEngineSettings } from './searchEngineManager.ts';
 import { exportData, importData } from '../storage.ts';
 import type { ImportSuccessCallback, ImportErrorCallback } from '../storage.ts';
+import { loadWebDAVSettings } from './webdavManager.ts';
 
 let currentTab: string = 'links';
 
@@ -103,10 +104,18 @@ export function renderManageContent(): void {
   const renderers: Record<string, () => void> = {
     links: renderLinksList,
     groups: renderGroupsList,
-    settings: renderSettings
+    settings: renderSettings,
+    data: renderData
   };
 
   renderers[currentTab]?.();
+}
+
+/**
+ * 渲染数据页面
+ */
+function renderData(): void {
+  loadWebDAVSettings();
 }
 
 /**

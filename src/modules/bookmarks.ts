@@ -3,7 +3,7 @@
 import { getGroups, getLinks } from '../storage.ts';
 import type { Link, Group } from '../storage.ts';
 
-let currentGroupId: string | null = null; // 当前全屏展示的分组ID,null 表示显示全部
+let currentGroupId: string | null = null; // 当前全屏展示的分组ID,null 表示显示全部，'all' 表示显示所有收藏
 
 /**
  * 初始化书签展示
@@ -65,6 +65,12 @@ export function renderBookmarks(): void {
 
   // 如果是单分组视图
   if (currentGroupId) {
+    // 特殊处理"所有收藏"视图
+    if (currentGroupId === 'all') {
+      renderAllLinksView(container, links);
+      return;
+    }
+
     const group = groups.find(g => g.id === currentGroupId);
     if (group) {
       renderSingleGroup(container, group, links);
@@ -95,6 +101,57 @@ export function renderBookmarks(): void {
     groupSection.appendChild(createLinksGrid(groupLinks));
     container.appendChild(groupSection);
   });
+
+  // 显示"所有收藏"视图
+  const allLinksSection = document.createElement('div');
+  allLinksSection.className = 'group-section';
+  allLinksSection.style.cursor = 'pointer';
+  allLinksSection.addEventListener('click', (e) => {
+    if (e.target && (e.target as HTMLElement).closest('.link-card')) {
+      return;
+    }
+    currentGroupId = 'all';
+    renderBookmarks();
+  });
+
+  const allLinksTitle = document.createElement('h3');
+  allLinksTitle.className = 'group-title';
+  allLinksTitle.textContent = '所有';
+
+  allLinksSection.appendChild(allLinksTitle);
+  allLinksSection.appendChild(createLinksGrid(links));
+  container.appendChild(allLinksSection);
+}
+
+/**
+ * 渲染所有收藏视图
+ */
+function renderAllLinksView(container: HTMLElement, allLinks: Link[]): void {
+  // 返回按钮
+  const backBtn = document.createElement('button');
+  backBtn.className = 'btn-secondary';
+  backBtn.textContent = '← 返回全部';
+  backBtn.style.marginBottom = '20px';
+  backBtn.addEventListener('click', () => {
+    currentGroupId = null;
+    renderBookmarks();
+  });
+  container.appendChild(backBtn);
+
+  // 标题
+  const title = document.createElement('h2');
+  title.className = 'group-title';
+  title.style.fontSize = '24px';
+  title.textContent = '所有';
+  container.appendChild(title);
+
+  // 链接网格
+  const linksGrid = createLinksGrid(allLinks);
+  linksGrid.style.gridTemplateColumns = 'repeat(auto-fill, minmax(120px, 1fr))';
+  if (allLinks.length === 0) {
+    linksGrid.innerHTML = '<div style="color: var(--text-secondary); font-size: 13px; grid-column: 1/-1;">暂无链接</div>';
+  }
+  container.appendChild(linksGrid);
 }
 
 /**
