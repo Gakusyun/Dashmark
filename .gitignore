@@ -24,4 +24,8 @@ dist-ssr
 *.sw?
 
 package-lock.json
+
+# Ai
 AGENTS.md
+IFLOW.md
+CLAUDE.md
