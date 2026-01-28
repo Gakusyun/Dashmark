@@ -1,44 +1,13 @@
-// ==================== 数据模型 ====================
+import type {
+  Data,
+  SearchEngine,
+  Group,
+  Link,
+  Settings,
+  LinkWithGroups
+} from '../types';
 
 const STORAGE_KEY = 'dashmark_data';
-
-// ==================== 类型定义 ====================
-
-export interface SearchEngine {
-  id: string;
-  name: string;
-  url: string;
-}
-
-export interface Settings {
-  searchEngine: string;
-  darkMode: 'light' | 'dark' | 'auto';
-}
-
-export interface Group {
-  id: string;
-  name: string;
-  order: number;
-}
-
-export interface Link {
-  id: string;
-  title: string;
-  url: string;
-  groupIds: string[];
-  order: number;
-}
-
-export interface Data {
-  groups: Group[];
-  links: Link[];
-  searchEngines: SearchEngine[];
-  settings: Settings;
-}
-
-export interface LinkWithGroups extends Link {
-  groups: Group[];
-}
 
 // ==================== 常量 ====================
 
@@ -59,18 +28,14 @@ export const DEFAULT_DATA: Data = {
   }
 };
 
-// ==================== 存储操作 ====================
+// ==================== 工具函数 ====================
 
-/**
- * 生成唯一ID
- */
 export function generateId(): string {
   return Date.now().toString(36) + Math.random().toString(36).substring(2);
 }
 
-/**
- * 从 localStorage 读取数据（同步）
- */
+// ==================== 存储操作 ====================
+
 export function loadData(): Data {
   try {
     const json = localStorage.getItem(STORAGE_KEY);
@@ -107,17 +72,9 @@ export function loadData(): Data {
   }
 }
 
-/**
- * 保存数据到 localStorage
- */
 export function saveData(data: Data): boolean {
   try {
     localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
-
-    // 触发自定义事件，通知数据已保存
-    const event = new CustomEvent('data-saved');
-    window.dispatchEvent(event);
-
     return true;
   } catch (error) {
     console.error('Failed to save data:', error);
@@ -125,9 +82,6 @@ export function saveData(data: Data): boolean {
   }
 }
 
-/**
- * 导出数据为 JSON 文件
- */
 export function exportData(): void {
   const data = loadData();
   const json = JSON.stringify(data, null, 2);
@@ -142,16 +96,10 @@ export function exportData(): void {
   URL.revokeObjectURL(url);
 }
 
-export type ImportSuccessCallback = (data: Data) => void;
-export type ImportErrorCallback = (error: Error) => void;
-
-/**
- * 从 JSON 文件导入数据
- */
 export function importData(
   file: File,
-  onSuccess: ImportSuccessCallback,
-  onError: ImportErrorCallback
+  onSuccess: (data: Data) => void,
+  onError: (error: Error) => void
 ): void {
   const reader = new FileReader();
   reader.onload = function (e) {
@@ -210,16 +158,10 @@ export function importData(
 
 // ==================== 分组操作 ====================
 
-/**
- * 获取所有分组
- */
 export function getGroups(): Group[] {
   return loadData().groups;
 }
 
-/**
- * 添加分组
- */
 export function addGroup(name: string): Group {
   const data = loadData();
   const group: Group = {
@@ -232,9 +174,6 @@ export function addGroup(name: string): Group {
   return group;
 }
 
-/**
- * 更新分组
- */
 export function updateGroup(id: string, name: string): boolean {
   const data = loadData();
   const index = data.groups.findIndex(g => g.id === id);
@@ -246,9 +185,6 @@ export function updateGroup(id: string, name: string): boolean {
   return false;
 }
 
-/**
- * 删除分组
- */
 export function deleteGroup(id: string): boolean {
   const data = loadData();
   // 删除分组
@@ -265,24 +201,15 @@ export function deleteGroup(id: string): boolean {
 
 // ==================== 链接操作 ====================
 
-/**
- * 获取所有链接
- */
 export function getLinks(): Link[] {
   return loadData().links;
 }
 
-/**
- * 根据分组ID获取链接
- */
 export function getLinksByGroupId(groupId: string): Link[] {
   const data = loadData();
   return data.links.filter(link => link.groupIds.includes(groupId));
 }
 
-/**
- * 获取链接及其所属分组
- */
 export function getLinksWithGroups(): LinkWithGroups[] {
   const data = loadData();
   return data.links.map(link => ({
@@ -291,9 +218,6 @@ export function getLinksWithGroups(): LinkWithGroups[] {
   }));
 }
 
-/**
- * 添加链接
- */
 export function addLink(title: string, url: string, groupIds: string[]): Link {
   const data = loadData();
   const link: Link = {
@@ -308,9 +232,6 @@ export function addLink(title: string, url: string, groupIds: string[]): Link {
   return link;
 }
 
-/**
- * 更新链接
- */
 export function updateLink(id: string, title: string, url: string, groupIds: string[]): boolean {
   const data = loadData();
   const index = data.links.findIndex(l => l.id === id);
@@ -324,9 +245,6 @@ export function updateLink(id: string, title: string, url: string, groupIds: str
   return false;
 }
 
-/**
- * 删除链接
- */
 export function deleteLink(id: string): boolean {
   const data = loadData();
   data.links = data.links.filter(l => l.id !== id);
@@ -334,9 +252,6 @@ export function deleteLink(id: string): boolean {
   return true;
 }
 
-/**
- * 批量删除链接
- */
 export function batchDeleteLinks(ids: string[]): boolean {
   const data = loadData();
   data.links = data.links.filter(l => !ids.includes(l.id));
@@ -346,16 +261,10 @@ export function batchDeleteLinks(ids: string[]): boolean {
 
 // ==================== 设置操作 ====================
 
-/**
- * 获取设置
- */
 export function getSettings(): Settings {
   return loadData().settings;
 }
 
-/**
- * 更新设置
- */
 export function updateSettings(settings: Partial<Settings>): Settings {
   const data = loadData();
   data.settings = {
@@ -368,9 +277,6 @@ export function updateSettings(settings: Partial<Settings>): Settings {
 
 // ==================== 搜索引擎操作 ====================
 
-/**
- * 获取所有搜索引擎（预设+用户自定义）
- */
 export function getAllSearchEngines(): SearchEngine[] {
   const data = loadData();
   // 合并预设和用户自定义搜索引擎
@@ -387,17 +293,11 @@ export function getAllSearchEngines(): SearchEngine[] {
   return allEngines;
 }
 
-/**
- * 获取搜索引擎配置
- */
 export function getSearchEngineConfig(engineId: string): SearchEngine | undefined {
   const allEngines = getAllSearchEngines();
   return allEngines.find(e => e.id === engineId);
 }
 
-/**
- * 添加自定义搜索引擎
- */
 export function addSearchEngine(name: string, url: string): SearchEngine {
   const data = loadData();
   const engine: SearchEngine = {
@@ -410,9 +310,6 @@ export function addSearchEngine(name: string, url: string): SearchEngine {
   return engine;
 }
 
-/**
- * 更新自定义搜索引擎
- */
 export function updateSearchEngine(id: string, name: string, url: string): boolean {
   const data = loadData();
   const index = data.searchEngines.findIndex(e => e.id === id);
@@ -425,9 +322,6 @@ export function updateSearchEngine(id: string, name: string, url: string): boole
   return false;
 }
 
-/**
- * 删除自定义搜索引擎
- */
 export function deleteSearchEngine(id: string): boolean {
   const data = loadData();
 

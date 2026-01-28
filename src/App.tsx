@@ -1,0 +1,120 @@
+import React, { useState } from 'react';
+import { Box, Container, Typography, Toolbar, AppBar, IconButton } from '@mui/material';
+import { Settings as SettingsIcon } from '@mui/icons-material';
+import { useData } from './contexts/DataContext';
+import { SearchBox } from './components/SearchBox';
+import { GroupSection, AllBookmarks } from './components/GroupSection';
+import { ManagePanel } from './components/ManagePanel';
+
+type ViewMode = 'all' | 'group' | null;
+type SelectedGroup = string | 'all' | null;
+
+const App: React.FC = () => {
+  const { data } = useData();
+  const [managePanelOpen, setManagePanelOpen] = useState(false);
+  const [viewMode, setViewMode] = useState<ViewMode>(null);
+  const [selectedGroup, setSelectedGroup] = useState<SelectedGroup>(null);
+
+  const handleGroupClick = (groupId: string) => {
+    setSelectedGroup(groupId);
+    setViewMode('group');
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  };
+
+  const handleAllClick = () => {
+    setSelectedGroup('all');
+    setViewMode('all');
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  };
+
+  const handleBack = () => {
+    setViewMode(null);
+    setSelectedGroup(null);
+  };
+
+  const renderContent = () => {
+    // 单分组视图
+    if (viewMode === 'group' && selectedGroup && selectedGroup !== 'all') {
+      const group = data.groups.find(g => g.id === selectedGroup);
+      if (group) {
+        return <GroupSection group={group} isFullscreen onBack={handleBack} />;
+      }
+    }
+
+    // 所有收藏视图
+    if (viewMode === 'all' || selectedGroup === 'all') {
+      return <AllBookmarks isFullscreen onBack={handleBack} />;
+    }
+
+    // 默认视图
+    if (data.groups.length === 0) {
+      return (
+        <Box sx={{ textAlign: 'center', py: 8 }}>
+          <Typography color="text.secondary" gutterBottom>
+            暂无分组和链接
+          </Typography>
+          <Typography color="text.secondary" variant="body2">
+            点击右上角设置按钮开始添加
+          </Typography>
+        </Box>
+      );
+    }
+
+    return (
+      <>
+        {data.groups.map(group => (
+          <GroupSection
+            key={group.id}
+            group={group}
+            onClick={() => handleGroupClick(group.id)}
+          />
+        ))}
+        <AllBookmarks onClick={handleAllClick} />
+      </>
+    );
+  };
+
+  return (
+    <>
+      <AppBar position="static" elevation={0} sx={{ mb: 4 }}>
+        <Container maxWidth="lg">
+          <Toolbar disableGutters>
+            <Typography variant="h5" component="div" sx={{ flexGrow: 1, cursor: 'pointer' }}>
+              Dashmark
+            </Typography>
+            <IconButton
+              color="inherit"
+              onClick={() => setManagePanelOpen(true)}
+              size="large"
+            >
+              <SettingsIcon />
+            </IconButton>
+          </Toolbar>
+        </Container>
+      </AppBar>
+
+      <Container maxWidth="lg" sx={{ pb: 4 }}>
+        <SearchBox />
+        <Box sx={{ minHeight: '50vh' }}>
+          {renderContent()}
+        </Box>
+        <Box sx={{ mt: 4, pt: 2, borderTop: 1, borderColor: 'divider', textAlign: 'center' }}>
+          <Typography variant="body2" color="text.secondary">
+            <a
+              href="https://beian.miit.gov.cn/"
+              target="_blank"
+              rel="noopener noreferrer"
+              style={{ color: 'inherit', textDecoration: 'none' }}
+            >
+              鄂ICP备2024069158号-3
+            </a>
+          </Typography>
+        </Box>
+      </Container>
+
+      <ManagePanel open={managePanelOpen} onClose={() => setManagePanelOpen(false)} />
+    </>
+  );
+};
+
+export default App;
