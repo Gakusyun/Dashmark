@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Box, TextField, Button, InputAdornment } from '@mui/material';
+import { Box, TextField, Button } from '@mui/material';
 import { Search as SearchIcon } from '@mui/icons-material';
 import { useData } from '../contexts/DataContext';
 import { getAllSearchEngines } from '../utils/storage';
@@ -31,11 +31,7 @@ export const SearchBox: React.FC = () => {
           placeholder="输入搜索内容..."
           sx={{ flex: 1 }}
           InputProps={{
-            startAdornment: (
-              <InputAdornment position="start">
-                <SearchIcon />
-              </InputAdornment>
-            ),
+            startAdornment: <SearchIcon sx={{ mr: 1, color: 'action.active' }} />,
           }}
         />
         <Button type="submit" variant="contained" size="large">

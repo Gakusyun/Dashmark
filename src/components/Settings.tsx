@@ -20,12 +20,14 @@ import {
 import { Delete as DeleteIcon, Edit as EditIcon, Add as AddIcon } from '@mui/icons-material';
 import { useData } from '../contexts/DataContext';
 import { useTheme } from '../contexts/ThemeContext';
+import { useToast } from '../contexts/ToastContext';
 import { getAllSearchEngines } from '../utils/storage';
 import type { SearchEngine } from '../types';
 
 export const Settings: React.FC = () => {
   const { data, updateSettings, addSearchEngine, updateSearchEngine, deleteSearchEngine } = useData();
   const { mode, setMode } = useTheme();
+  const { showError } = useToast();
   const allEngines = getAllSearchEngines();
 
   const [modalOpen, setModalOpen] = useState(false);
@@ -57,7 +59,7 @@ export const Settings: React.FC = () => {
 
   const handleSaveEngine = () => {
     if (!engineFormData.name.trim() || !engineFormData.url.trim()) {
-      alert('名称和URL不能为空');
+      showError('名称和URL不能为空');
       return;
     }
 

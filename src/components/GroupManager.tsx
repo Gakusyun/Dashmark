@@ -15,6 +15,7 @@ import {
 } from '@mui/material';
 import { Delete as DeleteIcon, Edit as EditIcon } from '@mui/icons-material';
 import { useData } from '../contexts/DataContext';
+import { useToast } from '../contexts/ToastContext';
 import type { Group } from '../types';
 
 interface GroupManagerProps {
@@ -23,6 +24,7 @@ interface GroupManagerProps {
 
 export const GroupManager: React.FC<GroupManagerProps> = () => {
   const { data, addGroup, updateGroup, deleteGroup } = useData();
+  const { showError } = useToast();
   const [modalOpen, setModalOpen] = useState(false);
   const [editingGroup, setEditingGroup] = useState<Group | null>(null);
   const [groupName, setGroupName] = useState('');
@@ -52,7 +54,7 @@ export const GroupManager: React.FC<GroupManagerProps> = () => {
 
   const handleSave = () => {
     if (!groupName.trim()) {
-      alert('分组名称不能为空');
+      showError('分组名称不能为空');
       return;
     }
 

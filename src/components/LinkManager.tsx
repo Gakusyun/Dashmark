@@ -17,6 +17,7 @@ import {
 } from '@mui/material';
 import { Delete as DeleteIcon, Edit as EditIcon } from '@mui/icons-material';
 import { useData } from '../contexts/DataContext';
+import { useToast } from '../contexts/ToastContext';
 import type { Link } from '../types';
 
 interface LinkManagerProps {
@@ -25,6 +26,7 @@ interface LinkManagerProps {
 
 export const LinkManager: React.FC<LinkManagerProps> = () => {
   const { data, deleteLink, updateLink, addLink, batchDeleteLinks } = useData();
+  const { showError, showWarning } = useToast();
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [modalOpen, setModalOpen] = useState(false);
   const [editingLink, setEditingLink] = useState<Link | null>(null);
@@ -85,11 +87,11 @@ export const LinkManager: React.FC<LinkManagerProps> = () => {
 
   const handleSave = () => {
     if (!formData.title.trim() || !formData.url.trim()) {
-      alert('标题和URL不能为空');
+      showError('标题和URL不能为空');
       return;
     }
     if (formData.groupIds.length === 0) {
-      alert('请至少选择一个分组');
+      showWarning('请至少选择一个分组');
       return;
     }
 

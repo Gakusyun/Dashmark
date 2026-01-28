@@ -2,9 +2,11 @@ import React, { useRef } from 'react';
 import { Box, Typography, Button, Alert } from '@mui/material';
 import { CloudUpload as UploadIcon, CloudDownload as DownloadIcon } from '@mui/icons-material';
 import { useData } from '../contexts/DataContext';
+import { useToast } from '../contexts/ToastContext';
 
 export const DataManagement: React.FC = () => {
   const { exportData, importData, refreshData } = useData();
+  const { showSuccess, showError } = useToast();
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const handleExport = () => {
@@ -22,14 +24,14 @@ export const DataManagement: React.FC = () => {
     importData(
       file,
       () => {
-        alert('数据导入成功');
+        showSuccess('数据导入成功');
         refreshData();
         if (fileInputRef.current) {
           fileInputRef.current.value = '';
         }
       },
       (error) => {
-        alert(`导入失败：${error.message}`);
+        showError(`导入失败：${error.message}`);
         if (fileInputRef.current) {
           fileInputRef.current.value = '';
         }
