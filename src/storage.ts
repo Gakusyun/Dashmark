@@ -1,7 +1,6 @@
 // ==================== 数据模型 ====================
 
 const STORAGE_KEY = 'dashmark_data';
-const WEBDAV_STORAGE_KEY = 'dashmark_webdav';
 
 // ==================== 类型定义 ====================
 
@@ -41,19 +40,6 @@ export interface LinkWithGroups extends Link {
   groups: Group[];
 }
 
-export interface WebDAVConfig {
-  enabled: boolean;
-  url: string;
-  username: string;
-  password: string;
-  path: string;
-  autoSync: boolean;
-  syncInterval: number;        // 毫秒
-  lastSyncTime: number;         // 时间戳
-  lastSyncStatus: 'success' | 'error' | 'syncing';
-  lastSyncError?: string;
-}
-
 // ==================== 常量 ====================
 
 export const DEFAULT_SEARCH_ENGINES: SearchEngine[] = [
@@ -71,18 +57,6 @@ export const DEFAULT_DATA: Data = {
     searchEngine: 'baidu',
     darkMode: 'auto'
   }
-};
-
-export const DEFAULT_WEBDAV_CONFIG: WebDAVConfig = {
-  enabled: false,
-  url: '',
-  username: '',
-  password: '',
-  path: '/dashmark/',
-  autoSync: false,
-  syncInterval: 300000,        // 默认 5 分钟
-  lastSyncTime: 0,
-  lastSyncStatus: 'success'
 };
 
 // ==================== 存储操作 ====================
@@ -465,56 +439,4 @@ export function deleteSearchEngine(id: string): boolean {
   data.searchEngines = data.searchEngines.filter(e => e.id !== id);
   saveData(data);
   return true;
-}
-
-// ==================== WebDAV 配置操作 ====================
-
-/**
- * 加载 WebDAV 配置
- */
-export function loadWebDAVConfig(): WebDAVConfig {
-  try {
-    const json = localStorage.getItem(WEBDAV_STORAGE_KEY);
-    if (!json) {
-      return DEFAULT_WEBDAV_CONFIG;
-    }
-    return { ...DEFAULT_WEBDAV_CONFIG, ...JSON.parse(json) };
-  } catch (error) {
-    console.error('Failed to load WebDAV config:', error);
-    return DEFAULT_WEBDAV_CONFIG;
-  }
-}
-
-/**
- * 保存 WebDAV 配置
- */
-export function saveWebDAVConfig(config: WebDAVConfig): boolean {
-  try {
-    localStorage.setItem(WEBDAV_STORAGE_KEY, JSON.stringify(config));
-    return true;
-  } catch (error) {
-    console.error('Failed to save WebDAV config:', error);
-    return false;
-  }
-}
-
-/**
- * 导出 WebDAV 配置（脱敏）
- */
-export function exportWebDAVConfig(): void {
-  const config = loadWebDAVConfig();
-  const safeConfig = {
-    ...config,
-    password: '***' // 脱敏
-  };
-  const json = JSON.stringify(safeConfig, null, 2);
-  const blob = new Blob([json], { type: 'application/json' });
-  const url = URL.createObjectURL(blob);
-  const a = document.createElement('a');
-  a.href = url;
-  a.download = `dashmark_webdav_config_${new Date().toISOString().slice(0, 10)}.json`;
-  document.body.appendChild(a);
-  a.click();
-  document.body.removeChild(a);
-  URL.revokeObjectURL(url);
 }
