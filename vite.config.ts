@@ -12,13 +12,18 @@ export default defineConfig({
           if (id.includes('node_modules/pako')) {
             return 'pako-vendor';
           }
-          // 其他第三方库打包在一起
+
+          // MUI 核心库和图标（最大的依赖包）
+          if (id.includes('node_modules/@mui/material') || id.includes('node_modules/@mui/icons-material')) {
+            return 'mui-vendor';
+          }
+
+          // 其他所有第三方库（包括 React、Emotion 等）
           if (id.includes('node_modules')) {
             return 'vendor';
           }
         }
       }
     },
-    chunkSizeWarningLimit: 600 // 调整警告阈值到 600KB
   }
 })

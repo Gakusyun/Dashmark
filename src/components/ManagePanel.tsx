@@ -1,11 +1,13 @@
-import React from 'react';
-import { Drawer, Box, Typography, IconButton, Tabs, Tab } from '@mui/material';
+import React, { lazy, Suspense } from 'react';
+import { Drawer, Box, Typography, IconButton, Tabs, Tab, CircularProgress } from '@mui/material';
 import { Close as CloseIcon } from '@mui/icons-material';
-import { LinkManager } from './LinkManager';
-import { GroupManager } from './GroupManager';
-import { Settings } from './Settings';
-import { DataManagement } from './DataManagement';
-import { About } from './About';
+
+// 懒加载管理组件
+const LinkManager = lazy(() => import('./LinkManager').then(m => ({ default: m.LinkManager })));
+const GroupManager = lazy(() => import('./GroupManager').then(m => ({ default: m.GroupManager })));
+const Settings = lazy(() => import('./Settings').then(m => ({ default: m.Settings })));
+const DataManagement = lazy(() => import('./DataManagement').then(m => ({ default: m.DataManagement })));
+const About = lazy(() => import('./About').then(m => ({ default: m.About })));
 
 interface ManagePanelProps {
   open: boolean;
@@ -62,11 +64,13 @@ export const ManagePanel: React.FC<ManagePanelProps> = ({ open, onClose }) => {
         </Tabs>
 
         <Box sx={{ flex: 1, overflow: 'auto', p: 2 }}>
-          {tabValue === 0 && <LinkManager onClose={onClose} />}
-          {tabValue === 1 && <GroupManager onClose={onClose} />}
-          {tabValue === 2 && <Settings />}
-          {tabValue === 3 && <DataManagement />}
-          {tabValue === 4 && <About />}
+          <Suspense fallback={<Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100%' }}><CircularProgress /></Box>}>
+            {tabValue === 0 && <LinkManager onClose={onClose} />}
+            {tabValue === 1 && <GroupManager onClose={onClose} />}
+            {tabValue === 2 && <Settings />}
+            {tabValue === 3 && <DataManagement />}
+            {tabValue === 4 && <About />}
+          </Suspense>
         </Box>
       </Box>
     </Drawer>
