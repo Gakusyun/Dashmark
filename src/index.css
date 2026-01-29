@@ -1,7 +1,4 @@
-@import '@fontsource/roboto/300.css';
-@import '@fontsource/roboto/400.css';
-@import '@fontsource/roboto/500.css';
-@import '@fontsource/roboto/700.css';
+@import url('https://font.sec.miui.com/font/css?family=MiSans:400,700');
 
 * {
   margin: 0;
@@ -17,7 +14,7 @@ body {
 }
 
 body {
-  font-family: 'Roboto', sans-serif;
+  font-family: 'MiSans', sans-serif;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
 }
