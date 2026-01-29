@@ -15,6 +15,11 @@ export default defineConfig({
             return 'pako-vendor';
           }
 
+          // pinyin-pro 拼音库单独打包（只在搜索时使用）
+          if (id.includes('node_modules/pinyin-pro')) {
+            return 'pinyin-vendor';
+          }
+
           // MUI 核心库和图标（最大的依赖包）
           if (id.includes('node_modules/@mui/material') || id.includes('node_modules/@mui/icons-material')) {
             return 'mui-vendor';

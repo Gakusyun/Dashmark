@@ -75,6 +75,17 @@ export const About: React.FC = () => {
                     GitHub 仓库
                 </Link>
             </Box>
+            <Divider sx={{ my: 2 }} />
+            <Typography variant="subtitle1" gutterBottom sx={{ mt: 2, fontWeight: 600 }}>
+                更新日志
+            </Typography>
+            <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
+                1.3.0
+                <br />
+                新增页内查找功能
+                <br />
+                修复已知 Bug
+            </Box>
         </Box>
     );
 };
