@@ -58,7 +58,7 @@ export const Settings: React.FC = () => {
 
   const handleSaveEngine = () => {
     if (!engineFormData.name.trim() || !engineFormData.url.trim()) {
-      showError('名称和URL不能为空');
+      showError('名称和 URL 不能为空');
       return;
     }
 
