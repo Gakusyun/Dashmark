@@ -11,16 +11,14 @@ import {
   ListItemText,
   IconButton,
   Button,
-  Dialog,
-  DialogTitle,
-  DialogContent,
-  DialogActions,
   TextField,
 } from '@mui/material';
 import { Delete as DeleteIcon, Edit as EditIcon, Add as AddIcon } from '@mui/icons-material';
 import { useData } from '../contexts/DataContext';
 import { useTheme } from '../contexts/ThemeContext';
 import { useToast } from '../contexts/ToastContext';
+import { DialogBox } from './DialogBox';
+import { useConfirmDialog } from '../hooks/useConfirmDialog';
 import { getAllSearchEngines } from '../utils/storage';
 import type { SearchEngine } from '../types';
 
@@ -29,6 +27,8 @@ export const Settings: React.FC = () => {
   const { mode, setMode } = useTheme();
   const { showError } = useToast();
   const allEngines = getAllSearchEngines();
+
+  const { confirmDialog, showConfirm, closeConfirm } = useConfirmDialog();
 
   const [modalOpen, setModalOpen] = useState(false);
   const [editingEngine, setEditingEngine] = useState<SearchEngine | null>(null);
@@ -52,9 +52,8 @@ export const Settings: React.FC = () => {
   };
 
   const handleDeleteEngine = (id: string) => {
-    if (window.confirm('确定删除此搜索引擎吗？')) {
-      deleteSearchEngine(id);
-    }
+    const engine = customEngines.find(e => e.id === id);
+    showConfirm(`确定删除搜索引擎“${engine?.name}”吗？`, '', () => deleteSearchEngine(id));
   };
 
   const handleSaveEngine = () => {
@@ -140,36 +139,43 @@ export const Settings: React.FC = () => {
         ))}
       </List>
 
-      <Dialog open={modalOpen} onClose={() => setModalOpen(false)} maxWidth="sm" fullWidth>
-        <DialogTitle>{editingEngine ? '编辑搜索引擎' : '添加搜索引擎'}</DialogTitle>
-        <DialogContent>
-          <TextField
-            autoFocus
-            fullWidth
-            label="名称"
-            value={engineFormData.name}
-            onChange={(e) => setEngineFormData({ ...engineFormData, name: e.target.value })}
-            sx={{ mb: 2, mt: 1 }}
-            placeholder="例如：必应"
-          />
-          <TextField
-            fullWidth
-            label="搜索URL"
-            value={engineFormData.url}
-            onChange={(e) => setEngineFormData({ ...engineFormData, url: e.target.value })}
-            placeholder="https://www.bing.com/search?q="
-          />
-          <Typography variant="body2" color="text.secondary" sx={{ mt: 1 }}>
-            URL 中使用 {`{q}`} 作为搜索关键词的占位符，例如：https://example.com/search?q={`{q}`}
-          </Typography>
-        </DialogContent>
-        <DialogActions>
-          <Button onClick={() => setModalOpen(false)}>取消</Button>
-          <Button onClick={handleSaveEngine} variant="contained">
-            保存
-          </Button>
-        </DialogActions>
-      </Dialog>
+      <DialogBox
+        open={modalOpen}
+        title={editingEngine ? '编辑搜索引擎' : '添加搜索引擎'}
+        confirmText="保存"
+        onConfirm={handleSaveEngine}
+        onClose={() => setModalOpen(false)}
+      >
+        <TextField
+          autoFocus
+          fullWidth
+          label="名称"
+          value={engineFormData.name}
+          onChange={(e) => setEngineFormData({ ...engineFormData, name: e.target.value })}
+          sx={{ mb: 2, mt: 1 }}
+          placeholder="例如：必应"
+        />
+        <TextField
+          fullWidth
+          label="搜索URL"
+          value={engineFormData.url}
+          onChange={(e) => setEngineFormData({ ...engineFormData, url: e.target.value })}
+          placeholder="https://www.bing.com/search?q="
+        />
+        <Typography variant="body2" color="text.secondary" sx={{ mt: 1 }}>
+          URL 中使用 {`{q}`} 作为搜索关键词的占位符，例如：https://example.com/search?q={`{q}`}
+        </Typography>
+      </DialogBox>
+
+      <DialogBox
+        open={confirmDialog.open}
+        title={confirmDialog.title}
+        content={confirmDialog.content}
+        confirmText="删除"
+        confirmColor="error"
+        onConfirm={confirmDialog.onConfirm}
+        onClose={closeConfirm}
+      />
     </Box>
   );
 };

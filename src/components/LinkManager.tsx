@@ -1,23 +1,20 @@
 import React, { useState } from 'react';
 import {
   Box,
-  List,
-  ListItem,
-  ListItemText,
-  IconButton,
   Button,
-  Dialog,
-  DialogTitle,
-  DialogContent,
-  DialogActions,
   TextField,
   FormControlLabel,
   Checkbox,
   Typography,
+  IconButton,
+  ListItemText,
 } from '@mui/material';
-import { Delete as DeleteIcon, Edit as EditIcon, Add as AddIcon, Check as CheckIcon } from '@mui/icons-material';
+import { Add as AddIcon, Check as CheckIcon } from '@mui/icons-material';
 import { useData } from '../contexts/DataContext';
 import { useToast } from '../contexts/ToastContext';
+import { DialogBox } from './DialogBox';
+import { ItemList } from './ItemList';
+import { useConfirmDialog } from '../hooks/useConfirmDialog';
 import type { Link } from '../types';
 
 interface LinkManagerProps {
@@ -27,6 +24,7 @@ interface LinkManagerProps {
 export const LinkManager: React.FC<LinkManagerProps> = () => {
   const { data, deleteLink, updateLink, addLink, batchDeleteLinks, addGroup } = useData();
   const { showError, showWarning } = useToast();
+  const { confirmDialog, showConfirm, closeConfirm } = useConfirmDialog();
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [modalOpen, setModalOpen] = useState(false);
   const [editingLink, setEditingLink] = useState<Link | null>(null);
@@ -59,10 +57,10 @@ export const LinkManager: React.FC<LinkManagerProps> = () => {
   };
 
   const handleBatchDelete = () => {
-    if (window.confirm(`确定删除选中的 ${selectedIds.size} 个链接吗？`)) {
+    showConfirm(`确定删除选中的 ${selectedIds.size} 个链接吗？`, '', () => {
       batchDeleteLinks(Array.from(selectedIds));
       setSelectedIds(new Set());
-    }
+    });
   };
 
   const handleAdd = () => {
@@ -81,10 +79,8 @@ export const LinkManager: React.FC<LinkManagerProps> = () => {
     setModalOpen(true);
   };
 
-  const handleDelete = (id: string) => {
-    if (window.confirm('确定删除此链接吗？')) {
-      deleteLink(id);
-    }
+  const handleDelete = (link: Link) => {
+    showConfirm(`确定删除链接“${link.title}”吗？`, '', () => deleteLink(link.id));
   };
 
   const handleSave = () => {
@@ -169,7 +165,7 @@ export const LinkManager: React.FC<LinkManagerProps> = () => {
 
       {data.links.length === 0 ? (
         <Typography color="text.secondary" sx={{ py: 3, textAlign: 'center' }}>
-          暂无链接，点击"添加链接"开始添加
+          暂无链接，点击“添加链接”开始添加
         </Typography>
       ) : (
         <>
@@ -185,115 +181,106 @@ export const LinkManager: React.FC<LinkManagerProps> = () => {
               label="全选"
             />
           </Box>
-          <List>
-            {data.links.map(link => (
-              <ListItem
-                key={link.id}
-                secondaryAction={
-                  <>
-                    <IconButton edge="end" onClick={() => handleEdit(link)}>
-                      <EditIcon />
-                    </IconButton>
-                    <IconButton edge="end" onClick={() => handleDelete(link.id)}>
-                      <DeleteIcon />
-                    </IconButton>
-                  </>
-                }
-                sx={{
-                  bgcolor: selectedIds.has(link.id) ? 'action.selected' : 'transparent',
-                  borderRadius: 1,
-                }}
-              >
-                <Checkbox
-                  checked={selectedIds.has(link.id)}
-                  onChange={() => handleToggleSelect(link.id)}
-                  onClick={(e) => e.stopPropagation()}
-                />
-                <ListItemText
-                  primary={link.title}
-                  secondary={link.url}
-                  sx={{ ml: 1 }}
-                />
-              </ListItem>
-            ))}
-          </List>
+          <ItemList
+            items={data.links}
+            getItemId={(link) => link.id}
+            emptyMessage='暂无链接，点击“添加链接”开始添加'
+            selectedIds={selectedIds}
+            onToggleSelect={handleToggleSelect}
+            onEdit={handleEdit}
+            onDelete={handleDelete}
+            renderItem={(link) => (
+              <ListItemText
+                primary={link.title}
+                secondary={link.url}
+                sx={{ ml: 1 }}
+              />
+            )}
+          />
         </>
       )}
 
-      <Dialog open={modalOpen} onClose={() => setModalOpen(false)} maxWidth="sm" fullWidth>
-        <DialogTitle>{editingLink ? '编辑链接' : '添加链接'}</DialogTitle>
-        <DialogContent>
-          <TextField
-            autoFocus
-            fullWidth
-            label="标题"
-            value={formData.title}
-            onChange={(e) => setFormData({ ...formData, title: e.target.value })}
-            sx={{ mb: 2, mt: 1 }}
-          />
-          <TextField
-            fullWidth
-            label="URL"
-            value={formData.url}
-            onChange={(e) => setFormData({ ...formData, url: e.target.value })}
-            placeholder="example.com 或 https://example.com"
-            sx={{ mb: 2 }}
-          />
-          <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 1 }}>
-            <Typography variant="subtitle2">
-              选择分组：
-            </Typography>
-            <IconButton
-              size="small"
-              onClick={handleStartCreateGroup}
-              title="添加分组"
-            >
-              <AddIcon />
-            </IconButton>
-          </Box>
-          <Box sx={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', my: 2 }}>
-            {data.groups.map(group => (
-              <FormControlLabel
-                key={group.id}
-                control={
-                  <Checkbox
-                    checked={formData.groupIds.includes(group.id)}
-                    onChange={() => handleToggleGroup(group.id)}
-                  />
-                }
-                label={group.name}
-              />
-            ))}
-            {isCreatingGroup && (
-              <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, }}>
-                <TextField
-                  size="small"
-                  margin="none"
-                  placeholder="新建分组"
-                  value={newGroupName}
-                  onChange={(e) => setNewGroupName(e.target.value)}
-                  onKeyDown={handleNewGroupKeyDown}
-                  autoFocus
-                  variant="standard"
+      <DialogBox
+        open={modalOpen}
+        title={editingLink ? '编辑链接' : '添加链接'}
+        confirmText="保存"
+        onConfirm={handleSave}
+        onClose={() => setModalOpen(false)}
+      >
+        <TextField
+          autoFocus
+          fullWidth
+          label="标题"
+          value={formData.title}
+          onChange={(e) => setFormData({ ...formData, title: e.target.value })}
+          sx={{ mb: 2, mt: 1 }}
+        />
+        <TextField
+          fullWidth
+          label="URL"
+          value={formData.url}
+          onChange={(e) => setFormData({ ...formData, url: e.target.value })}
+          placeholder="example.com 或 https://example.com"
+          sx={{ mb: 2 }}
+        />
+        <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 1 }}>
+          <Typography variant="subtitle2">
+            选择分组：
+          </Typography>
+          <IconButton
+            size="small"
+            onClick={handleStartCreateGroup}
+            title="添加分组"
+          >
+            <AddIcon />
+          </IconButton>
+        </Box>
+        <Box sx={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', my: 2 }}>
+          {data.groups.map(group => (
+            <FormControlLabel
+              key={group.id}
+              control={
+                <Checkbox
+                  checked={formData.groupIds.includes(group.id)}
+                  onChange={() => handleToggleGroup(group.id)}
                 />
-                <IconButton
-                  size="small"
-                  onClick={handleCreateGroup}
-                  title="完成"
-                >
-                  <CheckIcon />
-                </IconButton>
-              </Box>
-            )}
-          </Box>
-        </DialogContent>
-        <DialogActions>
-          <Button onClick={() => setModalOpen(false)}>取消</Button>
-          <Button onClick={handleSave} variant="contained">
-            保存
-          </Button>
-        </DialogActions>
-      </Dialog>
+              }
+              label={group.name}
+            />
+          ))}
+          {isCreatingGroup && (
+            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, }}>
+              <TextField
+                size="small"
+                margin="none"
+                placeholder="新建分组"
+                value={newGroupName}
+                onChange={(e) => setNewGroupName(e.target.value)}
+                onKeyDown={handleNewGroupKeyDown}
+                autoFocus
+                variant="standard"
+              />
+              <IconButton
+                size="small"
+                onClick={handleCreateGroup}
+                title="完成"
+              >
+                <CheckIcon />
+              </IconButton>
+            </Box>
+          )}
+        </Box>
+      </DialogBox>
+
+      <DialogBox
+        open={confirmDialog.open}
+        title={confirmDialog.title}
+        content={confirmDialog.content}
+        confirmText="删除"
+        confirmColor="error"
+        onConfirm={confirmDialog.onConfirm}
+        onClose={closeConfirm}
+      />
     </Box>
   );
 };

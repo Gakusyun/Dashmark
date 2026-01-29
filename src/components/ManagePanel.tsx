@@ -19,11 +19,17 @@ export const ManagePanel: React.FC<ManagePanelProps> = ({ open, onClose }) => {
     setTabValue(newValue);
   };
 
+  const handleClose = () => {
+    // 移除焦点以避免可访问性警告
+    (document.activeElement as HTMLElement)?.blur();
+    onClose();
+  };
+
   return (
     <Drawer
       anchor="right"
       open={open}
-      onClose={onClose}
+      onClose={handleClose}
       slotProps={{
         paper: {
           sx: { width: { xs: '100%', sm: 500, md: 600 } }
@@ -42,7 +48,7 @@ export const ManagePanel: React.FC<ManagePanelProps> = ({ open, onClose }) => {
           }}
         >
           <Typography variant="h6">管理收藏</Typography>
-          <IconButton onClick={onClose}>
+          <IconButton onClick={handleClose}>
             <CloseIcon />
           </IconButton>
         </Box>
