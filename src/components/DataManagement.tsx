@@ -64,7 +64,7 @@ export const DataManagement: React.FC = () => {
           type="file"
           ref={fileInputRef}
           onChange={handleFileChange}
-          accept=".json"
+          accept=".json,.json.gz"
           style={{ display: 'none' }}
         />
       </Box>

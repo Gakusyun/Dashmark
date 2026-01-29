@@ -1,3 +1,4 @@
+import pako from 'pako';
 import type {
   Data,
   SearchEngine,
@@ -85,11 +86,13 @@ export function saveData(data: Data): boolean {
 export function exportData(): void {
   const data = loadData();
   const json = JSON.stringify(data, null, 2);
-  const blob = new Blob([json], { type: 'application/json' });
+  // 使用 gzip 压缩
+  const compressed = pako.gzip(json);
+  const blob = new Blob([compressed], { type: 'application/gzip' });
   const url = URL.createObjectURL(blob);
   const a = document.createElement('a');
   a.href = url;
-  a.download = `dashmark_backup_${new Date().toISOString().slice(0, 10)}.json`;
+  a.download = `dashmark_backup_${new Date().toISOString().slice(0, 10)}.json.gz`;
   document.body.appendChild(a);
   a.click();
   document.body.removeChild(a);
@@ -101,50 +104,28 @@ export function importData(
   onSuccess: (data: Data) => void,
   onError: (error: Error) => void
 ): void {
+  // 检查是否为 gzip 文件（通过文件扩展名判断）
+  const isGzip = file.name.endsWith('.gz');
+
   const reader = new FileReader();
   reader.onload = function (e) {
     try {
-      const result = e.target?.result;
-      if (typeof result !== 'string') {
-        throw new Error('Invalid file content');
-      }
-
-      const data: Data = JSON.parse(result);
-
-      // 验证数据结构
-      if (!Array.isArray(data.groups) || !Array.isArray(data.links)) {
-        throw new Error('Invalid data structure');
-      }
-
-      // 验证分组数据
-      for (const group of data.groups) {
-        if (!group.id || !group.name) {
-          throw new Error('Invalid group data');
+      if (isGzip) {
+        // gzip 文件：读取为 ArrayBuffer
+        const result = e.target?.result;
+        if (!(result instanceof ArrayBuffer)) {
+          throw new Error('Invalid gzip file content');
         }
-      }
-
-      // 验证链接数据
-      for (const link of data.links) {
-        if (!link.id || !link.title || !link.url || !Array.isArray(link.groupIds)) {
-          throw new Error('Invalid link data');
-        }
-      }
-
-      // 保存导入的数据
-      const importedData: Data = {
-        groups: data.groups,
-        links: data.links,
-        searchEngines: data.searchEngines || [],
-        settings: {
-          searchEngine: data.settings?.searchEngine || 'google',
-          darkMode: data.settings?.darkMode || 'auto'
-        }
-      };
-
-      if (saveData(importedData)) {
-        onSuccess(importedData);
+        const compressed = new Uint8Array(result);
+        const json = pako.ungzip(compressed, { to: 'string' });
+        processData(json, onSuccess, onError);
       } else {
-        onError(new Error('Failed to save imported data'));
+        // 普通 JSON 文件：读取为文本
+        const result = e.target?.result;
+        if (typeof result !== 'string') {
+          throw new Error('Invalid JSON file content');
+        }
+        processData(result, onSuccess, onError);
       }
     } catch (error) {
       onError(error instanceof Error ? error : new Error('Unknown error'));
@@ -153,7 +134,61 @@ export function importData(
   reader.onerror = function () {
     onError(new Error('Failed to read file'));
   };
-  reader.readAsText(file);
+
+  // 根据文件类型选择读取方式
+  if (isGzip) {
+    reader.readAsArrayBuffer(file);
+  } else {
+    reader.readAsText(file);
+  }
+}
+
+function processData(
+  json: string,
+  onSuccess: (data: Data) => void,
+  onError: (error: Error) => void
+): void {
+  try {
+    const data: Data = JSON.parse(json);
+
+    // 验证数据结构
+    if (!Array.isArray(data.groups) || !Array.isArray(data.links)) {
+      throw new Error('Invalid data structure');
+    }
+
+    // 验证分组数据
+    for (const group of data.groups) {
+      if (!group.id || !group.name) {
+        throw new Error('Invalid group data');
+      }
+    }
+
+    // 验证链接数据
+    for (const link of data.links) {
+      if (!link.id || !link.title || !link.url || !Array.isArray(link.groupIds)) {
+        throw new Error('Invalid link data');
+      }
+    }
+
+    // 保存导入的数据
+    const importedData: Data = {
+      groups: data.groups,
+      links: data.links,
+      searchEngines: data.searchEngines || [],
+      settings: {
+        searchEngine: data.settings?.searchEngine || 'google',
+        darkMode: data.settings?.darkMode || 'auto'
+      }
+    };
+
+    if (saveData(importedData)) {
+      onSuccess(importedData);
+    } else {
+      onError(new Error('Failed to save imported data'));
+    }
+  } catch (error) {
+    onError(error instanceof Error ? error : new Error('Unknown error'));
+  }
 }
 
 // ==================== 分组操作 ====================
