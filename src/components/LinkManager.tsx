@@ -15,7 +15,7 @@ import {
   Checkbox,
   Typography,
 } from '@mui/material';
-import { Delete as DeleteIcon, Edit as EditIcon } from '@mui/icons-material';
+import { Delete as DeleteIcon, Edit as EditIcon, Add as AddIcon, Check as CheckIcon } from '@mui/icons-material';
 import { useData } from '../contexts/DataContext';
 import { useToast } from '../contexts/ToastContext';
 import type { Link } from '../types';
@@ -25,7 +25,7 @@ interface LinkManagerProps {
 }
 
 export const LinkManager: React.FC<LinkManagerProps> = () => {
-  const { data, deleteLink, updateLink, addLink, batchDeleteLinks } = useData();
+  const { data, deleteLink, updateLink, addLink, batchDeleteLinks, addGroup } = useData();
   const { showError, showWarning } = useToast();
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [modalOpen, setModalOpen] = useState(false);
@@ -35,6 +35,8 @@ export const LinkManager: React.FC<LinkManagerProps> = () => {
     url: '',
     groupIds: [] as string[],
   });
+  const [isCreatingGroup, setIsCreatingGroup] = useState(false);
+  const [newGroupName, setNewGroupName] = useState('');
 
   const handleToggleSelect = (id: string) => {
     setSelectedIds(prev => {
@@ -118,6 +120,40 @@ export const LinkManager: React.FC<LinkManagerProps> = () => {
     }));
   };
 
+  const handleStartCreateGroup = () => {
+    if (isCreatingGroup) {
+      setIsCreatingGroup(false);
+      setNewGroupName('');
+    } else {
+      setIsCreatingGroup(true);
+      setNewGroupName('');
+    }
+  };
+
+  const handleCreateGroup = () => {
+    const trimmedName = newGroupName.trim();
+    if (!trimmedName) {
+      showError('分组名称不能为空');
+      return;
+    }
+    const newGroup = addGroup(trimmedName);
+    setFormData(prev => ({
+      ...prev,
+      groupIds: [...prev.groupIds, newGroup.id],
+    }));
+    setIsCreatingGroup(false);
+    setNewGroupName('');
+  };
+
+  const handleNewGroupKeyDown = (e: React.KeyboardEvent) => {
+    if (e.key === 'Enter') {
+      handleCreateGroup();
+    } else if (e.key === 'Escape') {
+      setIsCreatingGroup(false);
+      setNewGroupName('');
+    }
+  };
+
   return (
     <Box>
       <Box sx={{ display: 'flex', gap: 2, mb: 2 }}>
@@ -137,7 +173,7 @@ export const LinkManager: React.FC<LinkManagerProps> = () => {
         </Typography>
       ) : (
         <>
-          <Box sx={{ mb: 1 }}>
+          <Box>
             <FormControlLabel
               control={
                 <Checkbox
@@ -166,7 +202,6 @@ export const LinkManager: React.FC<LinkManagerProps> = () => {
                 sx={{
                   bgcolor: selectedIds.has(link.id) ? 'action.selected' : 'transparent',
                   borderRadius: 1,
-                  mb: 1,
                 }}
               >
                 <Checkbox
@@ -204,21 +239,53 @@ export const LinkManager: React.FC<LinkManagerProps> = () => {
             placeholder="example.com 或 https://example.com"
             sx={{ mb: 2 }}
           />
-          <Typography variant="subtitle2" sx={{ mb: 1 }}>
-            选择分组：
-          </Typography>
-          {data.groups.map(group => (
-            <FormControlLabel
-              key={group.id}
-              control={
-                <Checkbox
-                  checked={formData.groupIds.includes(group.id)}
-                  onChange={() => handleToggleGroup(group.id)}
+          <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 1 }}>
+            <Typography variant="subtitle2">
+              选择分组：
+            </Typography>
+            <IconButton
+              size="small"
+              onClick={handleStartCreateGroup}
+              title="添加分组"
+            >
+              <AddIcon />
+            </IconButton>
+          </Box>
+          <Box sx={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', my: 2 }}>
+            {data.groups.map(group => (
+              <FormControlLabel
+                key={group.id}
+                control={
+                  <Checkbox
+                    checked={formData.groupIds.includes(group.id)}
+                    onChange={() => handleToggleGroup(group.id)}
+                  />
+                }
+                label={group.name}
+              />
+            ))}
+            {isCreatingGroup && (
+              <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, }}>
+                <TextField
+                  size="small"
+                  margin="none"
+                  placeholder="新建分组"
+                  value={newGroupName}
+                  onChange={(e) => setNewGroupName(e.target.value)}
+                  onKeyDown={handleNewGroupKeyDown}
+                  autoFocus
+                  variant="standard"
                 />
-              }
-              label={group.name}
-            />
-          ))}
+                <IconButton
+                  size="small"
+                  onClick={handleCreateGroup}
+                  title="完成"
+                >
+                  <CheckIcon />
+                </IconButton>
+              </Box>
+            )}
+          </Box>
         </DialogContent>
         <DialogActions>
           <Button onClick={() => setModalOpen(false)}>取消</Button>

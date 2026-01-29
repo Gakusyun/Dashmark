@@ -1,5 +1,5 @@
 import React, { createContext, useContext, useState, type ReactNode } from 'react';
-import type { Data, Settings } from '../types';
+import type { Data, Settings, Group } from '../types';
 import * as storage from '../utils/storage';
 
 interface DataContextType {
@@ -7,7 +7,7 @@ interface DataContextType {
   refreshData: () => void;
 
   // 分组操作
-  addGroup: (name: string) => void;
+  addGroup: (name: string) => Group;
   updateGroup: (id: string, name: string) => void;
   deleteGroup: (id: string) => void;
 
@@ -52,9 +52,10 @@ export const DataProvider: React.FC<DataProviderProps> = ({ children }) => {
   };
 
   // 分组操作
-  const addGroup = (name: string) => {
-    storage.addGroup(name);
+  const addGroup = (name: string): Group => {
+    const newGroup = storage.addGroup(name);
     refreshData();
+    return newGroup;
   };
 
   const updateGroup = (id: string, name: string) => {

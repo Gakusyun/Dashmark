@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Box, Container, Typography, Toolbar, AppBar, IconButton } from '@mui/material';
+import { Box, Container, Typography, Toolbar, AppBar, IconButton, Grid, useMediaQuery, useTheme } from '@mui/material';
 import { Settings as SettingsIcon } from '@mui/icons-material';
 import { useData } from './contexts/DataContext';
 import { SearchBox } from './components/SearchBox';
@@ -62,14 +62,19 @@ const App: React.FC = () => {
 
     return (
       <>
-        {data.groups.map(group => (
-          <GroupSection
-            key={group.id}
-            group={group}
-            onClick={() => handleGroupClick(group.id)}
-          />
-        ))}
-        <AllBookmarks onClick={handleAllClick} />
+        <Grid container spacing={2}>
+          {data.groups.map(group => (
+            <Grid key={group.id} size={{ xs: 12, lg: 6 }}>
+              <GroupSection
+                group={group}
+                onClick={() => handleGroupClick(group.id)}
+              />
+            </Grid>
+          ))}
+          <Grid size={12}>
+            <AllBookmarks onClick={handleAllClick} />
+          </Grid>
+        </Grid>
       </>
     );
   };

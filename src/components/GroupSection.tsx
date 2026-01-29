@@ -1,5 +1,5 @@
 import React from 'react';
-import { Box, Typography, Button, Paper, Grid } from '@mui/material';
+import { Box, Typography, Button, Paper, Grid, useMediaQuery, useTheme } from '@mui/material';
 import { ChevronLeft as ChevronLeftIcon } from '@mui/icons-material';
 import { useData } from '../contexts/DataContext';
 import { BookmarkCard } from './BookmarkCard';
@@ -19,7 +19,23 @@ export const GroupSection: React.FC<GroupSectionProps> = ({
   onBack,
 }) => {
   const { data } = useData();
+  const theme = useTheme();
   const groupLinks = data.links.filter(link => link.groupIds.includes(group.id));
+
+  // 检测屏幕尺寸，计算3行应该显示的链接数量
+  const isXsScreen = useMediaQuery(theme.breakpoints.down('sm'));
+  const isSmScreen = useMediaQuery(theme.breakpoints.up('sm'));
+  const isMdScreen = useMediaQuery(theme.breakpoints.up('md'));
+  const isLgScreen = useMediaQuery(theme.breakpoints.up('lg'));
+
+  let maxLinks = 9; // 默认 md
+  if (isXsScreen) {
+    maxLinks = 6; // xs: 2列 * 3行 = 6
+  } else if (isSmScreen && !isMdScreen) {
+    maxLinks = 12; // sm: 4列 * 3行 = 12
+  } else if (isMdScreen) {
+    maxLinks = 9; // md及以上: 3列 * 3行 = 9
+  }
 
   if (isFullscreen) {
     return (
@@ -59,7 +75,7 @@ export const GroupSection: React.FC<GroupSectionProps> = ({
       onClick={onClick}
       sx={{
         p: 3,
-        mb: 3,
+        height: '100%',
         cursor: onClick ? 'pointer' : 'default',
         '&:hover': {
           backgroundColor: 'action.hover',
@@ -79,8 +95,8 @@ export const GroupSection: React.FC<GroupSectionProps> = ({
         </Typography>
       ) : (
         <Grid container spacing={2}>
-          {groupLinks.slice(0, 8).map(link => (
-            <Grid key={link.id} size={{ xs: 6, sm: 4, md: 3 }}>
+          {groupLinks.slice(0, maxLinks).map(link => (
+            <Grid key={link.id} size={{ xs: 6, sm: 4, md: 3, lg: 6 }}>
               <BookmarkCard link={link} />
             </Grid>
           ))}
@@ -102,6 +118,24 @@ export const AllBookmarks: React.FC<AllBookmarksProps> = ({
   onBack,
 }) => {
   const { data } = useData();
+  const theme = useTheme();
+
+  // 检测屏幕尺寸，计算3行应该显示的链接数量
+  const isXsScreen = useMediaQuery(theme.breakpoints.down('sm'));
+  const isSmScreen = useMediaQuery(theme.breakpoints.up('sm'));
+  const isMdScreen = useMediaQuery(theme.breakpoints.up('md'));
+  const isLgScreen = useMediaQuery(theme.breakpoints.up('lg'));
+
+  let maxLinks = 9; // 默认 md
+  if (isXsScreen) {
+    maxLinks = 6; // xs: 2列 * 3行 = 6
+  } else if (isSmScreen && !isMdScreen) {
+    maxLinks = 12; // sm: 4列 * 3行 = 12
+  } else if (isMdScreen && !isLgScreen) {
+    maxLinks = 9; // md: 3列 * 3行 = 9
+  } else if (isLgScreen) {
+    maxLinks = 9; // lg及以上：AllBookmarks占满整行，显示9个（3行×3列）
+  }
 
   if (isFullscreen) {
     return (
@@ -141,7 +175,7 @@ export const AllBookmarks: React.FC<AllBookmarksProps> = ({
       onClick={onClick}
       sx={{
         p: 3,
-        mb: 3,
+        height: '100%',
         cursor: onClick ? 'pointer' : 'default',
         '&:hover': {
           backgroundColor: 'action.hover',
@@ -161,7 +195,7 @@ export const AllBookmarks: React.FC<AllBookmarksProps> = ({
         </Typography>
       ) : (
         <Grid container spacing={2}>
-          {data.links.slice(0, 8).map(link => (
+          {data.links.slice(0, maxLinks).map(link => (
             <Grid key={link.id} size={{ xs: 6, sm: 4, md: 3 }}>
               <BookmarkCard link={link} />
             </Grid>

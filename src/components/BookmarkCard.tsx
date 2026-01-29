@@ -7,6 +7,10 @@ interface BookmarkCardProps {
 }
 
 export const BookmarkCard: React.FC<BookmarkCardProps> = ({ link }) => {
+  const handleClick = (e: React.MouseEvent) => {
+    e.stopPropagation();
+  };
+
   return (
     <MuiLink
       href={link.url}
@@ -14,6 +18,7 @@ export const BookmarkCard: React.FC<BookmarkCardProps> = ({ link }) => {
       rel="noopener noreferrer"
       underline="none"
       sx={{ display: 'block' }}
+      onClick={handleClick}
     >
       <Card
         sx={{
