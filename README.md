@@ -1,26 +1,42 @@
 # DashMark
 
-简约的书签管理应用
+**Links, organized. Instantly.** 
 
-## 特性
+**链接有序，即刻可达。**
 
-- 分组管理书签
-- 快速搜索
-- 深色/浅色主题
-- 数据备份与导入（支持 gzip 压缩）
-- Material UI 设计
+DashMark 是一个专注于分组书签的极简起始页应用。它安静、迅速、不打扰，只在你需要时，将你带到正确的地方。
 
-## 技术栈
+## ✨ 特性
 
-- React 19 + TypeScript
-- Material UI (MUI) v7
-- Vite
+- 📁 **分组管理书签**
+  - 单层分组结构，清晰直观
+  - 一个链接可同时属于多个分组
+- 🔍 **快速搜索**
+  - 支持 Google / Bing / 百度
+  - 仅在确认操作时跳转，不做多余行为
+- 🌗 **深色 / 浅色主题**
+  - 支持跟随系统或手动切换
+- 💾 **数据备份与导入**
+  - 本地数据存储（localStorage）
+  - 支持 `.json` 与 `.json.gz`（gzip 压缩）格式
+- 🎨 **Material UI 设计**
+  - 基于 MUI 组件与设计规范
+  - 简洁、一致、响应式
 
-## 开发
+---
+
+
+
+## 🚀 开发与构建
 
 ```bash
 npm install
-npm run build
+npm run dev
 ```
+---
 
-构建完成后访问 http://localhost:5173/
+## 📦 数据说明
+
+- 所有数据存储在浏览器 `localStorage`
+- 清理浏览器数据将导致数据丢失
+- 建议定期导出备份文件以防意外

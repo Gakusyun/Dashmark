@@ -14,7 +14,7 @@ export const About: React.FC = () => {
 
             <Box sx={{ mb: 3 }}>
                 <Typography variant="body1" component="p">
-                    DashMark 是一个收藏夹驱动的起始页。
+                    DashMark 是一个专注于分组书签的极简起始页应用。它安静、迅速、不打扰，只在你需要时，将你带到正确的地方。
                     <br />
                     <Link
                         href="https://start.gxj62.cn"
