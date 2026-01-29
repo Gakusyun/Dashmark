@@ -26,7 +26,6 @@ export const GroupSection: React.FC<GroupSectionProps> = ({
   const isXsScreen = useMediaQuery(theme.breakpoints.down('sm'));
   const isSmScreen = useMediaQuery(theme.breakpoints.up('sm'));
   const isMdScreen = useMediaQuery(theme.breakpoints.up('md'));
-  const isLgScreen = useMediaQuery(theme.breakpoints.up('lg'));
 
   let maxLinks = 9; // 默认 md
   if (isXsScreen) {

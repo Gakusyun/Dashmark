@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Box, Container, Typography, Toolbar, AppBar, IconButton, Grid, useMediaQuery, useTheme } from '@mui/material';
+import { Box, Container, Typography, Toolbar, AppBar, IconButton, Grid } from '@mui/material';
 import { Settings as SettingsIcon } from '@mui/icons-material';
 import { useData } from './contexts/DataContext';
 import { SearchBox } from './components/SearchBox';
