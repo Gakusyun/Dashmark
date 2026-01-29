@@ -5,6 +5,7 @@ import { Close as CloseIcon } from '@mui/icons-material';
 // 懒加载管理组件
 const LinkManager = lazy(() => import('./LinkManager').then(m => ({ default: m.LinkManager })));
 const GroupManager = lazy(() => import('./GroupManager').then(m => ({ default: m.GroupManager })));
+const TextRecordManager = lazy(() => import('./TextRecordManager').then(m => ({ default: m.TextRecordManager })));
 const Settings = lazy(() => import('./Settings').then(m => ({ default: m.Settings })));
 const DataManagement = lazy(() => import('./DataManagement').then(m => ({ default: m.DataManagement })));
 const About = lazy(() => import('./About').then(m => ({ default: m.About })));
@@ -57,6 +58,7 @@ export const ManagePanel: React.FC<ManagePanelProps> = ({ open, onClose }) => {
 
         <Tabs value={tabValue} onChange={handleTabChange} sx={{ borderBottom: 1, borderColor: 'divider' }}>
           <Tab label="链接" />
+          <Tab label="文字记录" />
           <Tab label="分组" />
           <Tab label="设置" />
           <Tab label="数据" />
@@ -66,10 +68,11 @@ export const ManagePanel: React.FC<ManagePanelProps> = ({ open, onClose }) => {
         <Box sx={{ flex: 1, overflow: 'auto', p: 2 }}>
           <Suspense fallback={<Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100%' }}><CircularProgress /></Box>}>
             {tabValue === 0 && <LinkManager onClose={onClose} />}
-            {tabValue === 1 && <GroupManager onClose={onClose} />}
-            {tabValue === 2 && <Settings />}
-            {tabValue === 3 && <DataManagement />}
-            {tabValue === 4 && <About />}
+            {tabValue === 1 && <TextRecordManager onClose={onClose} />}
+            {tabValue === 2 && <GroupManager onClose={onClose} />}
+            {tabValue === 3 && <Settings />}
+            {tabValue === 4 && <DataManagement />}
+            {tabValue === 5 && <About />}
           </Suspense>
         </Box>
       </Box>

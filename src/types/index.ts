@@ -23,13 +23,26 @@ export interface Link {
   order: number;
 }
 
+export interface TextRecord {
+  id: string;
+  title: string;
+  content: string;
+  groupIds: string[];
+  order: number;
+}
+
 export interface Data {
   groups: Group[];
   links: Link[];
+  textRecords: TextRecord[];
   searchEngines: SearchEngine[];
   settings: Settings;
 }
 
 export interface LinkWithGroups extends Link {
+  groups: Group[];
+}
+
+export interface TextRecordWithGroups extends TextRecord {
   groups: Group[];
 }

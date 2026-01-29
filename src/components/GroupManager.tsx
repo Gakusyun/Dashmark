@@ -36,9 +36,21 @@ export const GroupManager: React.FC<GroupManagerProps> = () => {
 
   const handleDelete = (group: Group) => {
     const linkCount = data.links.filter(link => link.groupIds.includes(group.id)).length;
-    const title = linkCount > 0
-      ? `分组“${group.name}”包含 ${linkCount} 个链接，删除分组将同时删除这些链接。确定要删除吗？`
+    const textRecordCount = data.textRecords.filter(record => record.groupIds.includes(group.id)).length;
+    
+    const itemsDescription = [];
+    if (linkCount > 0) {
+      itemsDescription.push(`${linkCount} 个链接`);
+    }
+    if (textRecordCount > 0) {
+      itemsDescription.push(`${textRecordCount} 条文字记录`);
+    }
+    
+    const itemsText = itemsDescription.join(' 和 ');
+    const title = itemsText
+      ? `分组“${group.name}”包含 ${itemsText}，删除分组将同时删除这些内容。确定要删除吗？`
       : `确定删除分组“${group.name}”吗？`;
+      
     setConfirmDialog({
       open: true,
       title: title,
@@ -99,10 +111,23 @@ export const GroupManager: React.FC<GroupManagerProps> = () => {
         onDelete={handleDelete}
         renderItem={(group) => {
           const linkCount = data.links.filter(link => link.groupIds.includes(group.id)).length;
+          const textRecordCount = data.textRecords.filter(record => record.groupIds.includes(group.id)).length;
+          
+          let secondaryText = '';
+          if (linkCount > 0 && textRecordCount > 0) {
+            secondaryText = `${linkCount} 个链接, ${textRecordCount} 条文字`;
+          } else if (linkCount > 0) {
+            secondaryText = `${linkCount} 个链接`;
+          } else if (textRecordCount > 0) {
+            secondaryText = `${textRecordCount} 条文字`;
+          } else {
+            secondaryText = '暂无内容';
+          }
+          
           return (
             <ListItemText
               primary={group.name}
-              secondary={`${linkCount} 个链接`}
+              secondary={secondaryText}
             />
           );
         }}
