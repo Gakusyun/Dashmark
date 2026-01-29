@@ -11,6 +11,7 @@ export interface DialogBoxProps extends Omit<DialogProps, 'content'> {
   onClose: () => void;
   confirmColor?: 'inherit' | 'primary' | 'secondary' | 'success' | 'error' | 'info' | 'warning';
   confirmVariant?: 'text' | 'outlined' | 'contained';
+  cancelVariant?: 'text' | 'outlined' | 'contained';
   showCancel?: boolean;
   children?: React.ReactNode;
 }
@@ -25,6 +26,7 @@ export const DialogBox: React.FC<DialogBoxProps> = ({
   onClose,
   confirmColor = 'primary',
   confirmVariant = 'contained',
+  cancelVariant = 'text',
   showCancel = true,
   children,
   maxWidth = 'sm',
@@ -39,7 +41,7 @@ export const DialogBox: React.FC<DialogBoxProps> = ({
         {children}
       </DialogContent>
       <DialogActions>
-        {showCancel && <Button onClick={onClose}>{cancelText}</Button>}
+        {showCancel && <Button onClick={onClose} variant={cancelVariant}>{cancelText}</Button>}
         {onConfirm && (
           <Button onClick={onConfirm} color={confirmColor} variant={confirmVariant}>
             {confirmText}

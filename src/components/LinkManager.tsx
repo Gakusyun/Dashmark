@@ -14,7 +14,6 @@ import { useData } from '../contexts/DataContext';
 import { useToast } from '../contexts/ToastContext';
 import { DialogBox } from './DialogBox';
 import { ItemList } from './ItemList';
-import { useConfirmDialog } from '../hooks/useConfirmDialog';
 import type { Link } from '../types';
 
 interface LinkManagerProps {
@@ -24,8 +23,13 @@ interface LinkManagerProps {
 export const LinkManager: React.FC<LinkManagerProps> = () => {
   const { data, deleteLink, updateLink, addLink, batchDeleteLinks, addGroup } = useData();
   const { showError, showWarning } = useToast();
-  const { confirmDialog, showConfirm, closeConfirm } = useConfirmDialog();
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
+  const [confirmDialog, setConfirmDialog] = useState({
+    open: false,
+    title: '',
+    content: '',
+    onConfirm: () => { },
+  });
   const [modalOpen, setModalOpen] = useState(false);
   const [editingLink, setEditingLink] = useState<Link | null>(null);
   const [formData, setFormData] = useState({
@@ -57,9 +61,15 @@ export const LinkManager: React.FC<LinkManagerProps> = () => {
   };
 
   const handleBatchDelete = () => {
-    showConfirm(`确定删除选中的 ${selectedIds.size} 个链接吗？`, '', () => {
-      batchDeleteLinks(Array.from(selectedIds));
-      setSelectedIds(new Set());
+    setConfirmDialog({
+      open: true,
+      title: `确定删除选中的 ${selectedIds.size} 个链接吗？`,
+      content: '',
+      onConfirm: () => {
+        batchDeleteLinks(Array.from(selectedIds));
+        setSelectedIds(new Set());
+        setConfirmDialog(prev => ({ ...prev, open: false }));
+      },
     });
   };
 
@@ -80,7 +90,15 @@ export const LinkManager: React.FC<LinkManagerProps> = () => {
   };
 
   const handleDelete = (link: Link) => {
-    showConfirm(`确定删除链接“${link.title}”吗？`, '', () => deleteLink(link.id));
+    setConfirmDialog({
+      open: true,
+      title: `确定删除链接“${link.title}”吗`,
+      content: '',
+      onConfirm: () => {
+        deleteLink(link.id);
+        setConfirmDialog(prev => ({ ...prev, open: false }));
+      },
+    });
   };
 
   const handleSave = () => {
@@ -278,8 +296,10 @@ export const LinkManager: React.FC<LinkManagerProps> = () => {
         content={confirmDialog.content}
         confirmText="删除"
         confirmColor="error"
+        confirmVariant="text"
+        cancelVariant="contained"
         onConfirm={confirmDialog.onConfirm}
-        onClose={closeConfirm}
+        onClose={() => setConfirmDialog(prev => ({ ...prev, open: false }))}
       />
     </Box>
   );

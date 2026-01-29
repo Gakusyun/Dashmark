@@ -18,7 +18,6 @@ import { useData } from '../contexts/DataContext';
 import { useTheme } from '../contexts/ThemeContext';
 import { useToast } from '../contexts/ToastContext';
 import { DialogBox } from './DialogBox';
-import { useConfirmDialog } from '../hooks/useConfirmDialog';
 import { getAllSearchEngines } from '../utils/storage';
 import type { SearchEngine } from '../types';
 
@@ -28,13 +27,17 @@ export const Settings: React.FC = () => {
   const { showError } = useToast();
   const allEngines = getAllSearchEngines();
 
-  const { confirmDialog, showConfirm, closeConfirm } = useConfirmDialog();
-
   const [modalOpen, setModalOpen] = useState(false);
   const [editingEngine, setEditingEngine] = useState<SearchEngine | null>(null);
   const [engineFormData, setEngineFormData] = useState({
     name: '',
     url: '',
+  });
+  const [confirmDialog, setConfirmDialog] = useState({
+    open: false,
+    title: '',
+    content: '',
+    onConfirm: () => { },
   });
 
   const customEngines = data.searchEngines;
@@ -53,7 +56,15 @@ export const Settings: React.FC = () => {
 
   const handleDeleteEngine = (id: string) => {
     const engine = customEngines.find(e => e.id === id);
-    showConfirm(`确定删除搜索引擎“${engine?.name}”吗？`, '', () => deleteSearchEngine(id));
+    setConfirmDialog({
+      open: true,
+      title: `确定删除搜索引擎“${engine?.name}”吗？`,
+      content: '',
+      onConfirm: () => {
+        deleteSearchEngine(id);
+        setConfirmDialog(prev => ({ ...prev, open: false }));
+      },
+    });
   };
 
   const handleSaveEngine = () => {
@@ -173,8 +184,10 @@ export const Settings: React.FC = () => {
         content={confirmDialog.content}
         confirmText="删除"
         confirmColor="error"
+        confirmVariant="text"
+        cancelVariant="contained"
         onConfirm={confirmDialog.onConfirm}
-        onClose={closeConfirm}
+        onClose={() => setConfirmDialog(prev => ({ ...prev, open: false }))}
       />
     </Box>
   );
