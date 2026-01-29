@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import {
   Box,
   Button,
@@ -9,8 +9,6 @@ import { useData } from '../contexts/DataContext';
 import { useToast } from '../contexts/ToastContext';
 import { DialogBox } from './DialogBox';
 import { ItemList } from './ItemList';
-import { useConfirmDialog } from '../hooks/useConfirmDialog';
-import { useFormDialog } from '../hooks/useFormDialog';
 import type { Group } from '../types';
 
 interface GroupManagerProps {
@@ -20,11 +18,20 @@ interface GroupManagerProps {
 export const GroupManager: React.FC<GroupManagerProps> = () => {
   const { data, addGroup, updateGroup, deleteGroup } = useData();
   const { showError } = useToast();
-  const { confirmDialog, showConfirm, closeConfirm } = useConfirmDialog();
-  const { open, isEditing, formData, openAdd, openEdit, close, updateFormData } = useFormDialog<Group>({
+
+  const [modalOpen, setModalOpen] = useState(false);
+  const [isEditing, setIsEditing] = useState(false);
+  const [formData, setFormData] = useState<Group>({
     id: '',
     name: '',
     order: 0
+  });
+
+  const [confirmDialog, setConfirmDialog] = useState({
+    open: false,
+    title: '',
+    content: '',
+    onConfirm: () => { },
   });
 
   const handleDelete = (group: Group) => {
@@ -32,7 +39,35 @@ export const GroupManager: React.FC<GroupManagerProps> = () => {
     const title = linkCount > 0
       ? `分组“${group.name}”包含 ${linkCount} 个链接，删除分组将同时删除这些链接。确定要删除吗？`
       : `确定删除分组“${group.name}”吗？`;
-    showConfirm(title, '', () => deleteGroup(group.id));
+    setConfirmDialog({
+      open: true,
+      title: title,
+      content: '',
+      onConfirm: () => {
+        deleteGroup(group.id);
+        setConfirmDialog(prev => ({ ...prev, open: false }));
+      },
+    });
+  };
+
+  const openAdd = () => {
+    setIsEditing(false);
+    setFormData({ id: '', name: '', order: 0 });
+    setModalOpen(true);
+  };
+
+  const openEdit = (group: Group) => {
+    setIsEditing(true);
+    setFormData({ ...group });
+    setModalOpen(true);
+  };
+
+  const close = () => {
+    setModalOpen(false);
+  };
+
+  const updateFormData = (updates: Partial<Group>) => {
+    setFormData(prev => ({ ...prev, ...updates }));
   };
 
   const handleSave = () => {
@@ -74,7 +109,7 @@ export const GroupManager: React.FC<GroupManagerProps> = () => {
       />
 
       <DialogBox
-        open={open}
+        open={modalOpen}
         title={isEditing ? '编辑分组' : '添加分组'}
         confirmText="保存"
         onConfirm={handleSave}
@@ -96,8 +131,10 @@ export const GroupManager: React.FC<GroupManagerProps> = () => {
         content={confirmDialog.content}
         confirmText="删除"
         confirmColor="error"
+        confirmVariant="text"
+        cancelVariant="contained"
         onConfirm={confirmDialog.onConfirm}
-        onClose={closeConfirm}
+        onClose={() => setConfirmDialog(prev => ({ ...prev, open: false }))}
       />
     </Box>
   );

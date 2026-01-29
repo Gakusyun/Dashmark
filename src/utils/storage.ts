@@ -228,8 +228,6 @@ export function deleteGroup(id: string): boolean {
   data.links.forEach(link => {
     link.groupIds = link.groupIds.filter(gid => gid !== id);
   });
-  // 删除没有分组的链接（如果需要保留，可以去掉这一步）
-  data.links = data.links.filter(link => link.groupIds.length > 0);
   saveData(data);
   return true;
 }

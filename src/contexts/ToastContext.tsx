@@ -63,14 +63,14 @@ export const ToastProvider: React.FC<ToastProviderProps> = ({ children }) => {
   return (
     <ToastContext.Provider value={value}>
       {children}
-      <Snackbar
-        open={toast !== null}
-        autoHideDuration={toast?.autoHideDuration}
-        onClose={handleClose}
-        anchorOrigin={{ vertical: 'bottom', horizontal: 'center' }}
-        sx={{ zIndex: 10000 }}
-      >
-        {toast ? (
+      {toast && (
+        <Snackbar
+          open={true}
+          autoHideDuration={toast.autoHideDuration}
+          onClose={handleClose}
+          anchorOrigin={{ vertical: 'bottom', horizontal: 'center' }}
+          sx={{ zIndex: 10000 }}
+        >
           <Alert
             onClose={handleClose}
             severity={toast.severity}
@@ -79,8 +79,8 @@ export const ToastProvider: React.FC<ToastProviderProps> = ({ children }) => {
           >
             {toast.message}
           </Alert>
-        ) : <span />}
-      </Snackbar>
+        </Snackbar>
+      )}
     </ToastContext.Provider>
   );
 };
