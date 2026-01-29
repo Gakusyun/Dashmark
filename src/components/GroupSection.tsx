@@ -26,6 +26,7 @@ interface CommonBookmarksSectionProps {
   isFullscreen?: boolean;
   onBack?: () => void;
   showBackButton?: boolean;
+  searchQuery?: string;
 }
 
 const CommonBookmarksSection: React.FC<CommonBookmarksSectionProps> = ({
@@ -38,11 +39,113 @@ const CommonBookmarksSection: React.FC<CommonBookmarksSectionProps> = ({
   isFullscreen = false,
   onBack,
   showBackButton = false,
+  searchQuery = '',
 }) => {
   const theme = useTheme();
-  
+
   // 管理文字记录的全屏状态
   const [fullscreenTextRecordId, setFullscreenTextRecordId] = useState<string | null>(null);
+
+  // 动态加载拼音库
+  const [pinyinModule, setPinyinModule] = useState<any>(null);
+
+  // 当有搜索词时，动态加载拼音库
+  React.useEffect(() => {
+    if (searchQuery.trim() && !pinyinModule) {
+      import('pinyin-pro').then(module => {
+        setPinyinModule(module);
+      });
+    }
+  }, [searchQuery, pinyinModule]);
+
+  // 根据搜索关键词过滤项目
+  const filteredItems = React.useMemo(() => {
+    if (!searchQuery.trim()) {
+      return items;
+    }
+
+    // 将搜索词拆分为单个字符，过滤掉空格
+    const queryChars = searchQuery.toLowerCase().split('').filter(c => c.trim());
+
+    // 检查文本是否包含所有搜索字符（原文匹配）
+    const containsAllChars = (text: string): boolean => {
+      const lowerText = text.toLowerCase();
+      return queryChars.every(char => lowerText.includes(char));
+    };
+
+    // 检查文本的拼音是否包含所有搜索字符（拼音匹配）
+    const containsAllCharsInPinyin = (text: string): boolean => {
+      if (!pinyinModule) return false;
+      const pinyinText = pinyinModule.pinyin(text, { toneType: 'none' }).toLowerCase();
+      return queryChars.every(char => pinyinText.includes(char));
+    };
+
+    // 计算相关度评分
+    const calculateScore = (item: Item): number => {
+      let score = 0;
+
+      if ('url' in item) {
+        const link = item as Link;
+        // 标题完全匹配（最高优先级）
+        if (link.title.toLowerCase() === searchQuery.toLowerCase()) score += 100;
+        // 标题包含完整搜索词
+        else if (link.title.toLowerCase().includes(searchQuery.toLowerCase())) score += 80;
+        // 标题包含所有字符
+        else if (containsAllChars(link.title)) score += 60;
+        // URL 包含完整搜索词
+        else if (link.url.toLowerCase().includes(searchQuery.toLowerCase())) score += 50;
+        // URL 包含所有字符
+        else if (containsAllChars(link.url)) score += 30;
+
+        // 拼音匹配（较低优先级）
+        if (pinyinModule && containsAllCharsInPinyin(link.title)) {
+          score += 20;
+        }
+      } else {
+        const record = item as TextRecord;
+        // 标题完全匹配
+        if (record.title.toLowerCase() === searchQuery.toLowerCase()) score += 100;
+        // 标题包含完整搜索词
+        else if (record.title.toLowerCase().includes(searchQuery.toLowerCase())) score += 80;
+        // 标题包含所有字符
+        else if (containsAllChars(record.title)) score += 60;
+        // 内容包含完整搜索词
+        else if (record.content.toLowerCase().includes(searchQuery.toLowerCase())) score += 50;
+        // 内容包含所有字符
+        else if (containsAllChars(record.content)) score += 30;
+
+        // 拼音匹配
+        if (pinyinModule) {
+          if (containsAllCharsInPinyin(record.title)) score += 20;
+          if (containsAllCharsInPinyin(record.content)) score += 10;
+        }
+      }
+
+      return score;
+    };
+
+    // 过滤并排序
+    return items
+      .filter(item => {
+        if ('url' in item) {
+          const link = item as Link;
+          return (
+            containsAllChars(link.title) ||
+            containsAllChars(link.url) ||
+            containsAllCharsInPinyin(link.title)
+          );
+        } else {
+          const record = item as TextRecord;
+          return (
+            containsAllChars(record.title) ||
+            containsAllChars(record.content) ||
+            containsAllCharsInPinyin(record.title) ||
+            containsAllCharsInPinyin(record.content)
+          );
+        }
+      })
+      .sort((a, b) => calculateScore(b) - calculateScore(a));
+  }, [items, searchQuery, pinyinModule]);
   
   // 处理文字记录全屏关闭
   const handleCloseTextRecordFullscreen = () => {
@@ -139,6 +242,49 @@ const CommonBookmarksSection: React.FC<CommonBookmarksSectionProps> = ({
     return `${count} 个项目`;
   };
 
+  // 搜索模式下不使用 Paper 容器
+  if (searchQuery.trim()) {
+    return (
+      <Box>
+        <Box sx={{ mb: 2 }}>
+          <Typography variant="h6">{title}</Typography>
+          <Typography variant="body2" color="text.secondary">
+            找到 {filteredItems.length} 个项目
+          </Typography>
+        </Box>
+        {filteredItems.length === 0 ? (
+          <Paper sx={{ p: 3, textAlign: 'center' }}>
+            <Typography color="text.secondary">未找到匹配的项目</Typography>
+          </Paper>
+        ) : (
+          <Grid container spacing={2}>
+            {filteredItems.map((item) => {
+              const gridSizes = {
+                xs: 12,
+                sm: 6,
+                md: 4,
+                lg: 3
+              };
+              const isLink = 'url' in item;
+              return (
+                <Grid key={item.id} size={gridSizes}>
+                  {isLink ?
+                    <BookmarkCard link={item as Link} /> :
+                    <TextRecordCard
+                      record={item as TextRecord}
+                      isFullscreen={fullscreenTextRecordId === item.id}
+                      onOpenFullscreen={() => setFullscreenTextRecordId(item.id)}
+                      onCloseFullscreen={handleCloseTextRecordFullscreen}
+                    />}
+                </Grid>
+              );
+            })}
+          </Grid>
+        )}
+      </Box>
+    );
+  }
+
   return (
     <Paper
       onClick={fullscreenTextRecordId ? undefined : onClick}
@@ -172,15 +318,15 @@ const CommonBookmarksSection: React.FC<CommonBookmarksSectionProps> = ({
               md: 3,      // 4列
               lg: isAllBookmarks ? 3 : 6 // "所有"分组: 4列(1/4屏), 普通分组: 2列(1/2屏)
             };
-            
+
             // 判断是链接还是文字记录
             const isLink = 'url' in item;
             return (
               <Grid key={item.id} size={gridSizes}>
-                {isLink ? 
-                  <BookmarkCard link={item as Link} /> : 
-                  <TextRecordCard 
-                    record={item as TextRecord} 
+                {isLink ?
+                  <BookmarkCard link={item as Link} /> :
+                  <TextRecordCard
+                    record={item as TextRecord}
                     isFullscreen={fullscreenTextRecordId === item.id}
                     onOpenFullscreen={() => setFullscreenTextRecordId(item.id)}
                     onCloseFullscreen={handleCloseTextRecordFullscreen}
@@ -230,19 +376,21 @@ interface AllBookmarksProps {
   onClick?: () => void;
   isFullscreen?: boolean;
   onBack?: () => void;
+  searchQuery?: string;
 }
 
 export const AllBookmarks: React.FC<AllBookmarksProps> = ({
   onClick,
   isFullscreen = false,
   onBack,
+  searchQuery = '',
 }) => {
   const { data } = useData();
-  
+
   // 分别计算链接数和文字记录数
   const linksCount = data.links.length;
   const textRecordsCount = data.textRecords.length;
-  
+
   // 合并链接和文字记录
   const items = [...data.links, ...data.textRecords];
 
@@ -257,6 +405,7 @@ export const AllBookmarks: React.FC<AllBookmarksProps> = ({
       isFullscreen={isFullscreen}
       onBack={onBack}
       showBackButton={isFullscreen}
+      searchQuery={searchQuery}
     />
   );
 };

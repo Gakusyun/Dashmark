@@ -34,7 +34,11 @@ npm install
 npm run dev
 ```
 ---
+## 贡献代码
+欢迎任何组织或个人贡献代码。也欢迎 Ai 代码。
 
+
+---
 ## 📦 数据说明
 
 - 所有数据存储在浏览器 `localStorage`

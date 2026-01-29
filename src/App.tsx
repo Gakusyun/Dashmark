@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Box, Container, Typography, Toolbar, AppBar, IconButton, Grid } from '@mui/material';
+import { Box, Container, Typography, Toolbar, AppBar, IconButton, Grid, TextField } from '@mui/material';
 import { Settings as SettingsIcon } from '@mui/icons-material';
 import { useData } from './contexts/DataContext';
 import { SearchBox } from './components/SearchBox';
@@ -14,6 +14,7 @@ const App: React.FC = () => {
   const [managePanelOpen, setManagePanelOpen] = useState(false);
   const [viewMode, setViewMode] = useState<ViewMode>(null);
   const [selectedGroup, setSelectedGroup] = useState<SelectedGroup>(null);
+  const [searchQuery, setSearchQuery] = useState('');
 
   const handleGroupClick = (groupId: string) => {
     setSelectedGroup(groupId);
@@ -33,6 +34,11 @@ const App: React.FC = () => {
   };
 
   const renderContent = () => {
+    // 搜索结果视图
+    if (searchQuery.trim()) {
+      return <AllBookmarks isFullscreen={false} searchQuery={searchQuery} />;
+    }
+
     // 单分组视图
     if (viewMode === 'group' && selectedGroup && selectedGroup !== 'all') {
       const group = data.groups.find(g => g.id === selectedGroup);
@@ -81,12 +87,19 @@ const App: React.FC = () => {
 
   return (
     <>
-      <AppBar position="static" elevation={0} sx={{ mb: 4 }}>
+      <AppBar position="static" color="default" elevation={0} sx={{ mb: 4 }}>
         <Container maxWidth="lg">
-          <Toolbar disableGutters>
+          <Toolbar disableGutters sx={{ gap: 2 }}>
             <Typography variant="h5" component="div" sx={{ flexGrow: 1, cursor: 'pointer' }}>
               DashMark
             </Typography>
+            <TextField
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              label="页内搜索"
+              variant="standard"
+              sx={{ width: 200 }}
+            />
             <IconButton
               color="inherit"
               onClick={() => setManagePanelOpen(true)}
