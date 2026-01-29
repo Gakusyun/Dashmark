@@ -4,8 +4,10 @@ import type {
   SearchEngine,
   Group,
   Link,
+  TextRecord,
   Settings,
-  LinkWithGroups
+  LinkWithGroups,
+  TextRecordWithGroups
 } from '../types';
 
 const STORAGE_KEY = 'dashmark_data';
@@ -22,6 +24,7 @@ export const DEFAULT_SEARCH_ENGINES: SearchEngine[] = [
 export const DEFAULT_DATA: Data = {
   groups: [],
   links: [],
+  textRecords: [],
   searchEngines: [],
   settings: {
     searchEngine: 'baidu',
@@ -61,6 +64,7 @@ export function loadData(): Data {
     return {
       groups: Array.isArray(data.groups) ? data.groups : [],
       links: Array.isArray(data.links) ? data.links : [],
+      textRecords: Array.isArray(data.textRecords) ? data.textRecords : [],
       searchEngines: Array.isArray(data.searchEngines) ? data.searchEngines : [],
       settings: {
         searchEngine: searchEngineId,
@@ -170,10 +174,11 @@ function processData(
       }
     }
 
-    // 保存导入的数据
+    // 保存导入的数据，兼容旧版数据格式
     const importedData: Data = {
       groups: data.groups,
       links: data.links,
+      textRecords: data.textRecords || [], // 兼容旧版数据
       searchEngines: data.searchEngines || [],
       settings: {
         searchEngine: data.settings?.searchEngine || 'google',
@@ -224,9 +229,25 @@ export function deleteGroup(id: string): boolean {
   const data = loadData();
   // 删除分组
   data.groups = data.groups.filter(g => g.id !== id);
-  // 从所有链接中移除该分组ID
-  data.links.forEach(link => {
-    link.groupIds = link.groupIds.filter(gid => gid !== id);
+  // 删除属于该分组的链接（只属于这一个分组的链接）
+  data.links = data.links.filter(link => {
+    const belongsToGroup = link.groupIds.includes(id);
+    if (belongsToGroup) {
+      link.groupIds = link.groupIds.filter(gid => gid !== id);
+      // 如果链接不再属于任何分组，则删除该链接
+      return link.groupIds.length > 0;
+    }
+    return true;
+  });
+  // 删除属于该分组的文字记录（只属于这一个分组的文字记录）
+  data.textRecords = data.textRecords.filter(record => {
+    const belongsToGroup = record.groupIds.includes(id);
+    if (belongsToGroup) {
+      record.groupIds = record.groupIds.filter(gid => gid !== id);
+      // 如果文字记录不再属于任何分组，则删除该文字记录
+      return record.groupIds.length > 0;
+    }
+    return true;
   });
   saveData(data);
   return true;
@@ -288,6 +309,66 @@ export function deleteLink(id: string): boolean {
 export function batchDeleteLinks(ids: string[]): boolean {
   const data = loadData();
   data.links = data.links.filter(l => !ids.includes(l.id));
+  saveData(data);
+  return true;
+}
+
+// ==================== 文字记录操作 ====================
+
+export function getTextRecords(): TextRecord[] {
+  return loadData().textRecords;
+}
+
+export function getTextRecordsByGroupId(groupId: string): TextRecord[] {
+  const data = loadData();
+  return data.textRecords.filter(record => record.groupIds.includes(groupId));
+}
+
+export function getTextRecordsWithGroups(): TextRecordWithGroups[] {
+  const data = loadData();
+  return data.textRecords.map(record => ({
+    ...record,
+    groups: data.groups.filter(g => record.groupIds.includes(g.id))
+  }));
+}
+
+export function addTextRecord(title: string, content: string, groupIds: string[]): TextRecord {
+  const data = loadData();
+  const record: TextRecord = {
+    id: generateId(),
+    title: title,
+    content: content,
+    groupIds: groupIds,
+    order: data.textRecords.length
+  };
+  data.textRecords.push(record);
+  saveData(data);
+  return record;
+}
+
+export function updateTextRecord(id: string, title: string, content: string, groupIds: string[]): boolean {
+  const data = loadData();
+  const index = data.textRecords.findIndex(r => r.id === id);
+  if (index !== -1) {
+    data.textRecords[index].title = title;
+    data.textRecords[index].content = content;
+    data.textRecords[index].groupIds = groupIds;
+    saveData(data);
+    return true;
+  }
+  return false;
+}
+
+export function deleteTextRecord(id: string): boolean {
+  const data = loadData();
+  data.textRecords = data.textRecords.filter(r => r.id !== id);
+  saveData(data);
+  return true;
+}
+
+export function batchDeleteTextRecords(ids: string[]): boolean {
+  const data = loadData();
+  data.textRecords = data.textRecords.filter(r => !ids.includes(r.id));
   saveData(data);
   return true;
 }

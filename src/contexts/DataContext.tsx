@@ -17,6 +17,12 @@ interface DataContextType {
   deleteLink: (id: string) => void;
   batchDeleteLinks: (ids: string[]) => void;
 
+  // 文字记录操作
+  addTextRecord: (title: string, content: string, groupIds: string[]) => void;
+  updateTextRecord: (id: string, title: string, content: string, groupIds: string[]) => void;
+  deleteTextRecord: (id: string) => void;
+  batchDeleteTextRecords: (ids: string[]) => void;
+
   // 设置操作
   updateSettings: (settings: Partial<Settings>) => void;
 
@@ -89,6 +95,27 @@ export const DataProvider: React.FC<DataProviderProps> = ({ children }) => {
     refreshData();
   };
 
+  // 文字记录操作
+  const addTextRecord = (title: string, content: string, groupIds: string[]) => {
+    storage.addTextRecord(title, content, groupIds);
+    refreshData();
+  };
+
+  const updateTextRecord = (id: string, title: string, content: string, groupIds: string[]) => {
+    storage.updateTextRecord(id, title, content, groupIds);
+    refreshData();
+  };
+
+  const deleteTextRecord = (id: string) => {
+    storage.deleteTextRecord(id);
+    refreshData();
+  };
+
+  const batchDeleteTextRecords = (ids: string[]) => {
+    storage.batchDeleteTextRecords(ids);
+    refreshData();
+  };
+
   // 设置操作
   const updateSettings = (settings: Partial<Settings>) => {
     storage.updateSettings(settings);
@@ -139,6 +166,10 @@ export const DataProvider: React.FC<DataProviderProps> = ({ children }) => {
         updateLink,
         deleteLink,
         batchDeleteLinks,
+        addTextRecord,
+        updateTextRecord,
+        deleteTextRecord,
+        batchDeleteTextRecords,
         updateSettings,
         addSearchEngine,
         updateSearchEngine,

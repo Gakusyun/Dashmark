@@ -15,7 +15,20 @@ export const About: React.FC = () => {
             <Box sx={{ mb: 3 }}>
                 <Typography variant="body1" component="p">
                     DashMark 是一个收藏夹驱动的起始页。
+                    <br />
+                    <Link
+                        href="https://start.gxj62.cn"
+                        target="_blank"
+                        rel="noopener noreferrer"
+                    >master分支</Link>
+                    <br />
+                    <Link
+                        href="https://next.gxj62.cn"
+                        target="_blank"
+                        rel="noopener noreferrer"
+                    >beta分支</Link>
                 </Typography>
+
                 <Typography variant="body2" color="text.secondary">
                     版本 {packageJson.version}
                 </Typography>
