@@ -85,7 +85,7 @@ const App: React.FC = () => {
         <Container maxWidth="lg">
           <Toolbar disableGutters>
             <Typography variant="h5" component="div" sx={{ flexGrow: 1, cursor: 'pointer' }}>
-              Dashmark
+              DashMark
             </Typography>
             <IconButton
               color="inherit"

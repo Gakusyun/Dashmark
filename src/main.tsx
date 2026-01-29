@@ -8,12 +8,12 @@ import './index.css'
 
 createRoot(document.getElementById('root')!).render(
   <StrictMode>
-    <ThemeProvider defaultMode="auto">
-      <DataProvider>
+    <DataProvider>
+      <ThemeProvider>
         <ToastProvider>
           <App />
         </ToastProvider>
-      </DataProvider>
-    </ThemeProvider>
+      </ThemeProvider>
+    </DataProvider>
   </StrictMode>,
 )

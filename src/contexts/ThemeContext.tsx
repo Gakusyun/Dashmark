@@ -2,6 +2,7 @@ import React, { createContext, useContext, useState, useEffect, type ReactNode }
 import { createTheme, ThemeProvider as MuiThemeProvider } from '@mui/material/styles';
 import CssBaseline from '@mui/material/CssBaseline';
 import type { PaletteMode } from '@mui/material/styles';
+import { useData } from './DataContext';
 
 interface ThemeContextType {
   mode: 'light' | 'dark' | 'auto';
@@ -20,12 +21,17 @@ export const useTheme = () => {
 
 interface ThemeProviderProps {
   children: ReactNode;
-  defaultMode?: 'light' | 'dark' | 'auto';
 }
 
-export const ThemeProvider: React.FC<ThemeProviderProps> = ({ children, defaultMode = 'auto' }) => {
-  const [mode, setModeState] = useState<'light' | 'dark' | 'auto'>(defaultMode);
+export const ThemeProvider: React.FC<ThemeProviderProps> = ({ children }) => {
+  const { data, updateSettings } = useData();
+  const [mode, setModeState] = useState<'light' | 'dark' | 'auto'>(data.settings.darkMode);
   const [actualMode, setActualMode] = useState<PaletteMode>('light');
+
+  // 同步 data.settings.darkMode 到本地状态
+  useEffect(() => {
+    setModeState(data.settings.darkMode);
+  }, [data.settings.darkMode]);
 
   // 计算实际模式
   useEffect(() => {
@@ -49,6 +55,7 @@ export const ThemeProvider: React.FC<ThemeProviderProps> = ({ children, defaultM
 
   const setMode = (newMode: 'light' | 'dark' | 'auto') => {
     setModeState(newMode);
+    updateSettings({ darkMode: newMode });
   };
 
   // MUI 主题配置 - 采用 MUI 设计风格

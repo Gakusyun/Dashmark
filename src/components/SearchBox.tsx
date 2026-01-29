@@ -11,7 +11,7 @@ export const SearchBox: React.FC = () => {
   const allEngines = getAllSearchEngines();
   const currentEngine = allEngines.find(e => e.id === data.settings.searchEngine);
 
-  const handleSearch = (e: React.FormEvent) => {
+  const handleSearch = (e: React.SyntheticEvent<HTMLFormElement>) => {
     e.preventDefault();
     if (!searchQuery.trim()) return;
 
@@ -30,8 +30,10 @@ export const SearchBox: React.FC = () => {
           onChange={(e) => setSearchQuery(e.target.value)}
           placeholder="输入搜索内容..."
           sx={{ flex: 1 }}
-          InputProps={{
-            startAdornment: <SearchIcon sx={{ mr: 1, color: 'action.active' }} />,
+          slotProps={{
+            input: {
+              startAdornment: <SearchIcon sx={{ mr: 1, color: 'action.active' }} />,
+            }
           }}
         />
         <Button type="submit" variant="contained" size="large">

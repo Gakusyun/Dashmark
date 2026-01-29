@@ -5,6 +5,7 @@ import { LinkManager } from './LinkManager';
 import { GroupManager } from './GroupManager';
 import { Settings } from './Settings';
 import { DataManagement } from './DataManagement';
+import { About } from './About';
 
 interface ManagePanelProps {
   open: boolean;
@@ -23,8 +24,10 @@ export const ManagePanel: React.FC<ManagePanelProps> = ({ open, onClose }) => {
       anchor="right"
       open={open}
       onClose={onClose}
-      PaperProps={{
-        sx: { width: { xs: '100%', sm: 500, md: 600 } }
+      slotProps={{
+        paper: {
+          sx: { width: { xs: '100%', sm: 500, md: 600 } }
+        }
       }}
     >
       <Box sx={{ height: '100%', display: 'flex', flexDirection: 'column' }}>
@@ -49,6 +52,7 @@ export const ManagePanel: React.FC<ManagePanelProps> = ({ open, onClose }) => {
           <Tab label="分组" />
           <Tab label="设置" />
           <Tab label="数据" />
+          <Tab label="关于" />
         </Tabs>
 
         <Box sx={{ flex: 1, overflow: 'auto', p: 2 }}>
@@ -56,6 +60,7 @@ export const ManagePanel: React.FC<ManagePanelProps> = ({ open, onClose }) => {
           {tabValue === 1 && <GroupManager onClose={onClose} />}
           {tabValue === 2 && <Settings />}
           {tabValue === 3 && <DataManagement />}
+          {tabValue === 4 && <About />}
         </Box>
       </Box>
     </Drawer>
