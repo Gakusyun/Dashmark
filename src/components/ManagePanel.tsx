@@ -56,7 +56,14 @@ export const ManagePanel: React.FC<ManagePanelProps> = ({ open, onClose }) => {
           </IconButton>
         </Box>
 
-        <Tabs value={tabValue} onChange={handleTabChange} sx={{ borderBottom: 1, borderColor: 'divider' }}>
+        <Tabs 
+          value={tabValue} 
+          onChange={handleTabChange} 
+          variant="scrollable"
+          scrollButtons="auto"
+          allowScrollButtonsMobile
+          sx={{ borderBottom: 1, borderColor: 'divider' }}
+        >
           <Tab label="链接" />
           <Tab label="文字记录" />
           <Tab label="分组" />
