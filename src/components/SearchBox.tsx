@@ -26,9 +26,12 @@ export const SearchBox: React.FC = () => {
     <Box component="form" onSubmit={handleSearch} sx={{ maxWidth: 800, mx: 'auto', mb: 4 }}>
       <Box sx={{ display: 'flex', gap: 2, alignItems: 'center' }}>
         <TextField
+          id="search-input"
           value={searchQuery}
           onChange={(e) => setSearchQuery(e.target.value)}
           placeholder="输入搜索内容..."
+          variant="outlined"
+          label={currentEngine?.name}
           sx={{ flex: 1 }}
           slotProps={{
             input: {

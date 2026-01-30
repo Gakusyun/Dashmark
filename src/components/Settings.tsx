@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useRef } from 'react';
 import {
   Box,
   Typography,
@@ -12,8 +12,9 @@ import {
   IconButton,
   Button,
   TextField,
+  Alert,
 } from '@mui/material';
-import { Delete as DeleteIcon, Edit as EditIcon, Add as AddIcon } from '@mui/icons-material';
+import { Delete as DeleteIcon, Edit as EditIcon, Add as AddIcon, CloudUpload as UploadIcon, CloudDownload as DownloadIcon } from '@mui/icons-material';
 import { useData } from '../contexts/DataContext';
 import { useTheme } from '../contexts/ThemeContext';
 import { useToast } from '../contexts/ToastContext';
@@ -22,10 +23,11 @@ import { getAllSearchEngines } from '../utils/storage';
 import type { SearchEngine } from '../types';
 
 export const Settings: React.FC = () => {
-  const { data, updateSettings, addSearchEngine, updateSearchEngine, deleteSearchEngine } = useData();
+  const { data, updateSettings, addSearchEngine, updateSearchEngine, deleteSearchEngine, exportData, importData, refreshData } = useData();
   const { mode, setMode } = useTheme();
-  const { showError } = useToast();
+  const { showError, showSuccess } = useToast();
   const allEngines = getAllSearchEngines();
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   const [modalOpen, setModalOpen] = useState(false);
   const [editingEngine, setEditingEngine] = useState<SearchEngine | null>(null);
@@ -82,14 +84,46 @@ export const Settings: React.FC = () => {
     setModalOpen(false);
   };
 
+  const handleExport = () => {
+    exportData();
+  };
+
+  const handleImportClick = () => {
+    fileInputRef.current?.click();
+  };
+
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    importData(
+      file,
+      () => {
+        showSuccess('数据导入成功');
+        refreshData();
+        if (fileInputRef.current) {
+          fileInputRef.current.value = '';
+        }
+      },
+      (error) => {
+        showError(`导入失败：${error.message}`);
+        if (fileInputRef.current) {
+          fileInputRef.current.value = '';
+        }
+      }
+    );
+  };
+
   return (
     <Box>
       <Typography variant="h6" gutterBottom>
         主题设置
       </Typography>
       <FormControl fullWidth sx={{ mb: 4 }}>
-        <InputLabel>深色模式</InputLabel>
+        <InputLabel id="theme-mode-label">深色模式</InputLabel>
         <Select
+          id="theme-mode"
+          labelId="theme-mode-label"
           value={mode}
           label="深色模式"
           onChange={(e) => setMode(e.target.value as 'light' | 'dark' | 'auto')}
@@ -104,8 +138,10 @@ export const Settings: React.FC = () => {
         搜索引擎设置
       </Typography>
       <FormControl fullWidth sx={{ mb: 4 }}>
-        <InputLabel>默认搜索引擎</InputLabel>
+        <InputLabel id="search-engine-label">默认搜索引擎</InputLabel>
         <Select
+          id="search-engine"
+          labelId="search-engine-label"
           value={data.settings.searchEngine}
           label="默认搜索引擎"
           onChange={(e) => updateSettings({ searchEngine: e.target.value })}
@@ -158,6 +194,7 @@ export const Settings: React.FC = () => {
         onClose={() => setModalOpen(false)}
       >
         <TextField
+          id="engine-name"
           autoFocus
           fullWidth
           label="名称"
@@ -167,6 +204,7 @@ export const Settings: React.FC = () => {
           placeholder="例如：必应"
         />
         <TextField
+          id="engine-url"
           fullWidth
           label="搜索URL"
           value={engineFormData.url}
@@ -177,6 +215,36 @@ export const Settings: React.FC = () => {
           URL 中使用 {`{q}`} 作为搜索关键词的占位符，例如：https://example.com/search?q={`{q}`}
         </Typography>
       </DialogBox>
+
+      <Typography variant="h6" gutterBottom sx={{ mt: 4 }}>
+        数据备份
+      </Typography>
+      <Box sx={{ display: 'flex', gap: 2, mb: 3 }}>
+        <Button
+          variant="contained"
+          startIcon={<DownloadIcon />}
+          onClick={handleExport}
+        >
+          导出数据
+        </Button>
+        <Button
+          variant="outlined"
+          startIcon={<UploadIcon />}
+          onClick={handleImportClick}
+        >
+          导入数据
+        </Button>
+        <input
+          type="file"
+          ref={fileInputRef}
+          onChange={handleFileChange}
+          accept=".json,.json.gz"
+          style={{ display: 'none' }}
+        />
+      </Box>
+      <Alert severity="info">
+        数据以 JSON 格式存储在本地浏览器中。建议定期备份数据以防丢失。
+      </Alert>
 
       <DialogBox
         open={confirmDialog.open}
