@@ -98,6 +98,7 @@ const App: React.FC = () => {
               onChange={(e) => setSearchQuery(e.target.value)}
               label="页内搜索"
               variant="standard"
+              size='small'
               sx={{ width: 200 }}
             />
             <IconButton

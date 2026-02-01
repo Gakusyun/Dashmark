@@ -7,7 +7,6 @@ const LinkManager = lazy(() => import('./LinkManager').then(m => ({ default: m.L
 const GroupManager = lazy(() => import('./GroupManager').then(m => ({ default: m.GroupManager })));
 const TextRecordManager = lazy(() => import('./TextRecordManager').then(m => ({ default: m.TextRecordManager })));
 const Settings = lazy(() => import('./Settings').then(m => ({ default: m.Settings })));
-const DataManagement = lazy(() => import('./DataManagement').then(m => ({ default: m.DataManagement })));
 const About = lazy(() => import('./About').then(m => ({ default: m.About })));
 
 interface ManagePanelProps {
@@ -68,7 +67,6 @@ export const ManagePanel: React.FC<ManagePanelProps> = ({ open, onClose }) => {
           <Tab label="文字记录" />
           <Tab label="分组" />
           <Tab label="设置" />
-          <Tab label="数据" />
           <Tab label="关于" />
         </Tabs>
 
@@ -78,8 +76,7 @@ export const ManagePanel: React.FC<ManagePanelProps> = ({ open, onClose }) => {
             {tabValue === 1 && <TextRecordManager onClose={onClose} />}
             {tabValue === 2 && <GroupManager onClose={onClose} />}
             {tabValue === 3 && <Settings />}
-            {tabValue === 4 && <DataManagement />}
-            {tabValue === 5 && <About />}
+            {tabValue === 4 && <About />}
           </Suspense>
         </Box>
       </Box>
