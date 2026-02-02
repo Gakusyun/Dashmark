@@ -12,6 +12,7 @@
   "dependencies": {
     "@emotion/react": "^11.14.0",
     "@emotion/styled": "^11.14.1",
+    "@microsoft/clarity": "^1.0.2",
     "@mui/icons-material": "^7.3.7",
     "@mui/material": "^7.3.7",
     "pako": "^2.1.0",

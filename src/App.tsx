@@ -5,10 +5,14 @@ import { useData } from './contexts/DataContext';
 import { SearchBox } from './components/SearchBox';
 import { GroupSection, AllBookmarks } from './components/GroupSection';
 import { ManagePanel } from './components/ManagePanel';
+import Clarity from '@microsoft/clarity';
 
 type ViewMode = 'all' | 'group' | null;
 type SelectedGroup = string | 'all' | null;
 
+const projectId = "vay8fvwhta"
+
+Clarity.init(projectId);
 const App: React.FC = () => {
   const { data } = useData();
   const [managePanelOpen, setManagePanelOpen] = useState(false);
