@@ -80,6 +80,12 @@ export const About: React.FC = () => {
                 更新日志
             </Typography>
             <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
+                1.4.0
+                <br />
+                新增App离线可用，防止服务器问题到处资料无法取回
+                <br />
+                修复已知 Bug
+                <br />
                 1.3.0
                 <br />
                 新增页内查找功能

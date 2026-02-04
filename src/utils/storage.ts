@@ -153,33 +153,183 @@ function processData(
   onError: (error: Error) => void
 ): void {
   try {
+    // 验证 JSON 大小（防止超大文件攻击）
+    if (json.length > 50 * 1024 * 1024) {
+      // 50MB 限制
+      throw new Error('导入文件过大（超过 50MB）');
+    }
+
+    // 验证嵌套深度（使用递归检查）
+    const maxDepth = 100;
+    const checkDepth = (obj: unknown, currentDepth: number): void => {
+      if (currentDepth > maxDepth) {
+        throw new Error('数据嵌套层级过深，可能存在恶意构造');
+      }
+      if (typeof obj === 'object' && obj !== null) {
+        for (const value of Object.values(obj)) {
+          checkDepth(value, currentDepth + 1);
+        }
+      }
+    };
+
     const data: Data = JSON.parse(json);
+    checkDepth(data, 0);
 
-    // 验证数据结构
-    if (!Array.isArray(data.groups) || !Array.isArray(data.links)) {
-      throw new Error('Invalid data structure');
+    // ==================== 数组长度限制 ====================
+    const MAX_GROUPS = 1000;
+    const MAX_LINKS = 10000;
+    const MAX_TEXT_RECORDS = 10000;
+
+    if (data.groups.length > MAX_GROUPS) {
+      throw new Error(`分组数量超出限制（最多 ${MAX_GROUPS} 个，实际 ${data.groups.length} 个）`);
+    }
+    if (data.links.length > MAX_LINKS) {
+      throw new Error(`链接数量超出限制（最多 ${MAX_LINKS} 个，实际 ${data.links.length} 个）`);
     }
 
-    // 验证分组数据
+    // ==================== 字段长度限制常量 ====================
+    const MAX_GROUP_NAME_LENGTH = 100;
+    const MAX_LINK_TITLE_LENGTH = 200;
+    const MAX_LINK_URL_LENGTH = 2048;
+    const MAX_TEXT_RECORD_TITLE_LENGTH = 200;
+    const MAX_TEXT_RECORD_CONTENT_LENGTH = 10000;
+
+    // ==================== 验证分组数据 ====================
+    if (!Array.isArray(data.groups)) {
+      throw new Error('分组数据格式错误：应为数组');
+    }
+
     for (const group of data.groups) {
-      if (!group.id || !group.name) {
-        throw new Error('Invalid group data');
+      if (typeof group !== 'object' || group === null) {
+        throw new Error('分组数据格式错误：应为对象');
+      }
+      if (!group.id || typeof group.id !== 'string') {
+        throw new Error('分组数据格式错误：缺少有效的 id 字段');
+      }
+      if (!group.name || typeof group.name !== 'string') {
+        throw new Error('分组数据格式错误：缺少有效的 name 字段');
+      }
+      if (group.name.length > MAX_GROUP_NAME_LENGTH) {
+        throw new Error(
+          `分组名称过长（最多 ${MAX_GROUP_NAME_LENGTH} 字符，实际 ${group.name.length} 字符）`
+        );
+      }
+      if (typeof group.order !== 'number') {
+        throw new Error('分组数据格式错误：order 字段应为数字');
       }
     }
 
-    // 验证链接数据
+    // ==================== 验证链接数据 ====================
+    if (!Array.isArray(data.links)) {
+      throw new Error('链接数据格式错误：应为数组');
+    }
+
     for (const link of data.links) {
-      if (!link.id || !link.title || !link.url || !Array.isArray(link.groupIds)) {
-        throw new Error('Invalid link data');
+      if (typeof link !== 'object' || link === null) {
+        throw new Error('链接数据格式错误：应为对象');
       }
+      if (!link.id || typeof link.id !== 'string') {
+        throw new Error('链接数据格式错误：缺少有效的 id 字段');
+      }
+      if (!link.title || typeof link.title !== 'string') {
+        throw new Error('链接数据格式错误：缺少有效的 title 字段');
+      }
+      if (link.title.length > MAX_LINK_TITLE_LENGTH) {
+        throw new Error(
+          `链接标题过长（最多 ${MAX_LINK_TITLE_LENGTH} 字符，实际 ${link.title.length} 字符）`
+        );
+      }
+      if (!link.url || typeof link.url !== 'string') {
+        throw new Error('链接数据格式错误：缺少有效的 url 字段');
+      }
+      if (link.url.length > MAX_LINK_URL_LENGTH) {
+        throw new Error(
+          `链接 URL 过长（最多 ${MAX_LINK_URL_LENGTH} 字符，实际 ${link.url.length} 字符）`
+        );
+      }
+      if (!Array.isArray(link.groupIds)) {
+        throw new Error('链接数据格式错误：groupIds 字段应为数组');
+      }
+      if (typeof link.order !== 'number') {
+        throw new Error('链接数据格式错误：order 字段应为数字');
+      }
+    }
+
+    // ==================== 验证文字记录数据 ====================
+    const textRecords = data.textRecords || [];
+    if (!Array.isArray(textRecords)) {
+      throw new Error('文字记录数据格式错误：应为数组');
+    }
+
+    if (textRecords.length > MAX_TEXT_RECORDS) {
+      throw new Error(
+        `文字记录数量超出限制（最多 ${MAX_TEXT_RECORDS} 个，实际 ${textRecords.length} 个）`
+      );
+    }
+
+    for (const record of textRecords) {
+      if (typeof record !== 'object' || record === null) {
+        throw new Error('文字记录数据格式错误：应为对象');
+      }
+      if (!record.id || typeof record.id !== 'string') {
+        throw new Error('文字记录数据格式错误：缺少有效的 id 字段');
+      }
+      if (!record.title || typeof record.title !== 'string') {
+        throw new Error('文字记录数据格式错误：缺少有效的 title 字段');
+      }
+      if (record.title.length > MAX_TEXT_RECORD_TITLE_LENGTH) {
+        throw new Error(
+          `文字记录标题过长（最多 ${MAX_TEXT_RECORD_TITLE_LENGTH} 字符，实际 ${record.title.length} 字符）`
+        );
+      }
+      if (!record.content || typeof record.content !== 'string') {
+        throw new Error('文字记录数据格式错误：缺少有效的 content 字段');
+      }
+      if (record.content.length > MAX_TEXT_RECORD_CONTENT_LENGTH) {
+        throw new Error(
+          `文字记录内容过长（最多 ${MAX_TEXT_RECORD_CONTENT_LENGTH} 字符，实际 ${record.content.length} 字符）`
+        );
+      }
+      if (!Array.isArray(record.groupIds)) {
+        throw new Error('文字记录数据格式错误：groupIds 字段应为数组');
+      }
+      if (typeof record.order !== 'number') {
+        throw new Error('文字记录数据格式错误：order 字段应为数字');
+      }
+    }
+
+    // ==================== 验证搜索引擎数据 ====================
+    const searchEngines = data.searchEngines || [];
+    if (!Array.isArray(searchEngines)) {
+      throw new Error('搜索引擎数据格式错误：应为数组');
+    }
+
+    for (const engine of searchEngines) {
+      if (typeof engine !== 'object' || engine === null) {
+        throw new Error('搜索引擎数据格式错误：应为对象');
+      }
+      if (!engine.id || typeof engine.id !== 'string') {
+        throw new Error('搜索引擎数据格式错误：缺少有效的 id 字段');
+      }
+      if (!engine.name || typeof engine.name !== 'string') {
+        throw new Error('搜索引擎数据格式错误：缺少有效的 name 字段');
+      }
+      if (!engine.url || typeof engine.url !== 'string') {
+        throw new Error('搜索引擎数据格式错误：缺少有效的 url 字段');
+      }
+    }
+
+    // ==================== 验证设置数据 ====================
+    if (data.settings && typeof data.settings !== 'object') {
+      throw new Error('设置数据格式错误：应为对象');
     }
 
     // 保存导入的数据，兼容旧版数据格式
     const importedData: Data = {
       groups: data.groups,
       links: data.links,
-      textRecords: data.textRecords || [], // 兼容旧版数据
-      searchEngines: data.searchEngines || [],
+      textRecords: textRecords,
+      searchEngines: searchEngines,
       settings: {
         searchEngine: data.settings?.searchEngine || 'google',
         darkMode: data.settings?.darkMode || 'auto'
@@ -189,10 +339,10 @@ function processData(
     if (saveData(importedData)) {
       onSuccess(importedData);
     } else {
-      onError(new Error('Failed to save imported data'));
+      onError(new Error('保存导入数据失败'));
     }
   } catch (error) {
-    onError(error instanceof Error ? error : new Error('Unknown error'));
+    onError(error instanceof Error ? error : new Error('未知错误'));
   }
 }
 

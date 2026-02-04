@@ -9,6 +9,7 @@ import { useData } from '../contexts/DataContext';
 import { useToast } from '../contexts/ToastContext';
 import { DialogBox } from './DialogBox';
 import { ItemList } from './ItemList';
+import { useConfirmDialog } from '../hooks/useConfirmDialog';
 import type { Group } from '../types';
 
 interface GroupManagerProps {
@@ -27,17 +28,13 @@ export const GroupManager: React.FC<GroupManagerProps> = () => {
     order: 0
   });
 
-  const [confirmDialog, setConfirmDialog] = useState({
-    open: false,
-    title: '',
-    content: '',
-    onConfirm: () => { },
-  });
+  // 使用确认对话框 Hook
+  const { confirm, ConfirmDialog } = useConfirmDialog();
 
   const handleDelete = (group: Group) => {
     const linkCount = data.links.filter(link => link.groupIds.includes(group.id)).length;
     const textRecordCount = data.textRecords.filter(record => record.groupIds.includes(group.id)).length;
-    
+
     const itemsDescription = [];
     if (linkCount > 0) {
       itemsDescription.push(`${linkCount} 个链接`);
@@ -45,20 +42,15 @@ export const GroupManager: React.FC<GroupManagerProps> = () => {
     if (textRecordCount > 0) {
       itemsDescription.push(`${textRecordCount} 条文字记录`);
     }
-    
+
     const itemsText = itemsDescription.join(' 和 ');
     const title = itemsText
-      ? `分组“${group.name}”包含 ${itemsText}，删除分组将同时删除这些内容。确定要删除吗？`
-      : `确定删除分组“${group.name}”吗？`;
-      
-    setConfirmDialog({
-      open: true,
+      ? `分组"${group.name}"包含 ${itemsText}，删除分组将同时删除这些内容。确定要删除吗？`
+      : `确定删除分组"${group.name}"吗？`;
+
+    confirm({
       title: title,
-      content: '',
-      onConfirm: () => {
-        deleteGroup(group.id);
-        setConfirmDialog(prev => ({ ...prev, open: false }));
-      },
+      onConfirm: () => deleteGroup(group.id),
     });
   };
 
@@ -150,17 +142,7 @@ export const GroupManager: React.FC<GroupManagerProps> = () => {
         />
       </DialogBox>
 
-      <DialogBox
-        open={confirmDialog.open}
-        title={confirmDialog.title}
-        content={confirmDialog.content}
-        confirmText="删除"
-        confirmColor="error"
-        confirmVariant="text"
-        cancelVariant="contained"
-        onConfirm={confirmDialog.onConfirm}
-        onClose={() => setConfirmDialog(prev => ({ ...prev, open: false }))}
-      />
+      <ConfirmDialog />
     </Box>
   );
 };

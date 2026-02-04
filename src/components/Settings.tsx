@@ -19,8 +19,10 @@ import { useData } from '../contexts/DataContext';
 import { useTheme } from '../contexts/ThemeContext';
 import { useToast } from '../contexts/ToastContext';
 import { DialogBox } from './DialogBox';
+import { useConfirmDialog } from '../hooks/useConfirmDialog';
 import { getAllSearchEngines } from '../utils/storage';
 import type { SearchEngine } from '../types';
+import { isValidUrl, normalizeUrl } from '../utils/urlValidator';
 
 export const Settings: React.FC = () => {
   const { data, updateSettings, addSearchEngine, updateSearchEngine, deleteSearchEngine, exportData, importData, refreshData } = useData();
@@ -35,12 +37,9 @@ export const Settings: React.FC = () => {
     name: '',
     url: '',
   });
-  const [confirmDialog, setConfirmDialog] = useState({
-    open: false,
-    title: '',
-    content: '',
-    onConfirm: () => { },
-  });
+
+  // 使用确认对话框 Hook
+  const { confirm, ConfirmDialog } = useConfirmDialog();
 
   const customEngines = data.searchEngines;
 
@@ -58,14 +57,9 @@ export const Settings: React.FC = () => {
 
   const handleDeleteEngine = (id: string) => {
     const engine = customEngines.find(e => e.id === id);
-    setConfirmDialog({
-      open: true,
-      title: `确定删除搜索引擎“${engine?.name}”吗？`,
-      content: '',
-      onConfirm: () => {
-        deleteSearchEngine(id);
-        setConfirmDialog(prev => ({ ...prev, open: false }));
-      },
+    confirm({
+      title: `确定删除搜索引擎"${engine?.name}"吗？`,
+      onConfirm: () => deleteSearchEngine(id),
     });
   };
 
@@ -75,10 +69,20 @@ export const Settings: React.FC = () => {
       return;
     }
 
+    // 验证 URL 安全性
+    const rawUrl = engineFormData.url.trim();
+    if (!isValidUrl(rawUrl)) {
+      showError('URL 格式无效或不安全，请检查输入');
+      return;
+    }
+
+    // 规范化 URL（确保包含协议）
+    const url = normalizeUrl(rawUrl);
+
     if (editingEngine) {
-      updateSearchEngine(editingEngine.id, engineFormData.name.trim(), engineFormData.url.trim());
+      updateSearchEngine(editingEngine.id, engineFormData.name.trim(), url);
     } else {
-      addSearchEngine(engineFormData.name.trim(), engineFormData.url.trim());
+      addSearchEngine(engineFormData.name.trim(), url);
     }
 
     setModalOpen(false);
@@ -246,17 +250,7 @@ export const Settings: React.FC = () => {
         数据以 JSON 格式存储在本地浏览器中。建议定期备份数据以防丢失。
       </Alert>
 
-      <DialogBox
-        open={confirmDialog.open}
-        title={confirmDialog.title}
-        content={confirmDialog.content}
-        confirmText="删除"
-        confirmColor="error"
-        confirmVariant="text"
-        cancelVariant="contained"
-        onConfirm={confirmDialog.onConfirm}
-        onClose={() => setConfirmDialog(prev => ({ ...prev, open: false }))}
-      />
+      <ConfirmDialog />
     </Box>
   );
 };
