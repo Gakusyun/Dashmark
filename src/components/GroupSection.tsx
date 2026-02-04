@@ -146,7 +146,7 @@ const CommonBookmarksSection: React.FC<CommonBookmarksSectionProps> = ({
       })
       .sort((a, b) => calculateScore(b) - calculateScore(a));
   }, [items, searchQuery, pinyinModule]);
-  
+
   // 处理文字记录全屏关闭
   const handleCloseTextRecordFullscreen = () => {
     if (isFullscreen) {
@@ -158,27 +158,25 @@ const CommonBookmarksSection: React.FC<CommonBookmarksSectionProps> = ({
     }
   };
 
+  // 判断是否是"所有"分组
+  const isAllBookmarks = title === "所有收藏";
+
   // 检测屏幕尺寸，计算3行应该显示的链接数量
   const isXsScreen = useMediaQuery(theme.breakpoints.down('sm'));
   const isSmScreen = useMediaQuery(theme.breakpoints.up('sm'));
   const isMdScreen = useMediaQuery(theme.breakpoints.up('md'));
   const isLgScreen = useMediaQuery(theme.breakpoints.up('lg'));
 
-  let maxItems = 9; // 默认 md
+  let maxItems; // 默认"所有收藏"显示12个（4列×3行）
   if (isXsScreen) {
     maxItems = 6; // xs: 2列 * 3行 = 6
   } else if (isSmScreen && !isMdScreen) {
     maxItems = 12; // sm: 4列 * 3行 = 12
   } else if (isMdScreen && !isLgScreen) {
-    maxItems = 9; // md: 3列 * 3行 = 9
-  } else if (isLgScreen && showBackButton) {
-    maxItems = 9; // lg及以上：AllBookmarks占满整行，显示9个（3行×3列）
+    maxItems = isAllBookmarks ? 12 : 9; // md: "所有收藏"4列×3行=12，普通分组3列×3行=9
   } else if (isLgScreen) {
-    maxItems = 9; // lg及以上：GroupSection显示9个（3行×3列）
+    maxItems = isAllBookmarks ? 12 : 9; // lg: "所有收藏"4列×3行=12，普通分组3列×3行=9
   }
-
-  // 判断是否是"所有"分组
-  const isAllBookmarks = title === "所有收藏";
 
   if (isFullscreen) {
     return (
@@ -208,11 +206,11 @@ const CommonBookmarksSection: React.FC<CommonBookmarksSectionProps> = ({
               // 判断是链接还是文字记录
               const isLink = 'url' in item;
               return (
-                <Grid key={item.id} size={{ xs: 12, sm: 6, md: 4, lg: isAllBookmarks ? 3 : 6 }}>
-                  {isLink ? 
-                    <BookmarkCard link={item as Link} /> : 
-                    <TextRecordCard 
-                      record={item as TextRecord} 
+                <Grid key={item.id} size={{ xs: 12, sm: 6, md: 4, lg: 3 }}>
+                  {isLink ?
+                    <BookmarkCard link={item as Link} /> :
+                    <TextRecordCard
+                      record={item as TextRecord}
                       isFullscreen={fullscreenTextRecordId === item.id}
                       onOpenFullscreen={() => setFullscreenTextRecordId(item.id)}
                       onCloseFullscreen={handleCloseTextRecordFullscreen}
@@ -349,10 +347,10 @@ export const GroupSection: React.FC<GroupSectionProps> = ({
   const { data } = useData();
   const groupLinks = data.links.filter(link => link.groupIds.includes(group.id));
   const groupTextRecords = data.textRecords.filter(record => record.groupIds.includes(group.id));
-  
+
   // 合并链接和文字记录
   const items = [...groupLinks, ...groupTextRecords];
-  
+
   // 计算链接数和文字记录数
   const linksCount = groupLinks.length;
   const textRecordsCount = groupTextRecords.length;

@@ -29,5 +29,8 @@ package-lock.json
 AGENTS.md
 IFLOW.md
 CLAUDE.md
+.omc/
+.claude/
+nul
 
 dashmark-old/
