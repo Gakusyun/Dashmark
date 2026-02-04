@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState, useEffect, type ReactNode } from 'react';
+import React, { createContext, useContext, useState, useEffect, useMemo, type ReactNode } from 'react';
 import { createTheme, ThemeProvider as MuiThemeProvider } from '@mui/material/styles';
 import CssBaseline from '@mui/material/CssBaseline';
 import type { PaletteMode } from '@mui/material/styles';
@@ -25,36 +25,34 @@ interface ThemeProviderProps {
 
 export const ThemeProvider: React.FC<ThemeProviderProps> = ({ children }) => {
   const { data, updateSettings } = useData();
-  const [mode, setModeState] = useState<'light' | 'dark' | 'auto'>(data.settings.darkMode);
-  const [actualMode, setActualMode] = useState<PaletteMode>('light');
+  const [systemMode, setSystemMode] = useState<PaletteMode>(() =>
+    window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light'
+  );
 
-  // 同步 data.settings.darkMode 到本地状态
+  // 派生状态：直接使用 data.settings.darkMode
+  const mode = data.settings.darkMode;
+
+  // 计算实际模式（使用 useMemo 避免在 effect 中同步 setState）
+  const actualMode = useMemo((): PaletteMode => {
+    if (mode === 'auto') {
+      return systemMode;
+    }
+    return mode;
+  }, [mode, systemMode]);
+
+  // 监听系统主题变化（仅在 auto 模式下）
   useEffect(() => {
-    setModeState(data.settings.darkMode);
-  }, [data.settings.darkMode]);
-
-  // 计算实际模式
-  useEffect(() => {
-    const calculateActualMode = (): PaletteMode => {
-      if (mode === 'auto') {
-        return window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
-      }
-      return mode;
-    };
-
-    setActualMode(calculateActualMode());
-
-    // 监听系统主题变化
     if (mode === 'auto') {
       const mediaQuery = window.matchMedia('(prefers-color-scheme: dark)');
-      const handler = () => setActualMode(mediaQuery.matches ? 'dark' : 'light');
+      const handler = () => {
+        setSystemMode(mediaQuery.matches ? 'dark' : 'light');
+      };
       mediaQuery.addEventListener('change', handler);
       return () => mediaQuery.removeEventListener('change', handler);
     }
   }, [mode]);
 
   const setMode = (newMode: 'light' | 'dark' | 'auto') => {
-    setModeState(newMode);
     updateSettings({ darkMode: newMode });
   };
 

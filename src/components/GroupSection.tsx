@@ -4,6 +4,7 @@ import { ChevronLeft as ChevronLeftIcon } from '@mui/icons-material';
 import { useData } from '../contexts/DataContext';
 import { BookmarkCard } from './BookmarkCard';
 import { TextRecordCard } from './TextRecordCard';
+import { filterItemsByQuery } from '../utils/itemFilter';
 import type { Group, Link, TextRecord } from '../types';
 
 interface GroupSectionProps {
@@ -60,91 +61,7 @@ const CommonBookmarksSection: React.FC<CommonBookmarksSectionProps> = ({
 
   // 根据搜索关键词过滤项目
   const filteredItems = React.useMemo(() => {
-    if (!searchQuery.trim()) {
-      return items;
-    }
-
-    // 将搜索词拆分为单个字符，过滤掉空格
-    const queryChars = searchQuery.toLowerCase().split('').filter(c => c.trim());
-
-    // 检查文本是否包含所有搜索字符（原文匹配）
-    const containsAllChars = (text: string): boolean => {
-      const lowerText = text.toLowerCase();
-      return queryChars.every(char => lowerText.includes(char));
-    };
-
-    // 检查文本的拼音是否包含所有搜索字符（拼音匹配）
-    const containsAllCharsInPinyin = (text: string): boolean => {
-      if (!pinyinModule) return false;
-      const pinyinText = pinyinModule.pinyin(text, { toneType: 'none' }).toLowerCase();
-      return queryChars.every(char => pinyinText.includes(char));
-    };
-
-    // 计算相关度评分
-    const calculateScore = (item: Item): number => {
-      let score = 0;
-
-      if ('url' in item) {
-        const link = item as Link;
-        // 标题完全匹配（最高优先级）
-        if (link.title.toLowerCase() === searchQuery.toLowerCase()) score += 100;
-        // 标题包含完整搜索词
-        else if (link.title.toLowerCase().includes(searchQuery.toLowerCase())) score += 80;
-        // 标题包含所有字符
-        else if (containsAllChars(link.title)) score += 60;
-        // URL 包含完整搜索词
-        else if (link.url.toLowerCase().includes(searchQuery.toLowerCase())) score += 50;
-        // URL 包含所有字符
-        else if (containsAllChars(link.url)) score += 30;
-
-        // 拼音匹配（较低优先级）
-        if (pinyinModule && containsAllCharsInPinyin(link.title)) {
-          score += 20;
-        }
-      } else {
-        const record = item as TextRecord;
-        // 标题完全匹配
-        if (record.title.toLowerCase() === searchQuery.toLowerCase()) score += 100;
-        // 标题包含完整搜索词
-        else if (record.title.toLowerCase().includes(searchQuery.toLowerCase())) score += 80;
-        // 标题包含所有字符
-        else if (containsAllChars(record.title)) score += 60;
-        // 内容包含完整搜索词
-        else if (record.content.toLowerCase().includes(searchQuery.toLowerCase())) score += 50;
-        // 内容包含所有字符
-        else if (containsAllChars(record.content)) score += 30;
-
-        // 拼音匹配
-        if (pinyinModule) {
-          if (containsAllCharsInPinyin(record.title)) score += 20;
-          if (containsAllCharsInPinyin(record.content)) score += 10;
-        }
-      }
-
-      return score;
-    };
-
-    // 过滤并排序
-    return items
-      .filter(item => {
-        if ('url' in item) {
-          const link = item as Link;
-          return (
-            containsAllChars(link.title) ||
-            containsAllChars(link.url) ||
-            containsAllCharsInPinyin(link.title)
-          );
-        } else {
-          const record = item as TextRecord;
-          return (
-            containsAllChars(record.title) ||
-            containsAllChars(record.content) ||
-            containsAllCharsInPinyin(record.title) ||
-            containsAllCharsInPinyin(record.content)
-          );
-        }
-      })
-      .sort((a, b) => calculateScore(b) - calculateScore(a));
+    return filterItemsByQuery(items, searchQuery, new Map(), pinyinModule);
   }, [items, searchQuery, pinyinModule]);
 
   // 处理文字记录全屏关闭

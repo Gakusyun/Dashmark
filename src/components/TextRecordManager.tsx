@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useCallback } from 'react';
 import {
   Box,
   Button,
@@ -6,14 +6,15 @@ import {
   FormControlLabel,
   Checkbox,
   Typography,
-  IconButton,
   ListItemText,
 } from '@mui/material';
-import { Add as AddIcon, Check as CheckIcon } from '@mui/icons-material';
 import { useData } from '../contexts/DataContext';
 import { useToast } from '../contexts/ToastContext';
 import { DialogBox } from './DialogBox';
 import { ItemList } from './ItemList';
+import { GroupSelector } from './GroupSelector';
+import { useBatchSelection } from '../hooks/useBatchSelection';
+import { useConfirmDialog } from '../hooks/useConfirmDialog';
 import type { TextRecord } from '../types';
 
 interface TextRecordManagerProps {
@@ -23,7 +24,24 @@ interface TextRecordManagerProps {
 export const TextRecordManager: React.FC<TextRecordManagerProps> = () => {
   const { data, deleteTextRecord, updateTextRecord, addTextRecord, batchDeleteTextRecords, addGroup } = useData();
   const { showError, showWarning } = useToast();
-  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
+
+  // 使用批量选择 Hook
+  const {
+    selectedIds,
+    toggleSelect,
+    selectAll,
+    clearSelection,
+    selectedCount,
+    isAllSelected,
+    isIndeterminate,
+  } = useBatchSelection({
+    items: data.textRecords,
+    getItemId: (r) => r.id,
+  });
+
+  // 使用确认对话框 Hook
+  const { confirm, ConfirmDialog } = useConfirmDialog();
+
   const [modalOpen, setModalOpen] = useState(false);
   const [editingRecord, setEditingRecord] = useState<TextRecord | null>(null);
   const [formData, setFormData] = useState({
@@ -31,40 +49,15 @@ export const TextRecordManager: React.FC<TextRecordManagerProps> = () => {
     content: '',
     groupIds: [] as string[],
   });
-  const [isCreatingGroup, setIsCreatingGroup] = useState(false);
-  const [newGroupName, setNewGroupName] = useState('');
-
-  const handleToggleSelect = (id: string) => {
-    setSelectedIds(prev => {
-      const next = new Set(prev);
-      if (next.has(id)) {
-        next.delete(id);
-      } else {
-        next.add(id);
-      }
-      return next;
-    });
-  };
-
-  const handleSelectAll = () => {
-    if (selectedIds.size === data.textRecords.length) {
-      setSelectedIds(new Set());
-    } else {
-      setSelectedIds(new Set(data.textRecords.map(r => r.id)));
-    }
-  };
 
   const handleBatchDelete = () => {
-    if (selectedIds.size === 0) return;
+    if (selectedCount === 0) return;
 
-    setConfirmDialog({
-      open: true,
-      title: `确定删除选中的 ${selectedIds.size} 条文字记录吗？`,
-      content: '',
+    confirm({
+      title: `确定删除选中的 ${selectedCount} 条文字记录吗？`,
       onConfirm: () => {
         batchDeleteTextRecords(Array.from(selectedIds));
-        setSelectedIds(new Set());
-        setConfirmDialog(prev => ({ ...prev, open: false }));
+        clearSelection();
       },
     });
   };
@@ -86,13 +79,10 @@ export const TextRecordManager: React.FC<TextRecordManagerProps> = () => {
   };
 
   const handleDelete = (record: TextRecord) => {
-    setConfirmDialog({
-      open: true,
+    confirm({
       title: `确定删除文字记录"${record.title}"吗？`,
-      content: '',
       onConfirm: () => {
         deleteTextRecord(record.id);
-        setConfirmDialog(prev => ({ ...prev, open: false }));
       },
     });
   };
@@ -116,55 +106,12 @@ export const TextRecordManager: React.FC<TextRecordManagerProps> = () => {
     setModalOpen(false);
   };
 
-  const handleToggleGroup = (groupId: string) => {
+  const handleGroupCreated = useCallback((group: { id: string }) => {
     setFormData(prev => ({
       ...prev,
-      groupIds: prev.groupIds.includes(groupId)
-        ? prev.groupIds.filter(id => id !== groupId)
-        : [...prev.groupIds, groupId],
+      groupIds: [...prev.groupIds, group.id],
     }));
-  };
-
-  const handleStartCreateGroup = () => {
-    if (isCreatingGroup) {
-      setIsCreatingGroup(false);
-      setNewGroupName('');
-    } else {
-      setIsCreatingGroup(true);
-      setNewGroupName('');
-    }
-  };
-
-  const handleCreateGroup = () => {
-    const trimmedName = newGroupName.trim();
-    if (!trimmedName) {
-      showError('分组名称不能为空');
-      return;
-    }
-    const newGroup = addGroup(trimmedName);
-    setFormData(prev => ({
-      ...prev,
-      groupIds: [...prev.groupIds, newGroup.id],
-    }));
-    setIsCreatingGroup(false);
-    setNewGroupName('');
-  };
-
-  const handleNewGroupKeyDown = (e: React.KeyboardEvent) => {
-    if (e.key === 'Enter') {
-      handleCreateGroup();
-    } else if (e.key === 'Escape') {
-      setIsCreatingGroup(false);
-      setNewGroupName('');
-    }
-  };
-
-  const [confirmDialog, setConfirmDialog] = useState({
-    open: false,
-    title: '',
-    content: '',
-    onConfirm: () => { },
-  });
+  }, []);
 
   return (
     <Box>
@@ -172,9 +119,9 @@ export const TextRecordManager: React.FC<TextRecordManagerProps> = () => {
         <Button variant="contained" onClick={handleAdd}>
           添加文字记录
         </Button>
-        {selectedIds.size > 0 && (
+        {selectedCount > 0 && (
           <Button variant="contained" color="error" onClick={handleBatchDelete}>
-            批量删除 ({selectedIds.size})
+            批量删除 ({selectedCount})
           </Button>
         )}
       </Box>
@@ -189,9 +136,9 @@ export const TextRecordManager: React.FC<TextRecordManagerProps> = () => {
             <FormControlLabel
               control={
                 <Checkbox
-                  checked={selectedIds.size === data.textRecords.length && data.textRecords.length > 0}
-                  indeterminate={selectedIds.size > 0 && selectedIds.size < data.textRecords.length}
-                  onChange={handleSelectAll}
+                  checked={isAllSelected}
+                  indeterminate={isIndeterminate}
+                  onChange={selectAll}
                 />
               }
               label="全选"
@@ -202,7 +149,7 @@ export const TextRecordManager: React.FC<TextRecordManagerProps> = () => {
             getItemId={(record) => record.id}
             emptyMessage='暂无文字记录，点击"添加文字记录"开始添加'
             selectedIds={selectedIds}
-            onToggleSelect={handleToggleSelect}
+            onToggleSelect={toggleSelect}
             onEdit={handleEdit}
             onDelete={handleDelete}
             renderItem={(record) => (
@@ -241,66 +188,16 @@ export const TextRecordManager: React.FC<TextRecordManagerProps> = () => {
           rows={4}
           sx={{ mb: 2 }}
         />
-        <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 1 }}>
-          <Typography variant="subtitle2">
-            选择分组：
-          </Typography>
-          <IconButton
-            size="small"
-            onClick={handleStartCreateGroup}
-            title="添加分组"
-          >
-            <AddIcon />
-          </IconButton>
-        </Box>
-        <Box sx={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', my: 2 }}>
-          {data.groups.map(group => (
-            <FormControlLabel
-              key={group.id}
-              control={
-                <Checkbox
-                  checked={formData.groupIds.includes(group.id)}
-                  onChange={() => handleToggleGroup(group.id)}
-                />
-              }
-              label={group.name}
-            />
-          ))}
-          {isCreatingGroup && (
-            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, }}>
-              <TextField
-                size="small"
-                margin="none"
-                placeholder="新建分组"
-                value={newGroupName}
-                onChange={(e) => setNewGroupName(e.target.value)}
-                onKeyDown={handleNewGroupKeyDown}
-                autoFocus
-                variant="standard"
-              />
-              <IconButton
-                size="small"
-                onClick={handleCreateGroup}
-                title="完成"
-              >
-                <CheckIcon />
-              </IconButton>
-            </Box>
-          )}
-        </Box>
+        <GroupSelector
+          groups={data.groups}
+          selectedIds={formData.groupIds}
+          onSelectionChange={(ids) => setFormData({ ...formData, groupIds: ids })}
+          onCreateGroup={(name) => addGroup(name)}
+          onGroupCreated={handleGroupCreated}
+        />
       </DialogBox>
 
-      <DialogBox
-        open={confirmDialog.open}
-        title={confirmDialog.title}
-        content={confirmDialog.content}
-        confirmText="删除"
-        confirmColor="error"
-        confirmVariant="text"
-        cancelVariant="contained"
-        onConfirm={confirmDialog.onConfirm}
-        onClose={() => setConfirmDialog(prev => ({ ...prev, open: false }))}
-      />
+      <ConfirmDialog />
     </Box>
   );
 };
