@@ -121,18 +121,20 @@ const App: React.FC = () => {
         <Box sx={{ minHeight: '50vh' }}>
           {renderContent()}
         </Box>
-        <Box sx={{ mt: 4, pt: 2, borderTop: 1, borderColor: 'divider', textAlign: 'center' }}>
-          <Typography variant="body2" color="text.secondary">
-            <a
-              href="https://beian.miit.gov.cn/"
-              target="_blank"
-              rel="noopener noreferrer"
-              style={{ color: 'inherit', textDecoration: 'none' }}
-            >
-              鄂ICP备2024069158号-3
-            </a>
-          </Typography>
-        </Box>
+        {!data.settings.hideIcpInfo && (
+          <Box sx={{ mt: 4, pt: 2, borderTop: 1, borderColor: 'divider', textAlign: 'center' }}>
+            <Typography variant="body2" color="text.secondary">
+              <a
+                href="https://beian.miit.gov.cn/"
+                target="_blank"
+                rel="noopener noreferrer"
+                style={{ color: 'inherit', textDecoration: 'none' }}
+              >
+                鄂ICP备2024069158号-3
+              </a>
+            </Typography>
+          </Box>
+        )}
       </Container>
 
       <ManagePanel open={managePanelOpen} onClose={() => setManagePanelOpen(false)} />

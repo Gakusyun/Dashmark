@@ -28,7 +28,8 @@ export const DEFAULT_DATA: Data = {
   searchEngines: [],
   settings: {
     searchEngine: 'baidu',
-    darkMode: 'auto'
+    darkMode: 'auto',
+    hideIcpInfo: false
   }
 };
 
@@ -68,7 +69,8 @@ export function loadData(): Data {
       searchEngines: Array.isArray(data.searchEngines) ? data.searchEngines : [],
       settings: {
         searchEngine: searchEngineId,
-        darkMode: data.settings?.darkMode || 'auto'
+        darkMode: data.settings?.darkMode || 'auto',
+        hideIcpInfo: data.settings?.hideIcpInfo || false
       }
     };
   } catch (error) {

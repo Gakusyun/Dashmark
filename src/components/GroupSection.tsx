@@ -78,21 +78,22 @@ const CommonBookmarksSection: React.FC<CommonBookmarksSectionProps> = ({
   // 判断是否是"所有"分组
   const isAllBookmarks = title === "所有收藏";
 
-  // 检测屏幕尺寸，计算3行应该显示的链接数量
+  // 检测屏幕尺寸
   const isXsScreen = useMediaQuery(theme.breakpoints.down('sm'));
-  const isSmScreen = useMediaQuery(theme.breakpoints.up('sm'));
-  const isMdScreen = useMediaQuery(theme.breakpoints.up('md'));
+  const isSmScreen = useMediaQuery(theme.breakpoints.up('sm')) && !useMediaQuery(theme.breakpoints.up('md'));
+  const isMdScreen = useMediaQuery(theme.breakpoints.up('md')) && !useMediaQuery(theme.breakpoints.up('lg'));
   const isLgScreen = useMediaQuery(theme.breakpoints.up('lg'));
 
-  let maxItems; // 默认"所有收藏"显示12个（4列×3行）
+  // 根据屏幕宽度确定最大显示数量（3行）
+  let maxItems;
   if (isXsScreen) {
-    maxItems = 6; // xs: 2列 * 3行 = 6
-  } else if (isSmScreen && !isMdScreen) {
-    maxItems = 12; // sm: 4列 * 3行 = 12
-  } else if (isMdScreen && !isLgScreen) {
-    maxItems = isAllBookmarks ? 12 : 9; // md: "所有收藏"4列×3行=12，普通分组3列×3行=9
+    maxItems = 6; // 2列 × 3行
+  } else if (isSmScreen) {
+    maxItems = 9; // 3列 × 3行
+  } else if (isMdScreen) {
+    maxItems = 12; // 4列 × 3行
   } else if (isLgScreen) {
-    maxItems = isAllBookmarks ? 12 : 9; // lg: "所有收藏"4列×3行=12，普通分组3列×3行=9
+    maxItems = isAllBookmarks ? 12 : 6; // "所有"4列×3行=12，普通2列×3行=6
   }
 
   if (isFullscreen) {
