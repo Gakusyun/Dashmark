@@ -113,9 +113,12 @@ const CommonBookmarksSection: React.FC<CommonBookmarksSectionProps> = ({
 
   // 检测屏幕尺寸
   const isXsScreen = useMediaQuery(theme.breakpoints.down('sm'));
-  const isSmScreen = useMediaQuery(theme.breakpoints.up('sm')) && !useMediaQuery(theme.breakpoints.up('md'));
-  const isMdScreen = useMediaQuery(theme.breakpoints.up('md')) && !useMediaQuery(theme.breakpoints.up('lg'));
-  const isLgScreen = useMediaQuery(theme.breakpoints.up('lg'));
+  const isSmUp = useMediaQuery(theme.breakpoints.up('sm'));
+  const isMdUp = useMediaQuery(theme.breakpoints.up('md'));
+  const isLgUp = useMediaQuery(theme.breakpoints.up('lg'));
+  const isSmScreen = isSmUp && !isMdUp;
+  const isMdScreen = isMdUp && !isLgUp;
+  const isLgScreen = isLgUp;
 
   // 根据屏幕宽度确定最大显示数量（3行）
   let maxItems;

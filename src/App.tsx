@@ -40,6 +40,18 @@ const App: React.FC = () => {
 
   useEffect(() => {
     if (showConsent) {
+      const handleConfirm = () => {
+        updateSettings({ cookieConsent: true });
+        // 初始化Clarity
+        Clarity.init(projectId);
+        setShowConsent(false); // 重置状态以防止重复显示
+      };
+      
+      const handleCancel = () => {
+        updateSettings({ cookieConsent: false });
+        setShowConsent(false); // 重置状态以防止重复显示
+      };
+
       confirm({
         title: 'Cookie 同意',
         content: '我们使用 Microsoft Clarity 来分析网站使用情况，以改善用户体验。是否同意使用 Cookie 进行分析？（可在设置中随时关闭）',
@@ -62,16 +74,9 @@ const App: React.FC = () => {
             color: 'primary.main' // 拒绝按钮字体蓝色
           }
         },
-        onConfirm: () => {
-          updateSettings({ cookieConsent: true });
-          // 初始化Clarity
-          Clarity.init(projectId);
-        },
-        onCancel: () => {
-          updateSettings({ cookieConsent: false });
-        }
+        onConfirm: handleConfirm,
+        onCancel: handleCancel
       });
-      setShowConsent(false); // 重置状态以防止重复显示
     }
   }, [showConsent, confirm, updateSettings]);
 
