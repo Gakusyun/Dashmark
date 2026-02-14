@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { Box, Container, Typography, Toolbar, AppBar, IconButton, Grid, TextField } from '@mui/material';
 import { Settings as SettingsIcon } from '@mui/icons-material';
 import { useData } from './contexts/DataContext';
@@ -22,6 +22,12 @@ const App: React.FC = () => {
   const [showConsent, setShowConsent] = useState(false);
   const { confirm, ConfirmDialog } = useConfirmDialog();
 
+  // 创建一个ref来存储updateSettings函数，避免在useEffect依赖中引起循环
+  const updateSettingsRef = useRef(updateSettings);
+  useEffect(() => {
+    updateSettingsRef.current = updateSettings;
+  }, [updateSettings]);
+
   // Cookie同意对话框逻辑
   useEffect(() => {
     // 检查用户是否已设置cookie同意状态
@@ -41,14 +47,14 @@ const App: React.FC = () => {
   useEffect(() => {
     if (showConsent) {
       const handleConfirm = () => {
-        updateSettings({ cookieConsent: true });
+        updateSettingsRef.current({ cookieConsent: true });
         // 初始化Clarity
         Clarity.init(projectId);
         setShowConsent(false); // 重置状态以防止重复显示
       };
       
       const handleCancel = () => {
-        updateSettings({ cookieConsent: false });
+        updateSettingsRef.current({ cookieConsent: false });
         setShowConsent(false); // 重置状态以防止重复显示
       };
 
@@ -78,7 +84,7 @@ const App: React.FC = () => {
         onCancel: handleCancel
       });
     }
-  }, [showConsent, confirm, updateSettings]);
+  }, [showConsent, confirm]);
 
   const handleGroupClick = (groupId: string) => {
     setSelectedGroup(groupId);
