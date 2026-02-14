@@ -13,6 +13,8 @@ import {
   Button,
   TextField,
   Alert,
+  FormControlLabel,
+  Switch,
 } from '@mui/material';
 import { Delete as DeleteIcon, Edit as EditIcon, Add as AddIcon, CloudUpload as UploadIcon, CloudDownload as DownloadIcon } from '@mui/icons-material';
 import { useData } from '../contexts/DataContext';
@@ -120,9 +122,6 @@ export const Settings: React.FC = () => {
 
   return (
     <Box>
-      <Typography variant="h6" gutterBottom>
-        主题设置
-      </Typography>
       <FormControl fullWidth sx={{ mb: 4 }}>
         <InputLabel id="theme-mode-label">深色模式</InputLabel>
         <Select
@@ -137,10 +136,6 @@ export const Settings: React.FC = () => {
           <MenuItem value="dark">深色</MenuItem>
         </Select>
       </FormControl>
-
-      <Typography variant="h6" gutterBottom>
-        搜索引擎设置
-      </Typography>
       <FormControl fullWidth sx={{ mb: 4 }}>
         <InputLabel id="search-engine-label">默认搜索引擎</InputLabel>
         <Select
@@ -190,6 +185,18 @@ export const Settings: React.FC = () => {
         ))}
       </List>
 
+      <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 4 }}>
+        <FormControlLabel
+          control={
+            <Switch
+              checked={data.settings.hideIcpInfo || false}
+              onChange={(e) => updateSettings({ hideIcpInfo: e.target.checked })}
+            />
+          }
+          label="隐藏备案信息"
+        />
+      </Box>
+      
       <DialogBox
         open={modalOpen}
         title={editingEngine ? '编辑搜索引擎' : '添加搜索引擎'}
@@ -220,9 +227,6 @@ export const Settings: React.FC = () => {
         </Typography>
       </DialogBox>
 
-      <Typography variant="h6" gutterBottom sx={{ mt: 4 }}>
-        数据备份
-      </Typography>
       <Box sx={{ display: 'flex', gap: 2, mb: 3 }}>
         <Button
           variant="contained"
