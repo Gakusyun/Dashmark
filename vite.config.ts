@@ -1,12 +1,14 @@
 import { defineConfig } from 'vite'
 import react from '@vitejs/plugin-react'
-
-// 创建版本 API 插件
+import packageJson from './package.json' with { type: 'json' };
 
 // https://vite.dev/config/
 export default defineConfig({
   plugins: [react()],
   publicDir: 'src/public',
+  define: {
+    'import.meta.env.VITE_APP_VERSION': JSON.stringify(packageJson.version)
+  },
   build: {
     rollupOptions: {
       output: {

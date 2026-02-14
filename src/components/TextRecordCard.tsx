@@ -2,10 +2,10 @@ import React from 'react';
 import { Card, CardContent, Typography, IconButton, Dialog, DialogContent, Toolbar, AppBar, Button } from '@mui/material';
 import { ContentCopy as CopyIcon, Close as CloseIcon } from '@mui/icons-material';
 import { useToast } from '../contexts/ToastContext';
-import type { TextRecord } from '../types';
+import type { TextRecord, Bookmark } from '../types';
 
 interface TextRecordCardProps {
-  record: TextRecord;
+  record: TextRecord | Bookmark;
   isFullscreen: boolean; // 由父组件控制的全屏状态
   onOpenFullscreen: () => void; // 打开全屏
   onCloseFullscreen: () => void; // 关闭全屏（父组件控制返回行为）
@@ -18,9 +18,12 @@ export const TextRecordCard: React.FC<TextRecordCardProps> = ({
   onCloseFullscreen 
 }) => {
   const { showSuccess } = useToast();
+  
+  const isBookmark = 'type' in record;
+  const content = isBookmark ? (record as Bookmark).content || '' : (record as TextRecord).content;
 
   const handleCopy = () => {
-    navigator.clipboard.writeText(record.content);
+    navigator.clipboard.writeText(content);
     showSuccess('内容已复制到剪贴板');
   };
 
@@ -69,7 +72,7 @@ export const TextRecordCard: React.FC<TextRecordCardProps> = ({
               flex: 1,
             }}
           >
-            {record.content}
+            {content}
           </Typography>
         </CardContent>
       </Card>
@@ -112,7 +115,7 @@ export const TextRecordCard: React.FC<TextRecordCardProps> = ({
               fontSize: '1.1rem',
             }}
           >
-            {record.content}
+            {content}
           </Typography>
         </DialogContent>
       </Dialog>

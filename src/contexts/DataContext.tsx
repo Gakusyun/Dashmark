@@ -1,6 +1,7 @@
 import React, { createContext, useContext, useState, useCallback, useMemo, type ReactNode } from 'react';
-import type { Data, Settings, Group, Link, TextRecord, SearchEngine } from '../types';
+import type { Data, Settings, Group, SearchEngine, Bookmark } from '../types';
 import * as storage from '../utils/storage';
+import { getVersion } from '../utils/version';
 
 interface DataContextType {
   data: Data;
@@ -10,18 +11,28 @@ interface DataContextType {
   addGroup: (name: string) => Group;
   updateGroup: (id: string, name: string) => void;
   deleteGroup: (id: string) => void;
+  updateGroupOrder: (orderedIds: string[]) => void;
 
   // 链接操作
   addLink: (title: string, url: string, groupIds: string[]) => void;
   updateLink: (id: string, title: string, url: string, groupIds: string[]) => void;
   deleteLink: (id: string) => void;
   batchDeleteLinks: (ids: string[]) => void;
+  updateLinkOrder: (orderedIds: string[]) => void;
 
   // 文字记录操作
   addTextRecord: (title: string, content: string, groupIds: string[]) => void;
   updateTextRecord: (id: string, title: string, content: string, groupIds: string[]) => void;
   deleteTextRecord: (id: string) => void;
   batchDeleteTextRecords: (ids: string[]) => void;
+  updateTextRecordOrder: (orderedIds: string[]) => void;
+
+  // 收藏操作
+  addBookmark: (type: 'link' | 'text', title: string, groupIds: string[], url?: string, content?: string) => void;
+  updateBookmark: (id: string, type: 'link' | 'text', title: string, groupIds: string[], url?: string, content?: string) => void;
+  deleteBookmark: (id: string) => void;
+  batchDeleteBookmarks: (ids: string[]) => void;
+  updateBookmarkOrder: (orderedIds: string[]) => void;
 
   // 设置操作
   updateSettings: (settings: Partial<Settings>) => void;
@@ -50,21 +61,91 @@ interface DataProviderProps {
   children: ReactNode;
 }
 
+  // 将旧版数据结构转换为新版数据结构
+const convertOldDataToNewFormat = (oldData: any): Data => {
+  // 如果已经有bookmarks字段，说明已经是新格式，直接返回
+  if (oldData.bookmarks !== undefined) {
+    return {
+      version: oldData.version || getVersion(),
+      groups: oldData.groups || [],
+      bookmarks: oldData.bookmarks,
+      searchEngines: oldData.searchEngines || [],
+      settings: oldData.settings || {
+        searchEngine: 'baidu',
+        darkMode: 'auto',
+        hideIcpInfo: false
+      }
+    };
+  }
+
+  // 转换链接为收藏格式
+  const linksAsBookmarks = (oldData.links || []).map((link: any) => ({
+    id: link.id,
+    type: 'link' as const,
+    title: link.title,
+    url: link.url,
+    groupIds: link.groupIds || [],
+    order: link.order
+  }));
+
+  // 转换文字记录为收藏格式
+  const textRecordsAsBookmarks = (oldData.textRecords || []).map((record: any) => ({
+    id: record.id,
+    type: 'text' as const,
+    title: record.title,
+    content: record.content,
+    groupIds: record.groupIds || [],
+    order: record.order
+  }));
+
+  // 合并所有收藏，按order排序
+  const allBookmarks = [...linksAsBookmarks, ...textRecordsAsBookmarks].sort((a, b) => a.order - b.order);
+
+  // 更新order值，确保全局唯一排序
+  const sortedBookmarks = allBookmarks.map((bookmark, index) => ({
+    ...bookmark,
+    order: index
+  }));
+
+  // 返回转换后的数据
+  return {
+    version: oldData.version || getVersion(),
+    groups: oldData.groups || [],
+    bookmarks: sortedBookmarks,
+    searchEngines: oldData.searchEngines || [],
+    settings: oldData.settings || {
+      searchEngine: 'baidu',
+      darkMode: 'auto',
+      hideIcpInfo: false
+    }
+  };
+};
 export const DataProvider: React.FC<DataProviderProps> = ({ children }) => {
-  const [data, setData] = useState<Data>(() => storage.loadData());
+  const [data, setData] = useState<Data>(() => {
+    const loadedData = storage.loadData();
+    return loadedData;
+  });
 
   // 使用 useMemo 优化 data 对象的引用稳定性
   const memoizedData = useMemo(() => data, [data]);
 
   // 刷新数据（从 localStorage 重新加载）
   const refreshData = useCallback(() => {
-    setData(storage.loadData());
+    const loadedData = storage.loadData();
+    const convertedData = convertOldDataToNewFormat(loadedData);
+    setData(convertedData);
   }, []);
 
   // 保存数据到 localStorage
   const saveData = useCallback((newData: Data) => {
-    storage.saveData(newData);
-    setData(newData);
+    const dataWithVersion = {
+      ...newData,
+      version: newData.version || getVersion()
+    };
+    storage.saveData(dataWithVersion);
+    // 从localStorage重新加载数据以确保格式一致
+    const savedData = storage.loadData();
+    setData(savedData);
   }, []);
 
   // ==================== 分组操作 ====================
@@ -97,56 +178,55 @@ export const DataProvider: React.FC<DataProviderProps> = ({ children }) => {
     // 删除分组
     const filteredGroups = data.groups.filter(g => g.id !== id);
 
-    // 删除属于该分组的链接（只属于这一个分组的链接）
-    const filteredLinks = data.links.filter(link => {
-      const belongsToGroup = link.groupIds.includes(id);
-      if (belongsToGroup) {
-        const newGroupIds = link.groupIds.filter(gid => gid !== id);
-        // 如果链接不再属于任何分组，则删除该链接
-        return newGroupIds.length > 0;
-      }
-      return true;
-    }).map(link => ({
-      ...link,
-      groupIds: link.groupIds.filter(gid => gid !== id)
-    }));
-
-    // 删除属于该分组的文字记录（只属于这一个分组的文字记录）
-    const filteredTextRecords = data.textRecords.filter(record => {
-      const belongsToGroup = record.groupIds.includes(id);
-      if (belongsToGroup) {
-        const newGroupIds = record.groupIds.filter(gid => gid !== id);
-        // 如果文字记录不再属于任何分组，则删除该文字记录
-        return newGroupIds.length > 0;
-      }
-      return true;
-    }).map(record => ({
-      ...record,
-      groupIds: record.groupIds.filter(gid => gid !== id)
-    }));
+    // 更新属于该分组的收藏的groupIds
+    const updatedBookmarks = data.bookmarks.map(bookmark => ({
+      ...bookmark,
+      groupIds: bookmark.groupIds.filter(gid => gid !== id)
+    })).filter(bookmark => bookmark.groupIds.length > 0); // 移除不再属于任何分组的收藏
 
     const newData: Data = {
       ...data,
       groups: filteredGroups,
-      links: filteredLinks,
-      textRecords: filteredTextRecords
+      bookmarks: updatedBookmarks
     };
+    saveData(newData);
+  }, [data, saveData]);
+
+  // 更新分组顺序
+  const updateGroupOrder = useCallback((orderedIds: string[]) => {
+    const orderedGroups = orderedIds.map((id, index) => {
+      const group = data.groups.find(g => g.id === id);
+      return group ? { ...group, order: index } : null;
+    }).filter(Boolean) as Group[];
+
+    // 添加剩余的分组（不在orderedIds中的分组）
+    const remainingGroups = data.groups.filter(g => !orderedIds.includes(g.id)).map((g, index) => ({
+      ...g,
+      order: orderedGroups.length + index
+    }));
+
+    const newData = {
+      ...data,
+      groups: [...orderedGroups, ...remainingGroups]
+    };
+
     saveData(newData);
   }, [data, saveData]);
 
   // ==================== 链接操作 ====================
 
   const addLink = useCallback((title: string, url: string, groupIds: string[]) => {
-    const newLink: Link = {
+    const newBookmark: Bookmark = {
       id: storage.generateId(),
+      type: 'link',
       title: title,
       url: url,
       groupIds: groupIds,
-      order: data.links.length
+      order: data.bookmarks.length
     };
     const newData = {
       ...data,
-      links: [...data.links, newLink]
+      bookmarks: [...data.bookmarks, newBookmark]
     };
     saveData(newData);
   }, [data, saveData]);
@@ -154,8 +234,8 @@ export const DataProvider: React.FC<DataProviderProps> = ({ children }) => {
   const updateLink = useCallback((id: string, title: string, url: string, groupIds: string[]) => {
     const newData = {
       ...data,
-      links: data.links.map(l =>
-        l.id === id ? { ...l, title, url, groupIds } : l
+      bookmarks: data.bookmarks.map(b =>
+        b.id === id && b.type === 'link' ? { ...b, title, url, groupIds } : b
       )
     };
     saveData(newData);
@@ -164,7 +244,7 @@ export const DataProvider: React.FC<DataProviderProps> = ({ children }) => {
   const deleteLink = useCallback((id: string) => {
     const newData = {
       ...data,
-      links: data.links.filter(l => l.id !== id)
+      bookmarks: data.bookmarks.filter(b => !(b.id === id && b.type === 'link'))
     };
     saveData(newData);
   }, [data, saveData]);
@@ -172,24 +252,49 @@ export const DataProvider: React.FC<DataProviderProps> = ({ children }) => {
   const batchDeleteLinks = useCallback((ids: string[]) => {
     const newData = {
       ...data,
-      links: data.links.filter(l => !ids.includes(l.id))
+      bookmarks: data.bookmarks.filter(b => !(ids.includes(b.id) && b.type === 'link'))
     };
+    saveData(newData);
+  }, [data, saveData]);
+
+  // 更新链接顺序
+  const updateLinkOrder = useCallback((orderedIds: string[]) => {
+    const orderedLinks = orderedIds.map((id, index) => {
+      const link = data.bookmarks.find(b => b.id === id && b.type === 'link');
+      return link ? { ...link, order: index } : null;
+    }).filter(Boolean) as Bookmark[];
+
+    // 添加剩余的链接（不在orderedIds中的链接）
+    const remainingLinks = data.bookmarks.filter(b => !orderedIds.includes(b.id) && b.type === 'link').map((b, index) => ({
+      ...b,
+      order: orderedLinks.length + index
+    }));
+
+    // 获取未被排序的其他类型收藏
+    const otherBookmarks = data.bookmarks.filter(b => !orderedIds.includes(b.id) || b.type !== 'link');
+
+    const newData = {
+      ...data,
+      bookmarks: [...orderedLinks, ...remainingLinks, ...otherBookmarks]
+    };
+
     saveData(newData);
   }, [data, saveData]);
 
   // ==================== 文字记录操作 ====================
 
   const addTextRecord = useCallback((title: string, content: string, groupIds: string[]) => {
-    const newRecord: TextRecord = {
+    const newBookmark: Bookmark = {
       id: storage.generateId(),
+      type: 'text',
       title: title,
       content: content,
       groupIds: groupIds,
-      order: data.textRecords.length
+      order: data.bookmarks.length
     };
     const newData = {
       ...data,
-      textRecords: [...data.textRecords, newRecord]
+      bookmarks: [...data.bookmarks, newBookmark]
     };
     saveData(newData);
   }, [data, saveData]);
@@ -197,8 +302,8 @@ export const DataProvider: React.FC<DataProviderProps> = ({ children }) => {
   const updateTextRecord = useCallback((id: string, title: string, content: string, groupIds: string[]) => {
     const newData = {
       ...data,
-      textRecords: data.textRecords.map(r =>
-        r.id === id ? { ...r, title, content, groupIds } : r
+      bookmarks: data.bookmarks.map(b =>
+        b.id === id && b.type === 'text' ? { ...b, title, content, groupIds } : b
       )
     };
     saveData(newData);
@@ -207,7 +312,7 @@ export const DataProvider: React.FC<DataProviderProps> = ({ children }) => {
   const deleteTextRecord = useCallback((id: string) => {
     const newData = {
       ...data,
-      textRecords: data.textRecords.filter(r => r.id !== id)
+      bookmarks: data.bookmarks.filter(b => !(b.id === id && b.type === 'text'))
     };
     saveData(newData);
   }, [data, saveData]);
@@ -215,8 +320,32 @@ export const DataProvider: React.FC<DataProviderProps> = ({ children }) => {
   const batchDeleteTextRecords = useCallback((ids: string[]) => {
     const newData = {
       ...data,
-      textRecords: data.textRecords.filter(r => !ids.includes(r.id))
+      bookmarks: data.bookmarks.filter(b => !(ids.includes(b.id) && b.type === 'text'))
     };
+    saveData(newData);
+  }, [data, saveData]);
+
+  // 更新文字记录顺序
+  const updateTextRecordOrder = useCallback((orderedIds: string[]) => {
+    const orderedTextRecords = orderedIds.map((id, index) => {
+      const record = data.bookmarks.find(b => b.id === id && b.type === 'text');
+      return record ? { ...record, order: index } : null;
+    }).filter(Boolean) as Bookmark[];
+
+    // 添加剩余的文字记录（不在orderedIds中的文字记录）
+    const remainingTextRecords = data.bookmarks.filter(b => !orderedIds.includes(b.id) && b.type === 'text').map((b, index) => ({
+      ...b,
+      order: orderedTextRecords.length + index
+    }));
+
+    // 获取未被排序的其他类型收藏
+    const otherBookmarks = data.bookmarks.filter(b => !orderedIds.includes(b.id) || b.type !== 'text');
+
+    const newData = {
+      ...data,
+      bookmarks: [...orderedTextRecords, ...remainingTextRecords, ...otherBookmarks]
+    };
+
     saveData(newData);
   }, [data, saveData]);
 
@@ -277,6 +406,74 @@ export const DataProvider: React.FC<DataProviderProps> = ({ children }) => {
     saveData(newData);
   }, [data, saveData]);
 
+  // ==================== 收藏操作 ====================
+
+  const addBookmark = useCallback((type: 'link' | 'text', title: string, groupIds: string[], url?: string, content?: string) => {
+    const newBookmark = {
+      id: storage.generateId(),
+      type,
+      title,
+      groupIds,
+      order: data.bookmarks ? data.bookmarks.length : 0,
+      ...(type === 'link' && url ? { url } : {}),
+      ...(type === 'text' && content ? { content } : {})
+    };
+    const newData = {
+      ...data,
+      bookmarks: data.bookmarks ? [...data.bookmarks, newBookmark] : [newBookmark]
+    };
+    saveData(newData);
+  }, [data, saveData]);
+
+  const updateBookmark = useCallback((id: string, type: 'link' | 'text', title: string, groupIds: string[], url?: string, content?: string) => {
+    const newData = {
+      ...data,
+      bookmarks: data.bookmarks ? data.bookmarks.map(b =>
+        b.id === id ? { ...b, type, title, groupIds, url, content } : b
+      ) : []
+    };
+    saveData(newData);
+  }, [data, saveData]);
+
+  const deleteBookmark = useCallback((id: string) => {
+    const newData = {
+      ...data,
+      bookmarks: data.bookmarks ? data.bookmarks.filter(b => b.id !== id) : []
+    };
+    saveData(newData);
+  }, [data, saveData]);
+
+  const batchDeleteBookmarks = useCallback((ids: string[]) => {
+    const newData = {
+      ...data,
+      bookmarks: data.bookmarks ? data.bookmarks.filter(b => !ids.includes(b.id)) : []
+    };
+    saveData(newData);
+  }, [data, saveData]);
+
+  // 更新收藏顺序
+  const updateBookmarkOrder = useCallback((orderedIds: string[]) => {
+    if (!data.bookmarks) return;
+
+    const orderedBookmarks = orderedIds.map((id, index) => {
+      const bookmark = data.bookmarks?.find(b => b.id === id);
+      return bookmark ? { ...bookmark, order: index } : null;
+    }).filter(Boolean) as Bookmark[];
+
+    // 添加剩余的收藏（不在orderedIds中的收藏）
+    const remainingBookmarks = (data.bookmarks || []).filter(b => !orderedIds.includes(b.id)).map((b, index) => ({
+      ...b,
+      order: orderedBookmarks.length + index
+    }));
+
+    const newData = {
+      ...data,
+      bookmarks: [...orderedBookmarks, ...remainingBookmarks]
+    };
+
+    saveData(newData);
+  }, [data, saveData]);
+
   // ==================== 导入导出 ====================
 
   const exportData = useCallback(() => {
@@ -301,14 +498,22 @@ export const DataProvider: React.FC<DataProviderProps> = ({ children }) => {
     addGroup,
     updateGroup,
     deleteGroup,
+    updateGroupOrder,
     addLink,
     updateLink,
     deleteLink,
     batchDeleteLinks,
+    updateLinkOrder,
     addTextRecord,
     updateTextRecord,
     deleteTextRecord,
     batchDeleteTextRecords,
+    updateTextRecordOrder,
+    addBookmark,
+    updateBookmark,
+    deleteBookmark,
+    batchDeleteBookmarks,
+    updateBookmarkOrder,
     updateSettings,
     addSearchEngine,
     updateSearchEngine,
@@ -321,14 +526,22 @@ export const DataProvider: React.FC<DataProviderProps> = ({ children }) => {
     addGroup,
     updateGroup,
     deleteGroup,
+    updateGroupOrder,
     addLink,
     updateLink,
     deleteLink,
     batchDeleteLinks,
+    updateLinkOrder,
     addTextRecord,
     updateTextRecord,
     deleteTextRecord,
     batchDeleteTextRecords,
+    updateTextRecordOrder,
+    addBookmark,
+    updateBookmark,
+    deleteBookmark,
+    batchDeleteBookmarks,
+    updateBookmarkOrder,
     updateSettings,
     addSearchEngine,
     updateSearchEngine,
