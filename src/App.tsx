@@ -13,12 +13,16 @@ type SelectedGroup = string | 'all' | null;
 
 const projectId = "vay8fvwhta"
 
-// Cookie同意对话框Hook
-const useCookieConsent = () => {
+const App: React.FC = () => {
   const { data, updateSettings } = useData();
+  const [managePanelOpen, setManagePanelOpen] = useState(false);
+  const [viewMode, setViewMode] = useState<ViewMode>(null);
+  const [selectedGroup, setSelectedGroup] = useState<SelectedGroup>(null);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [showConsent, setShowConsent] = useState(false);
   const { confirm, ConfirmDialog } = useConfirmDialog();
-  const [showConsent, setShowConsent] = React.useState(false);
-  
+
+  // Cookie同意对话框逻辑
   useEffect(() => {
     // 检查用户是否已设置cookie同意状态
     if (data.settings.cookieConsent === null) {
@@ -70,18 +74,6 @@ const useCookieConsent = () => {
       setShowConsent(false); // 重置状态以防止重复显示
     }
   }, [showConsent, confirm, updateSettings]);
-
-  return { ConfirmDialog };
-};
-
-const App: React.FC = () => {
-  const { data } = useData();
-  const [managePanelOpen, setManagePanelOpen] = useState(false);
-  const [viewMode, setViewMode] = useState<ViewMode>(null);
-  const [selectedGroup, setSelectedGroup] = useState<SelectedGroup>(null);
-  const [searchQuery, setSearchQuery] = useState('');
-  
-  const { ConfirmDialog } = useCookieConsent();
 
   const handleGroupClick = (groupId: string) => {
     setSelectedGroup(groupId);

@@ -65,9 +65,21 @@ interface DataProviderProps {
 export const DataProvider: React.FC<DataProviderProps> = ({ children }) => {
   const [data, setData] = useState<Data>(() => {
     const loadedData = storage.loadData();
+    
+    // 检查版本是否需要升级
+    const currentVersion = getVersion();
+    if (loadedData.version !== currentVersion) {
+      // 版本不匹配，更新为当前版本并保存
+      const upgradedData = {
+        ...loadedData,
+        version: currentVersion
+      };
+      storage.saveData(upgradedData);
+      return upgradedData;
+    }
+    
     return loadedData;
   });
-
   // 使用 useMemo 优化 data 对象的引用稳定性
   const memoizedData = useMemo(() => data, [data]);
 
