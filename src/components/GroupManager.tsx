@@ -4,11 +4,13 @@ import {
   Button,
   TextField,
   ListItemText,
+  Typography,
 } from '@mui/material';
 import { useData } from '../contexts/DataContext';
 import { useToast } from '../contexts/ToastContext';
 import { DialogBox } from './DialogBox';
 import { ItemList } from './ItemList';
+import { DraggableItemList } from './DraggableItemList';
 import { useConfirmDialog } from '../hooks/useConfirmDialog';
 import type { Group } from '../types';
 
@@ -17,7 +19,7 @@ interface GroupManagerProps {
 }
 
 export const GroupManager: React.FC<GroupManagerProps> = () => {
-  const { data, addGroup, updateGroup, deleteGroup } = useData();
+  const { data, addGroup, updateGroup, deleteGroup, updateGroupOrder } = useData();
   const { showError } = useToast();
 
   const [modalOpen, setModalOpen] = useState(false);
@@ -27,20 +29,23 @@ export const GroupManager: React.FC<GroupManagerProps> = () => {
     name: '',
     order: 0
   });
+  
+  // 添加排序模式状态
+  const [isSortingMode, setIsSortingMode] = useState(false);
 
   // 使用确认对话框 Hook
   const { confirm, ConfirmDialog } = useConfirmDialog();
 
   const handleDelete = (group: Group) => {
-    const linkCount = data.links.filter(link => link.groupIds.includes(group.id)).length;
-    const textRecordCount = data.textRecords.filter(record => record.groupIds.includes(group.id)).length;
+    const linkCount = data.bookmarks.filter(b => b.type === 'link' && b.groupIds.includes(group.id)).length;
+    const textCount = data.bookmarks.filter(b => b.type === 'text' && b.groupIds.includes(group.id)).length;
 
     const itemsDescription = [];
     if (linkCount > 0) {
       itemsDescription.push(`${linkCount} 个链接`);
     }
-    if (textRecordCount > 0) {
-      itemsDescription.push(`${textRecordCount} 条文字记录`);
+    if (textCount > 0) {
+      itemsDescription.push(`${textCount} 条文字记录`);
     }
 
     const itemsText = itemsDescription.join(' 和 ');
@@ -88,42 +93,77 @@ export const GroupManager: React.FC<GroupManagerProps> = () => {
 
     close();
   };
+  
+  // 切换排序模式
+  const toggleSortingMode = () => {
+    setIsSortingMode(!isSortingMode);
+  };
 
   return (
     <Box>
-      <Button variant="contained" onClick={openAdd} sx={{ mb: 2 }}>
-        添加分组
-      </Button>
+      <Box sx={{ display: 'flex', gap: 2, mb: 2 }}>
+        <Button variant="contained" onClick={openAdd}>
+          添加分组
+        </Button>
+        <Button variant="outlined" onClick={toggleSortingMode}>
+          {isSortingMode ? '完成排序' : '修改次序'}
+        </Button>
+      </Box>
 
-      <ItemList
-        items={data.groups}
-        getItemId={(group) => group.id}
-        emptyMessage='暂无分组，点击“添加分组”开始添加'
-        onEdit={openEdit}
-        onDelete={handleDelete}
-        renderItem={(group) => {
-          const linkCount = data.links.filter(link => link.groupIds.includes(group.id)).length;
-          const textRecordCount = data.textRecords.filter(record => record.groupIds.includes(group.id)).length;
-          
-          let secondaryText = '';
-          if (linkCount > 0 && textRecordCount > 0) {
-            secondaryText = `${linkCount} 个链接, ${textRecordCount} 条文字`;
-          } else if (linkCount > 0) {
-            secondaryText = `${linkCount} 个链接`;
-          } else if (textRecordCount > 0) {
-            secondaryText = `${textRecordCount} 条文字`;
-          } else {
-            secondaryText = '暂无内容';
-          }
-          
-          return (
-            <ListItemText
-              primary={group.name}
-              secondary={secondaryText}
-            />
-          );
-        }}
-      />
+      {data.groups.length === 0 ? (
+        <Typography color="text.secondary" sx={{ py: 3, textAlign: 'center' }}>
+          暂无分组，点击"添加分组"开始添加
+        </Typography>
+      ) : isSortingMode ? (
+        <DraggableItemList
+          items={data.groups.sort((a, b) => a.order - b.order)}
+          getItemId={(group) => group.id}
+          emptyMessage='暂无分组，点击"添加分组"开始添加'
+          onOrderChange={updateGroupOrder}
+          renderItem={(group) => {
+            const linkCount = data.bookmarks.filter(b => b.type === 'link' && b.groupIds.includes(group.id)).length;
+            const textCount = data.bookmarks.filter(b => b.type === 'text' && b.groupIds.includes(group.id)).length;
+            
+            const counts = [];
+            if (linkCount > 0) counts.push(`${linkCount} 个链接`);
+            if (textCount > 0) counts.push(`${textCount} 条文字`);
+            
+            const secondaryText = counts.length > 0 ? counts.join(', ') : '暂无内容';
+            
+            return (
+              <ListItemText
+                primary={group.name}
+                secondary={secondaryText}
+              />
+            );
+          }}
+        />
+      ) : (
+        <ItemList
+          items={data.groups.sort((a, b) => a.order - b.order)}
+          getItemId={(group) => group.id}
+          emptyMessage='暂无分组，点击"添加分组"开始添加'
+          onEdit={openEdit}
+          onDelete={handleDelete}
+          renderItem={(group) => {
+            const linkCount = data.bookmarks.filter(b => b.type === 'link' && b.groupIds.includes(group.id)).length;
+            const textCount = data.bookmarks.filter(b => b.type === 'text' && b.groupIds.includes(group.id)).length;
+            
+            const counts = [];
+            if (linkCount > 0) counts.push(`${linkCount} 个链接`);
+            if (textCount > 0) counts.push(`${textCount} 条文字`);
+            
+            const secondaryText = counts.length > 0 ? counts.join(', ') : '暂无内容';
+            
+            return (
+              <ListItemText
+                primary={group.name}
+                secondary={secondaryText}
+              />
+            );
+          }}
+        />
+      )}
 
       <DialogBox
         open={modalOpen}

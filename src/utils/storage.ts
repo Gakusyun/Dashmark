@@ -1,10 +1,12 @@
 import pako from 'pako';
+import { getVersion } from './version';
 import type {
   Data,
   SearchEngine,
   Group,
   Link,
   TextRecord,
+  Bookmark,
   Settings,
   LinkWithGroups,
   TextRecordWithGroups
@@ -22,9 +24,9 @@ export const DEFAULT_SEARCH_ENGINES: SearchEngine[] = [
 ];
 
 export const DEFAULT_DATA: Data = {
+  version: getVersion(),
   groups: [],
-  links: [],
-  textRecords: [],
+  bookmarks: [],
   searchEngines: [],
   settings: {
     searchEngine: 'baidu',
@@ -41,13 +43,16 @@ export function generateId(): string {
 
 // ==================== 存储操作 ====================
 
+
+
 export function loadData(): Data {
   try {
     const json = localStorage.getItem(STORAGE_KEY);
     if (!json) {
       return DEFAULT_DATA;
     }
-    const data: Data = JSON.parse(json);
+    // 解析为any类型以便处理各种可能的数据格式
+    const data: any = JSON.parse(json);
 
     // 数据迁移：将旧的搜索引擎名称转换为 ID
     let searchEngineId = data.settings?.searchEngine || 'google';
@@ -61,11 +66,69 @@ export function loadData(): Data {
       searchEngineId = engineNameToId[searchEngineId];
     }
 
-    // 合并默认设置，确保数据结构完整
-    return {
+    // 确定数据格式并进行转换
+    let bookmarks: Bookmark[] = [];
+    
+    // 如果有bookmarks字段，直接使用（新格式）
+    if (data.bookmarks && Array.isArray(data.bookmarks)) {
+      bookmarks = data.bookmarks;
+    } else {
+      // 否则从旧格式转换（links和textRecords）
+      const links = Array.isArray(data.links) ? data.links : [];
+      const textRecords = Array.isArray(data.textRecords) ? data.textRecords : [];
+      
+      // 转换链接为收藏格式
+      const linksAsBookmarks = links.map((link: any) => ({
+        id: link.id,
+        type: 'link' as const,
+        title: link.title,
+        url: link.url,
+        groupIds: link.groupIds,
+        order: link.order
+      }));
+
+      // 转换文字记录为收藏格式
+      const textRecordsAsBookmarks = textRecords.map((record: any) => ({
+        id: record.id,
+        type: 'text' as const,
+        title: record.title,
+        content: record.content,
+        groupIds: record.groupIds,
+        order: record.order
+      }));
+
+      // 合并所有收藏，按order排序
+      const allBookmarks = [...linksAsBookmarks, ...textRecordsAsBookmarks].sort((a: any, b: any) => a.order - b.order);
+      
+      // 更新order值，确保全局唯一排序
+      bookmarks = allBookmarks.map((bookmark: any, index: number) => ({
+        ...bookmark,
+        order: index
+      }));
+      
+      // 数据已从旧格式转换，需要保存回新的格式
+      const convertedData: Data = {
+        version: data.version || getVersion(),
+        groups: Array.isArray(data.groups) ? data.groups : [],
+        bookmarks: bookmarks,
+        searchEngines: Array.isArray(data.searchEngines) ? data.searchEngines : [],
+        settings: {
+          searchEngine: searchEngineId,
+          darkMode: data.settings?.darkMode || 'auto',
+          hideIcpInfo: data.settings?.hideIcpInfo || false
+        }
+      };
+      
+      // 保存转换后的数据到localStorage
+      saveData(convertedData);
+      return convertedData;
+    }
+
+    // 确保数据结构完整
+    const result: Data = {
+      version: data.version || getVersion(),
       groups: Array.isArray(data.groups) ? data.groups : [],
-      links: Array.isArray(data.links) ? data.links : [],
-      textRecords: Array.isArray(data.textRecords) ? data.textRecords : [],
+      bookmarks: bookmarks,
       searchEngines: Array.isArray(data.searchEngines) ? data.searchEngines : [],
       settings: {
         searchEngine: searchEngineId,
@@ -73,6 +136,8 @@ export function loadData(): Data {
         hideIcpInfo: data.settings?.hideIcpInfo || false
       }
     };
+
+    return result;
   } catch (error) {
     console.error('Failed to load data:', error);
     return DEFAULT_DATA;
@@ -81,7 +146,12 @@ export function loadData(): Data {
 
 export function saveData(data: Data): boolean {
   try {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
+    // 确保数据始终包含版本号
+    const saveData = {
+      ...data,
+      version: data.version || getVersion()
+    };
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(saveData));
     return true;
   } catch (error) {
     console.error('Failed to save data:', error);
@@ -91,14 +161,24 @@ export function saveData(data: Data): boolean {
 
 export function exportData(): void {
   const data = loadData();
-  const json = JSON.stringify(data, null, 2);
+  
+  // 创建导出的数据对象，只导出新的bookmarks数据结构
+  const exportData = {
+    version: data.version,
+    groups: data.groups,
+    bookmarks: data.bookmarks,
+    searchEngines: data.searchEngines,
+    settings: data.settings
+  };
+  
+  const json = JSON.stringify(exportData, null, 2);
   // 使用 gzip 压缩
   const compressed = pako.gzip(json);
   const blob = new Blob([compressed], { type: 'application/gzip' });
   const url = URL.createObjectURL(blob);
   const a = document.createElement('a');
   a.href = url;
-  a.download = `dashmark_backup_${new Date().toISOString().slice(0, 10)}.json.gz`;
+  a.download = `dashmark_backup_v${data.version}_${new Date().toISOString().slice(0, 10)}.json.gz`;
   document.body.appendChild(a);
   a.click();
   document.body.removeChild(a);
@@ -174,130 +254,171 @@ function processData(
       }
     };
 
-    const data: Data = JSON.parse(json);
+    const data: any = JSON.parse(json);
     checkDepth(data, 0);
 
-    // ==================== 数组长度限制 ====================
-    const MAX_GROUPS = 1000;
-    const MAX_LINKS = 10000;
-    const MAX_TEXT_RECORDS = 10000;
+    // ==================== 确定数据格式并进行转换 ====================
+    let bookmarks: Bookmark[] = [];
+    
+    // 如果有bookmarks字段，直接使用（新格式）
+    if (data.bookmarks && Array.isArray(data.bookmarks)) {
+      // ==================== 数组长度限制 ====================
+      const MAX_GROUPS = 1000;
+      const MAX_LINKS = 10000;
+      const MAX_TEXT_RECORDS = 10000;
 
-    if (data.groups.length > MAX_GROUPS) {
-      throw new Error(`分组数量超出限制（最多 ${MAX_GROUPS} 个，实际 ${data.groups.length} 个）`);
-    }
-    if (data.links.length > MAX_LINKS) {
-      throw new Error(`链接数量超出限制（最多 ${MAX_LINKS} 个，实际 ${data.links.length} 个）`);
-    }
-
-    // ==================== 字段长度限制常量 ====================
-    const MAX_GROUP_NAME_LENGTH = 100;
-    const MAX_LINK_TITLE_LENGTH = 200;
-    const MAX_LINK_URL_LENGTH = 2048;
-    const MAX_TEXT_RECORD_TITLE_LENGTH = 200;
-    const MAX_TEXT_RECORD_CONTENT_LENGTH = 10000;
-
-    // ==================== 验证分组数据 ====================
-    if (!Array.isArray(data.groups)) {
-      throw new Error('分组数据格式错误：应为数组');
-    }
-
-    for (const group of data.groups) {
-      if (typeof group !== 'object' || group === null) {
-        throw new Error('分组数据格式错误：应为对象');
+      if (data.groups.length > MAX_GROUPS) {
+        throw new Error(`分组数量超出限制（最多 ${MAX_GROUPS} 个，实际 ${data.groups.length} 个）`);
       }
-      if (!group.id || typeof group.id !== 'string') {
-        throw new Error('分组数据格式错误：缺少有效的 id 字段');
+      // 验证书签数量（包含链接和文字记录）
+      const linkCount = data.bookmarks.filter((b: { type?: string }) => b.type === 'link').length;
+      if (linkCount > MAX_LINKS) {
+        throw new Error(`链接数量超出限制（最多 ${MAX_LINKS} 个，实际 ${linkCount} 个）`);
       }
-      if (!group.name || typeof group.name !== 'string') {
-        throw new Error('分组数据格式错误：缺少有效的 name 字段');
+
+      // ==================== 字段长度限制常量 ====================
+      const MAX_GROUP_NAME_LENGTH = 100;
+      const MAX_LINK_TITLE_LENGTH = 200;
+      const MAX_LINK_URL_LENGTH = 2048;
+      const MAX_TEXT_RECORD_TITLE_LENGTH = 200;
+      const MAX_TEXT_RECORD_CONTENT_LENGTH = 10000;
+
+      // ==================== 验证分组数据 ====================
+      if (!Array.isArray(data.groups)) {
+        throw new Error('分组数据格式错误：应为数组');
       }
-      if (group.name.length > MAX_GROUP_NAME_LENGTH) {
+
+      for (const group of data.groups) {
+        if (typeof group !== 'object' || group === null) {
+          throw new Error('分组数据格式错误：应为对象');
+        }
+        if (!group.id || typeof group.id !== 'string') {
+          throw new Error('分组数据格式错误：缺少有效的 id 字段');
+        }
+        if (!group.name || typeof group.name !== 'string') {
+          throw new Error('分组数据格式错误：缺少有效的 name 字段');
+        }
+        if (group.name.length > MAX_GROUP_NAME_LENGTH) {
+          throw new Error(
+            `分组名称过长（最多 ${MAX_GROUP_NAME_LENGTH} 字符，实际 ${group.name.length} 字符）`
+          );
+        }
+        if (typeof group.order !== 'number') {
+          throw new Error('分组数据格式错误：order 字段应为数字');
+        }
+      }
+
+      // ==================== 验证链接数据 ====================
+      // 验证bookmarks数组中的链接类型数据
+      const linkBookmarks = data.bookmarks.filter((b: { type?: string }) => b.type === 'link');
+      for (const link of linkBookmarks) {
+        if (typeof link !== 'object' || link === null) {
+          throw new Error('链接数据格式错误：应为对象');
+        }
+        if (!link.id || typeof link.id !== 'string') {
+          throw new Error('链接数据格式错误：缺少有效的 id 字段');
+        }
+        if (!link.title || typeof link.title !== 'string') {
+          throw new Error('链接数据格式错误：缺少有效的 title 字段');
+        }
+        if (link.title.length > MAX_LINK_TITLE_LENGTH) {
+          throw new Error(
+            `链接标题过长（最多 ${MAX_LINK_TITLE_LENGTH} 字符，实际 ${link.title.length} 字符）`
+          );
+        }
+        if (!link.url || typeof link.url !== 'string') {
+          throw new Error('链接数据格式错误：缺少有效的 url 字段');
+        }
+        if (link.url && link.url.length > MAX_LINK_URL_LENGTH) {
+          throw new Error(
+            `链接 URL 过长（最多 ${MAX_LINK_URL_LENGTH} 字符，实际 ${link.url.length} 字符）`
+          );
+        }
+        if (!Array.isArray(link.groupIds)) {
+          throw new Error('链接数据格式错误：groupIds 字段应为数组');
+        }
+        if (typeof link.order !== 'number') {
+          throw new Error('链接数据格式错误：order 字段应为数字');
+        }
+      }
+
+      // ==================== 验证文字记录数据 ====================
+      // 验证bookmarks数组中的文字记录类型数据
+      const textBookmarks = data.bookmarks.filter((b: { type?: string }) => b.type === 'text');
+      const textRecordsCount = textBookmarks.length;
+
+      if (textRecordsCount > MAX_TEXT_RECORDS) {
         throw new Error(
-          `分组名称过长（最多 ${MAX_GROUP_NAME_LENGTH} 字符，实际 ${group.name.length} 字符）`
+          `文字记录数量超出限制（最多 ${MAX_TEXT_RECORDS} 个，实际 ${textRecordsCount} 个）`
         );
       }
-      if (typeof group.order !== 'number') {
-        throw new Error('分组数据格式错误：order 字段应为数字');
-      }
-    }
 
-    // ==================== 验证链接数据 ====================
-    if (!Array.isArray(data.links)) {
-      throw new Error('链接数据格式错误：应为数组');
-    }
+      for (const record of textBookmarks) {
+        if (typeof record !== 'object' || record === null) {
+          throw new Error('文字记录数据格式错误：应为对象');
+        }
+        if (!record.id || typeof record.id !== 'string') {
+          throw new Error('文字记录数据格式错误：缺少有效的 id 字段');
+        }
+        if (!record.title || typeof record.title !== 'string') {
+          throw new Error('文字记录数据格式错误：缺少有效的 title 字段');
+        }
+        if (record.title.length > MAX_TEXT_RECORD_TITLE_LENGTH) {
+          throw new Error(
+            `文字记录标题过长（最多 ${MAX_TEXT_RECORD_TITLE_LENGTH} 字符，实际 ${record.title.length} 字符）`
+          );
+        }
+        if (!record.content || typeof record.content !== 'string') {
+          throw new Error('文字记录数据格式错误：缺少有效的 content 字段');
+        }
+        if (record.content && record.content.length > MAX_TEXT_RECORD_CONTENT_LENGTH) {
+          throw new Error(
+            `文字记录内容过长（最多 ${MAX_TEXT_RECORD_CONTENT_LENGTH} 字符，实际 ${record.content.length} 字符）`
+          );
+        }
+        if (!Array.isArray(record.groupIds)) {
+          throw new Error('文字记录数据格式错误：groupIds 字段应为数组');
+        }
+        if (typeof record.order !== 'number') {
+          throw new Error('文字记录数据格式错误：order 字段应为数字');
+        }
+      }
+      
+      // 直接使用现有bookmarks
+      bookmarks = data.bookmarks;
+    } else {
+      // 否则从旧格式转换（links和textRecords）
+      const links = Array.isArray(data.links) ? data.links : [];
+      const textRecords = Array.isArray(data.textRecords) ? data.textRecords : [];
+      
+      // 转换链接为收藏格式
+      const linksAsBookmarks = links.map((link: any) => ({
+        id: link.id,
+        type: 'link' as const,
+        title: link.title || '未命名链接',
+        url: link.url || '',
+        groupIds: Array.isArray(link.groupIds) ? link.groupIds : [],
+        order: typeof link.order === 'number' ? link.order : 0
+      }));
 
-    for (const link of data.links) {
-      if (typeof link !== 'object' || link === null) {
-        throw new Error('链接数据格式错误：应为对象');
-      }
-      if (!link.id || typeof link.id !== 'string') {
-        throw new Error('链接数据格式错误：缺少有效的 id 字段');
-      }
-      if (!link.title || typeof link.title !== 'string') {
-        throw new Error('链接数据格式错误：缺少有效的 title 字段');
-      }
-      if (link.title.length > MAX_LINK_TITLE_LENGTH) {
-        throw new Error(
-          `链接标题过长（最多 ${MAX_LINK_TITLE_LENGTH} 字符，实际 ${link.title.length} 字符）`
-        );
-      }
-      if (!link.url || typeof link.url !== 'string') {
-        throw new Error('链接数据格式错误：缺少有效的 url 字段');
-      }
-      if (link.url.length > MAX_LINK_URL_LENGTH) {
-        throw new Error(
-          `链接 URL 过长（最多 ${MAX_LINK_URL_LENGTH} 字符，实际 ${link.url.length} 字符）`
-        );
-      }
-      if (!Array.isArray(link.groupIds)) {
-        throw new Error('链接数据格式错误：groupIds 字段应为数组');
-      }
-      if (typeof link.order !== 'number') {
-        throw new Error('链接数据格式错误：order 字段应为数字');
-      }
-    }
+      // 转换文字记录为收藏格式
+      const textRecordsAsBookmarks = textRecords.map((record: any) => ({
+        id: record.id,
+        type: 'text' as const,
+        title: record.title || '未命名文字记录',
+        content: record.content || '',
+        groupIds: Array.isArray(record.groupIds) ? record.groupIds : [],
+        order: typeof record.order === 'number' ? record.order : 0
+      }));
 
-    // ==================== 验证文字记录数据 ====================
-    const textRecords = data.textRecords || [];
-    if (!Array.isArray(textRecords)) {
-      throw new Error('文字记录数据格式错误：应为数组');
-    }
-
-    if (textRecords.length > MAX_TEXT_RECORDS) {
-      throw new Error(
-        `文字记录数量超出限制（最多 ${MAX_TEXT_RECORDS} 个，实际 ${textRecords.length} 个）`
-      );
-    }
-
-    for (const record of textRecords) {
-      if (typeof record !== 'object' || record === null) {
-        throw new Error('文字记录数据格式错误：应为对象');
-      }
-      if (!record.id || typeof record.id !== 'string') {
-        throw new Error('文字记录数据格式错误：缺少有效的 id 字段');
-      }
-      if (!record.title || typeof record.title !== 'string') {
-        throw new Error('文字记录数据格式错误：缺少有效的 title 字段');
-      }
-      if (record.title.length > MAX_TEXT_RECORD_TITLE_LENGTH) {
-        throw new Error(
-          `文字记录标题过长（最多 ${MAX_TEXT_RECORD_TITLE_LENGTH} 字符，实际 ${record.title.length} 字符）`
-        );
-      }
-      if (!record.content || typeof record.content !== 'string') {
-        throw new Error('文字记录数据格式错误：缺少有效的 content 字段');
-      }
-      if (record.content.length > MAX_TEXT_RECORD_CONTENT_LENGTH) {
-        throw new Error(
-          `文字记录内容过长（最多 ${MAX_TEXT_RECORD_CONTENT_LENGTH} 字符，实际 ${record.content.length} 字符）`
-        );
-      }
-      if (!Array.isArray(record.groupIds)) {
-        throw new Error('文字记录数据格式错误：groupIds 字段应为数组');
-      }
-      if (typeof record.order !== 'number') {
-        throw new Error('文字记录数据格式错误：order 字段应为数字');
-      }
+      // 合并所有收藏，按order排序
+      const allBookmarks = [...linksAsBookmarks, ...textRecordsAsBookmarks].sort((a: any, b: any) => (a.order || 0) - (b.order || 0));
+      
+      // 更新order值，确保全局唯一排序
+      bookmarks = allBookmarks.map((bookmark: any, index: number) => ({
+        ...bookmark,
+        order: index
+      }));
     }
 
     // ==================== 验证搜索引擎数据 ====================
@@ -326,18 +447,20 @@ function processData(
       throw new Error('设置数据格式错误：应为对象');
     }
 
-    // 保存导入的数据，兼容旧版数据格式
+    // 保存导入的数据
     const importedData: Data = {
-      groups: data.groups,
-      links: data.links,
-      textRecords: textRecords,
+      version: data.version || getVersion(),
+      groups: data.groups || [],
+      bookmarks: bookmarks, // 使用转换后的bookmarks数组
       searchEngines: searchEngines,
       settings: {
         searchEngine: data.settings?.searchEngine || 'google',
-        darkMode: data.settings?.darkMode || 'auto'
+        darkMode: data.settings?.darkMode || 'auto',
+        hideIcpInfo: data.settings?.hideIcpInfo || false
       }
     };
 
+    // 使用转换后的数据
     if (saveData(importedData)) {
       onSuccess(importedData);
     } else {
@@ -381,26 +504,11 @@ export function deleteGroup(id: string): boolean {
   const data = loadData();
   // 删除分组
   data.groups = data.groups.filter(g => g.id !== id);
-  // 删除属于该分组的链接（只属于这一个分组的链接）
-  data.links = data.links.filter(link => {
-    const belongsToGroup = link.groupIds.includes(id);
-    if (belongsToGroup) {
-      link.groupIds = link.groupIds.filter(gid => gid !== id);
-      // 如果链接不再属于任何分组，则删除该链接
-      return link.groupIds.length > 0;
-    }
-    return true;
-  });
-  // 删除属于该分组的文字记录（只属于这一个分组的文字记录）
-  data.textRecords = data.textRecords.filter(record => {
-    const belongsToGroup = record.groupIds.includes(id);
-    if (belongsToGroup) {
-      record.groupIds = record.groupIds.filter(gid => gid !== id);
-      // 如果文字记录不再属于任何分组，则删除该文字记录
-      return record.groupIds.length > 0;
-    }
-    return true;
-  });
+  // 更新属于该分组的收藏的groupIds
+  data.bookmarks = data.bookmarks.map(bookmark => ({
+    ...bookmark,
+    groupIds: bookmark.groupIds.filter(gid => gid !== id)
+  })).filter(bookmark => bookmark.groupIds.length > 0); // 移除不再属于任何分组的收藏
   saveData(data);
   return true;
 }
@@ -408,59 +516,89 @@ export function deleteGroup(id: string): boolean {
 // ==================== 链接操作 ====================
 
 export function getLinks(): Link[] {
-  return loadData().links;
+  const data = loadData();
+  return data.bookmarks
+    .filter(b => b.type === 'link')
+    .map(b => ({
+      id: b.id,
+      title: b.title,
+      url: b.url || '',
+      groupIds: b.groupIds,
+      order: b.order
+    }));
 }
 
 export function getLinksByGroupId(groupId: string): Link[] {
   const data = loadData();
-  return data.links.filter(link => link.groupIds.includes(groupId));
+  return data.bookmarks
+    .filter(b => b.type === 'link' && b.groupIds.includes(groupId))
+    .map(b => ({
+      id: b.id,
+      title: b.title,
+      url: b.url || '',
+      groupIds: b.groupIds,
+      order: b.order
+    }));
 }
 
 export function getLinksWithGroups(): LinkWithGroups[] {
   const data = loadData();
-  return data.links.map(link => ({
-    ...link,
-    groups: data.groups.filter(g => link.groupIds.includes(g.id))
-  }));
+  return data.bookmarks
+    .filter(b => b.type === 'link')
+    .map(b => ({
+      id: b.id,
+      title: b.title,
+      url: b.url || '',
+      groupIds: b.groupIds,
+      order: b.order,
+      groups: data.groups.filter(g => b.groupIds.includes(g.id))
+    }));
 }
 
 export function addLink(title: string, url: string, groupIds: string[]): Link {
   const data = loadData();
-  const link: Link = {
+  const newBookmark: Bookmark = {
     id: generateId(),
+    type: 'link',
     title: title,
     url: url,
     groupIds: groupIds,
-    order: data.links.length
+    order: data.bookmarks.length
   };
-  data.links.push(link);
+  data.bookmarks.push(newBookmark);
   saveData(data);
-  return link;
+  return {
+    id: newBookmark.id,
+    title: newBookmark.title,
+    url: newBookmark.url || '',
+    groupIds: newBookmark.groupIds,
+    order: newBookmark.order
+  };
 }
 
 export function updateLink(id: string, title: string, url: string, groupIds: string[]): boolean {
   const data = loadData();
-  const index = data.links.findIndex(l => l.id === id);
-  if (index !== -1) {
-    data.links[index].title = title;
-    data.links[index].url = url;
-    data.links[index].groupIds = groupIds;
-    saveData(data);
-    return true;
-  }
-  return false;
+  const index = data.bookmarks.findIndex(b => b.id === id && b.type === 'link');
+  if (index === -1) return false;
+  
+  data.bookmarks[index].title = title;
+  data.bookmarks[index].url = url;
+  data.bookmarks[index].groupIds = groupIds;
+  
+  saveData(data);
+  return true;
 }
 
 export function deleteLink(id: string): boolean {
   const data = loadData();
-  data.links = data.links.filter(l => l.id !== id);
+  data.bookmarks = data.bookmarks.filter(b => !(b.id === id && b.type === 'link'));
   saveData(data);
   return true;
 }
 
 export function batchDeleteLinks(ids: string[]): boolean {
   const data = loadData();
-  data.links = data.links.filter(l => !ids.includes(l.id));
+  data.bookmarks = data.bookmarks.filter(b => !(ids.includes(b.id) && b.type === 'link'));
   saveData(data);
   return true;
 }
@@ -468,43 +606,73 @@ export function batchDeleteLinks(ids: string[]): boolean {
 // ==================== 文字记录操作 ====================
 
 export function getTextRecords(): TextRecord[] {
-  return loadData().textRecords;
+  const data = loadData();
+  return data.bookmarks
+    .filter(b => b.type === 'text')
+    .map(b => ({
+      id: b.id,
+      title: b.title,
+      content: b.content || '',
+      groupIds: b.groupIds,
+      order: b.order
+    }));
 }
 
 export function getTextRecordsByGroupId(groupId: string): TextRecord[] {
   const data = loadData();
-  return data.textRecords.filter(record => record.groupIds.includes(groupId));
+  return data.bookmarks
+    .filter(b => b.type === 'text' && b.groupIds.includes(groupId))
+    .map(b => ({
+      id: b.id,
+      title: b.title,
+      content: b.content || '',
+      groupIds: b.groupIds,
+      order: b.order
+    }));
 }
 
 export function getTextRecordsWithGroups(): TextRecordWithGroups[] {
   const data = loadData();
-  return data.textRecords.map(record => ({
-    ...record,
-    groups: data.groups.filter(g => record.groupIds.includes(g.id))
-  }));
+  return data.bookmarks
+    .filter(b => b.type === 'text')
+    .map(b => ({
+      id: b.id,
+      title: b.title,
+      content: b.content || '',
+      groupIds: b.groupIds,
+      order: b.order,
+      groups: data.groups.filter(g => b.groupIds.includes(g.id))
+    }));
 }
 
 export function addTextRecord(title: string, content: string, groupIds: string[]): TextRecord {
   const data = loadData();
-  const record: TextRecord = {
+  const newBookmark: Bookmark = {
     id: generateId(),
+    type: 'text',
     title: title,
     content: content,
     groupIds: groupIds,
-    order: data.textRecords.length
+    order: data.bookmarks.length
   };
-  data.textRecords.push(record);
+  data.bookmarks.push(newBookmark);
   saveData(data);
-  return record;
+  return {
+    id: newBookmark.id,
+    title: newBookmark.title,
+    content: newBookmark.content || '',
+    groupIds: newBookmark.groupIds,
+    order: newBookmark.order
+  };
 }
 
 export function updateTextRecord(id: string, title: string, content: string, groupIds: string[]): boolean {
   const data = loadData();
-  const index = data.textRecords.findIndex(r => r.id === id);
+  const index = data.bookmarks.findIndex(b => b.id === id && b.type === 'text');
   if (index !== -1) {
-    data.textRecords[index].title = title;
-    data.textRecords[index].content = content;
-    data.textRecords[index].groupIds = groupIds;
+    data.bookmarks[index].title = title;
+    data.bookmarks[index].content = content;
+    data.bookmarks[index].groupIds = groupIds;
     saveData(data);
     return true;
   }
@@ -513,14 +681,14 @@ export function updateTextRecord(id: string, title: string, content: string, gro
 
 export function deleteTextRecord(id: string): boolean {
   const data = loadData();
-  data.textRecords = data.textRecords.filter(r => r.id !== id);
+  data.bookmarks = data.bookmarks.filter(b => !(b.id === id && b.type === 'text'));
   saveData(data);
   return true;
 }
 
 export function batchDeleteTextRecords(ids: string[]): boolean {
   const data = loadData();
-  data.textRecords = data.textRecords.filter(r => !ids.includes(r.id));
+  data.bookmarks = data.bookmarks.filter(b => !(ids.includes(b.id) && b.type === 'text'));
   saveData(data);
   return true;
 }

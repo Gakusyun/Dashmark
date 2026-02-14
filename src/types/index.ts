@@ -32,10 +32,25 @@ export interface TextRecord {
   order: number;
 }
 
+// 统一的收藏类型，可以是链接或文字记录
+export type BookmarkType = 'link' | 'text';
+
+export interface Bookmark {
+  id: string;
+  type: BookmarkType;
+  title: string;
+  groupIds: string[];
+  order: number;
+  // 链接特有属性
+  url?: string;
+  // 文字记录特有属性
+  content?: string;
+}
+
 export interface Data {
+  version: string;
   groups: Group[];
-  links: Link[];
-  textRecords: TextRecord[];
+  bookmarks: Bookmark[];
   searchEngines: SearchEngine[];
   settings: Settings;
 }

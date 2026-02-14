@@ -1,19 +1,23 @@
 import React from 'react';
 import { Card, CardContent, Typography, Link as MuiLink } from '@mui/material';
-import type { Link } from '../types';
+import { isLink } from '../utils/typeUtils';
+import type { Link, Bookmark } from '../types';
 
 interface BookmarkCardProps {
-  link: Link;
+  link: Link | Bookmark;
 }
 
 export const BookmarkCard: React.FC<BookmarkCardProps> = ({ link }) => {
+  const isBookmark = isLink(link);
+  const href = isBookmark ? (link as Bookmark).url : (link as Link).url;
+
   const handleClick = (e: React.MouseEvent) => {
     e.stopPropagation();
   };
 
   return (
     <MuiLink
-      href={link.url}
+      href={href}
       target="_blank"
       rel="noopener noreferrer"
       underline="none"
@@ -53,7 +57,7 @@ export const BookmarkCard: React.FC<BookmarkCardProps> = ({ link }) => {
               fontSize: '0.875rem',
             }}
           >
-            {link.url}
+            {href}
           </Typography>
         </CardContent>
       </Card>

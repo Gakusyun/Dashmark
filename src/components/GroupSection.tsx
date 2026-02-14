@@ -5,7 +5,8 @@ import { useData } from '../contexts/DataContext';
 import { BookmarkCard } from './BookmarkCard';
 import { TextRecordCard } from './TextRecordCard';
 import { filterItemsByQuery } from '../utils/itemFilter';
-import type { Group, Link, TextRecord } from '../types';
+import { isLink } from '../utils/typeUtils';
+import type { Item, Group, Link, TextRecord, Bookmark } from '../utils/typeUtils';
 
 interface GroupSectionProps {
   group: Group;
@@ -14,8 +15,8 @@ interface GroupSectionProps {
   onBack?: () => void;
 }
 
-// 定义联合类型，可以接受链接或文字记录
-type Item = Link | TextRecord;
+// 定义联合类型，可以接受链接、文字记录或收藏
+// type Item = (Link | TextRecord) | (Omit<Bookmark, 'content'> & { content: string }) | (Omit<Bookmark, 'url'> & { url: string }) | Bookmark;
 
 interface CommonBookmarksSectionProps {
   title: string;
@@ -61,7 +62,39 @@ const CommonBookmarksSection: React.FC<CommonBookmarksSectionProps> = ({
 
   // 根据搜索关键词过滤项目
   const filteredItems = React.useMemo(() => {
-    return filterItemsByQuery(items, searchQuery, new Map(), pinyinModule);
+    // 将Bookmark转换为兼容Link | TextRecord类型的格式
+    const compatibleItems = items.map(item => {
+      if ('type' in item) {
+        // 这是一个Bookmark
+        if (item.type === 'link') {
+          return {
+            id: item.id,
+            title: item.title,
+            url: item.url || '',
+            groupIds: item.groupIds,
+            order: item.order
+          } as Link;
+        } else {
+          return {
+            id: item.id,
+            title: item.title,
+            content: item.content || '',
+            groupIds: item.groupIds,
+            order: item.order
+          } as TextRecord;
+        }
+      } else {
+        // 这已经是Link或TextRecord类型
+        return item;
+      }
+    });
+    
+    const filteredCompatibleItems = filterItemsByQuery(compatibleItems, searchQuery, new Map(), pinyinModule);
+    
+    // 将过滤后的结果转换回原始类型
+    return filteredCompatibleItems.map(filteredItem => {
+      return items.find(originalItem => originalItem.id === filteredItem.id) || filteredItem;
+    }) as Item[];
   }, [items, searchQuery, pinyinModule]);
 
   // 处理文字记录全屏关闭
@@ -121,14 +154,12 @@ const CommonBookmarksSection: React.FC<CommonBookmarksSectionProps> = ({
         ) : (
           <Grid container spacing={2}>
             {items.map((item) => {
-              // 判断是链接还是文字记录
-              const isLink = 'url' in item;
               return (
                 <Grid key={item.id} size={{ xs: 12, sm: 6, md: 4, lg: 3 }}>
-                  {isLink ?
-                    <BookmarkCard link={item as Link} /> :
+                  {isLink(item) ?
+                    <BookmarkCard link={item as (Link | Bookmark)} /> :
                     <TextRecordCard
-                      record={item as TextRecord}
+                      record={item as (TextRecord | Bookmark)}
                       isFullscreen={fullscreenTextRecordId === item.id}
                       onOpenFullscreen={() => setFullscreenTextRecordId(item.id)}
                       onCloseFullscreen={handleCloseTextRecordFullscreen}
@@ -181,13 +212,13 @@ const CommonBookmarksSection: React.FC<CommonBookmarksSectionProps> = ({
                 md: 4,
                 lg: 3
               };
-              const isLink = 'url' in item;
+              
               return (
                 <Grid key={item.id} size={gridSizes}>
-                  {isLink ?
-                    <BookmarkCard link={item as Link} /> :
+                  {isLink(item) ?
+                    <BookmarkCard link={item as (Link | Bookmark)} /> :
                     <TextRecordCard
-                      record={item as TextRecord}
+                      record={item as (TextRecord | Bookmark)}
                       isFullscreen={fullscreenTextRecordId === item.id}
                       onOpenFullscreen={() => setFullscreenTextRecordId(item.id)}
                       onCloseFullscreen={handleCloseTextRecordFullscreen}
@@ -226,31 +257,28 @@ const CommonBookmarksSection: React.FC<CommonBookmarksSectionProps> = ({
         </Typography>
       ) : (
         <Grid container spacing={2}>
-          {items.slice(0, maxItems).map((item) => {
-            // 对于"所有"分组，在大屏幕时显示4个/行（lg: 3），对于普通分组显示2个/行（lg: 6）
-            const gridSizes = {
-              xs: 6,      // 2列
-              sm: 4,      // 3列
-              md: 3,      // 4列
-              lg: isAllBookmarks ? 3 : 6 // "所有"分组: 4列(1/4屏), 普通分组: 2列(1/2屏)
-            };
-
-            // 判断是链接还是文字记录
-            const isLink = 'url' in item;
-            return (
-              <Grid key={item.id} size={gridSizes}>
-                {isLink ?
-                  <BookmarkCard link={item as Link} /> :
-                  <TextRecordCard
-                    record={item as TextRecord}
-                    isFullscreen={fullscreenTextRecordId === item.id}
-                    onOpenFullscreen={() => setFullscreenTextRecordId(item.id)}
-                    onCloseFullscreen={handleCloseTextRecordFullscreen}
-                  />}
-              </Grid>
-            );
-          })}
-        </Grid>
+                      {items.slice(0, maxItems).map((item) => {
+                      // 对于"所有"分组，在大屏幕时显示4个/行（lg: 3），对于普通分组显示2个/行（lg: 6）
+                      const gridSizes = {
+                        xs: 6,      // 2列
+                        sm: 4,      // 3列
+                        md: 3,      // 4列
+                        lg: isAllBookmarks ? 3 : 6 // "所有"分组: 4列(1/4屏), 普通分组: 2列(1/2屏)
+                      };
+          
+                      return (
+                        <Grid key={item.id} size={gridSizes}>
+                          {isLink(item) ?
+                            <BookmarkCard link={item as (Link | Bookmark)} /> :
+                            <TextRecordCard
+                              record={item as (TextRecord | Bookmark)}
+                              isFullscreen={fullscreenTextRecordId === item.id}
+                              onOpenFullscreen={() => setFullscreenTextRecordId(item.id)}
+                              onCloseFullscreen={handleCloseTextRecordFullscreen}
+                            />}
+                        </Grid>
+                      );
+                    })}        </Grid>
       )}
     </Paper>
   );
@@ -263,23 +291,19 @@ export const GroupSection: React.FC<GroupSectionProps> = ({
   onBack,
 }) => {
   const { data } = useData();
-  const groupLinks = data.links.filter(link => link.groupIds.includes(group.id));
-  const groupTextRecords = data.textRecords.filter(record => record.groupIds.includes(group.id));
+  const groupBookmarks = data.bookmarks.filter(bookmark => bookmark.groupIds.includes(group.id));
 
-  // 合并链接和文字记录
-  const items = [...groupLinks, ...groupTextRecords];
-
-  // 计算链接数和文字记录数
-  const linksCount = groupLinks.length;
-  const textRecordsCount = groupTextRecords.length;
+  // 分别计算链接和文字记录数量
+  const linksCount = groupBookmarks.filter(b => b.type === 'link').length;
+  const textRecordsCount = groupBookmarks.filter(b => b.type === 'text').length;
 
   return (
     <CommonBookmarksSection
       title={group.name}
-      count={items.length}
+      count={groupBookmarks.length}
       linksCount={linksCount}
       textRecordsCount={textRecordsCount}
-      items={items}
+      items={groupBookmarks}
       onClick={onClick}
       isFullscreen={isFullscreen}
       onBack={onBack}
@@ -303,12 +327,12 @@ export const AllBookmarks: React.FC<AllBookmarksProps> = ({
 }) => {
   const { data } = useData();
 
-  // 分别计算链接数和文字记录数
-  const linksCount = data.links.length;
-  const textRecordsCount = data.textRecords.length;
+  // 使用所有收藏
+  const items = data.bookmarks;
 
-  // 合并链接和文字记录
-  const items = [...data.links, ...data.textRecords];
+  // 计算各类项目数量
+  const linksCount = data.bookmarks.filter(b => b.type === 'link').length;
+  const textRecordsCount = data.bookmarks.filter(b => b.type === 'text').length;
 
   return (
     <CommonBookmarksSection
