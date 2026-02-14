@@ -13,12 +13,18 @@ export interface ConfirmOptions {
   onConfirm: () => void;
   /** 确认按钮文本（默认："确定"） */
   confirmText?: string;
+  /** 取消按钮文本（默认："取消"） */
+  cancelText?: string;
   /** 确认按钮颜色（默认："error"） */
   confirmColor?: 'error' | 'primary' | 'warning' | 'success' | 'info';
   /** 确认按钮变体（默认："text"） */
   confirmVariant?: 'text' | 'outlined' | 'contained';
   /** 取消按钮变体（默认："contained"） */
   cancelVariant?: 'text' | 'outlined' | 'contained';
+  /** 确认按钮额外属性 */
+  confirmButtonProps?: any;
+  /** 取消按钮额外属性 */
+  cancelButtonProps?: any;
 }
 
 /**
@@ -35,12 +41,18 @@ interface ConfirmDialogState {
   onConfirm: () => void;
   /** 确认按钮文本 */
   confirmText: string;
+  /** 取消按钮文本 */
+  cancelText: string;
   /** 确认按钮颜色 */
   confirmColor: ConfirmOptions['confirmColor'];
   /** 确认按钮变体 */
   confirmVariant: ConfirmOptions['confirmVariant'];
   /** 取消按钮变体 */
   cancelVariant: ConfirmOptions['cancelVariant'];
+  /** 确认按钮额外属性 */
+  confirmButtonProps: any;
+  /** 取消按钮额外属性 */
+  cancelButtonProps: any;
 }
 
 /**
@@ -93,9 +105,12 @@ export function useConfirmDialog(): UseConfirmDialogReturn {
     content: '',
     onConfirm: () => { },
     confirmText: '删除',
+    cancelText: '取消',
     confirmColor: 'error',
     confirmVariant: 'text',
     cancelVariant: 'contained',
+    confirmButtonProps: undefined,
+    cancelButtonProps: undefined,
   });
 
   /**
@@ -108,9 +123,12 @@ export function useConfirmDialog(): UseConfirmDialogReturn {
       content: options.content || '',
       onConfirm: options.onConfirm,
       confirmText: options.confirmText || '删除',
+      cancelText: options.cancelText || '取消',
       confirmColor: options.confirmColor || 'error',
       confirmVariant: options.confirmVariant || 'text',
       cancelVariant: options.cancelVariant || 'contained',
+      confirmButtonProps: options.confirmButtonProps,
+      cancelButtonProps: options.cancelButtonProps,
     });
   }, []);
 
@@ -131,9 +149,12 @@ export function useConfirmDialog(): UseConfirmDialogReturn {
         title={state.title}
         content={state.content}
         confirmText={state.confirmText}
+        cancelText={state.cancelText}
         confirmColor={state.confirmColor}
         confirmVariant={state.confirmVariant}
         cancelVariant={state.cancelVariant}
+        confirmButtonProps={state.confirmButtonProps}
+        cancelButtonProps={state.cancelButtonProps}
         onConfirm={() => {
           state.onConfirm();
           handleClose();

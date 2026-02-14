@@ -31,7 +31,8 @@ export const DEFAULT_DATA: Data = {
   settings: {
     searchEngine: 'baidu',
     darkMode: 'auto',
-    hideIcpInfo: false
+    hideLegalInfo: false,
+    cookieConsent: null
   }
 };
 
@@ -115,7 +116,7 @@ export function loadData(): Data {
         settings: {
           searchEngine: searchEngineId,
           darkMode: data.settings?.darkMode || 'auto',
-          hideIcpInfo: data.settings?.hideIcpInfo || false
+          hideLegalInfo: data.settings?.hideLegalInfo || false
         }
       };
       
@@ -133,7 +134,8 @@ export function loadData(): Data {
       settings: {
         searchEngine: searchEngineId,
         darkMode: data.settings?.darkMode || 'auto',
-        hideIcpInfo: data.settings?.hideIcpInfo || false
+        hideLegalInfo: data.settings?.hideLegalInfo || false,
+        cookieConsent: data.settings?.cookieConsent ?? null
       }
     };
 
@@ -456,7 +458,8 @@ function processData(
       settings: {
         searchEngine: data.settings?.searchEngine || 'google',
         darkMode: data.settings?.darkMode || 'auto',
-        hideIcpInfo: data.settings?.hideIcpInfo || false
+        hideLegalInfo: data.settings?.hideLegalInfo || false,
+        cookieConsent: data.settings?.cookieConsent ?? null
       }
     };
 
