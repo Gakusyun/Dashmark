@@ -45,6 +45,9 @@ interface DataContextType {
   // 导入导出
   exportData: () => void;
   importData: (file: File, onSuccess: () => void, onError: (error: Error) => void) => void;
+
+  // 清除数据
+  clearAllData: () => void;
 }
 
 const DataContext = createContext<DataContextType | undefined>(undefined);
@@ -444,6 +447,12 @@ export const DataProvider: React.FC<DataProviderProps> = ({ children }) => {
     );
   }, []);
 
+  const clearAllData = useCallback(() => {
+    storage.saveData(storage.DEFAULT_DATA);
+    const freshData = storage.loadData();
+    setData(freshData);
+  }, []);
+
   // 使用 useMemo 优化 context value 的引用稳定性
   const contextValue = useMemo<DataContextType>(() => ({
     data: memoizedData,
@@ -473,6 +482,7 @@ export const DataProvider: React.FC<DataProviderProps> = ({ children }) => {
     deleteSearchEngine,
     exportData,
     importData,
+    clearAllData,
   }), [
     memoizedData,
     refreshData,
@@ -501,6 +511,7 @@ export const DataProvider: React.FC<DataProviderProps> = ({ children }) => {
     deleteSearchEngine,
     exportData,
     importData,
+    clearAllData,
   ]);
 
   return (

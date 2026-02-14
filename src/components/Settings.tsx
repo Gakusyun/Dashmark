@@ -27,7 +27,7 @@ import type { SearchEngine } from '../types';
 import { isValidUrl, normalizeUrl } from '../utils/urlValidator';
 
 export const Settings: React.FC = () => {
-  const { data, updateSettings, addSearchEngine, updateSearchEngine, deleteSearchEngine, exportData, importData, refreshData } = useData();
+  const { data, updateSettings, addSearchEngine, updateSearchEngine, deleteSearchEngine, exportData, importData, refreshData, clearAllData } = useData();
   const { mode, setMode } = useTheme();
   const { showError, showSuccess } = useToast();
   const allEngines = getAllSearchEngines();
@@ -96,6 +96,20 @@ export const Settings: React.FC = () => {
 
   const handleImportClick = () => {
     fileInputRef.current?.click();
+  };
+
+  const handleDeleteData = () => {
+    confirm({
+      title: '确定清除所有数据吗？',
+      content: '此操作将删除所有分组、链接、文字记录和自定义设置，且无法恢复！',
+      confirmText: '清除数据',
+      confirmColor: 'error',
+      onConfirm: () => {
+        // 调用清除所有数据的函数
+        clearAllData();
+        showSuccess('数据已清除');
+      },
+    });
   };
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -261,6 +275,14 @@ export const Settings: React.FC = () => {
           accept=".json,.json.gz"
           style={{ display: 'none' }}
         />
+        <Button
+          variant="contained"
+          color="error"
+          startIcon={<DeleteIcon />}
+          onClick={handleDeleteData}
+        >
+          清空数据
+        </Button>
       </Box>
       <Alert severity="info">
         数据以 JSON 格式存储在本地浏览器中。建议定期备份数据以防丢失。
