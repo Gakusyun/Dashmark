@@ -2,6 +2,7 @@ import React from 'react';
 import { Card, CardContent, Typography, IconButton, Dialog, DialogContent, Toolbar, AppBar, Button } from '@mui/material';
 import { ContentCopy as CopyIcon, Close as CloseIcon } from '@mui/icons-material';
 import { useToast } from '../contexts/ToastContext';
+import { isTextRecord } from '../utils/typeUtils';
 import type { TextRecord, Bookmark } from '../types';
 
 interface TextRecordCardProps {
@@ -19,7 +20,7 @@ export const TextRecordCard: React.FC<TextRecordCardProps> = ({
 }) => {
   const { showSuccess } = useToast();
   
-  const isBookmark = 'type' in record;
+  const isBookmark = 'type' in record && isTextRecord(record);
   const content = isBookmark ? (record as Bookmark).content || '' : (record as TextRecord).content;
 
   const handleCopy = () => {

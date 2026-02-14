@@ -5,7 +5,8 @@ import { useData } from '../contexts/DataContext';
 import { BookmarkCard } from './BookmarkCard';
 import { TextRecordCard } from './TextRecordCard';
 import { filterItemsByQuery } from '../utils/itemFilter';
-import type { Group, Link, TextRecord, Bookmark } from '../types';
+import { isLink } from '../utils/typeUtils';
+import type { Item, Group, Link, TextRecord, Bookmark } from '../utils/typeUtils';
 
 interface GroupSectionProps {
   group: Group;
@@ -15,7 +16,7 @@ interface GroupSectionProps {
 }
 
 // 定义联合类型，可以接受链接、文字记录或收藏
-type Item = (Link | TextRecord) | (Omit<Bookmark, 'content'> & { content: string }) | (Omit<Bookmark, 'url'> & { url: string }) | Bookmark;
+// type Item = (Link | TextRecord) | (Omit<Bookmark, 'content'> & { content: string }) | (Omit<Bookmark, 'url'> & { url: string }) | Bookmark;
 
 interface CommonBookmarksSectionProps {
   title: string;
@@ -153,20 +154,9 @@ const CommonBookmarksSection: React.FC<CommonBookmarksSectionProps> = ({
         ) : (
           <Grid container spacing={2}>
             {items.map((item) => {
-              // 判断是链接、文字记录还是收藏
-              let isLink = false;
-              
-              if ('type' in item) {
-                // 这是新的收藏类型
-                isLink = (item as Bookmark).type === 'link';
-              } else {
-                // 这是旧的链接或文字记录类型
-                isLink = 'url' in item;
-              }
-              
               return (
                 <Grid key={item.id} size={{ xs: 12, sm: 6, md: 4, lg: 3 }}>
-                  {isLink ?
+                  {isLink(item) ?
                     <BookmarkCard link={item as (Link | Bookmark)} /> :
                     <TextRecordCard
                       record={item as (TextRecord | Bookmark)}
@@ -223,20 +213,9 @@ const CommonBookmarksSection: React.FC<CommonBookmarksSectionProps> = ({
                 lg: 3
               };
               
-              // 判断是链接、文字记录还是收藏
-              let isLink = false;
-              
-              if ('type' in item) {
-                // 这是新的收藏类型
-                isLink = (item as Bookmark).type === 'link';
-              } else {
-                // 这是旧的链接或文字记录类型
-                isLink = 'url' in item;
-              }
-              
               return (
                 <Grid key={item.id} size={gridSizes}>
-                  {isLink ?
+                  {isLink(item) ?
                     <BookmarkCard link={item as (Link | Bookmark)} /> :
                     <TextRecordCard
                       record={item as (TextRecord | Bookmark)}
@@ -287,20 +266,9 @@ const CommonBookmarksSection: React.FC<CommonBookmarksSectionProps> = ({
                         lg: isAllBookmarks ? 3 : 6 // "所有"分组: 4列(1/4屏), 普通分组: 2列(1/2屏)
                       };
           
-                      // 判断是链接、文字记录还是收藏
-                      let isLink = false;
-                      
-                      if ('type' in item) {
-                        // 这是新的收藏类型
-                        isLink = (item as Bookmark).type === 'link';
-                      } else {
-                        // 这是旧的链接或文字记录类型
-                        isLink = 'url' in item;
-                      }
-          
                       return (
                         <Grid key={item.id} size={gridSizes}>
-                          {isLink ?
+                          {isLink(item) ?
                             <BookmarkCard link={item as (Link | Bookmark)} /> :
                             <TextRecordCard
                               record={item as (TextRecord | Bookmark)}

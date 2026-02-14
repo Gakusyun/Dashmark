@@ -61,65 +61,7 @@ interface DataProviderProps {
   children: ReactNode;
 }
 
-  // 将旧版数据结构转换为新版数据结构
-const convertOldDataToNewFormat = (oldData: any): Data => {
-  // 如果已经有bookmarks字段，说明已经是新格式，直接返回
-  if (oldData.bookmarks !== undefined) {
-    return {
-      version: oldData.version || getVersion(),
-      groups: oldData.groups || [],
-      bookmarks: oldData.bookmarks,
-      searchEngines: oldData.searchEngines || [],
-      settings: oldData.settings || {
-        searchEngine: 'baidu',
-        darkMode: 'auto',
-        hideIcpInfo: false
-      }
-    };
-  }
 
-  // 转换链接为收藏格式
-  const linksAsBookmarks = (oldData.links || []).map((link: any) => ({
-    id: link.id,
-    type: 'link' as const,
-    title: link.title,
-    url: link.url,
-    groupIds: link.groupIds || [],
-    order: link.order
-  }));
-
-  // 转换文字记录为收藏格式
-  const textRecordsAsBookmarks = (oldData.textRecords || []).map((record: any) => ({
-    id: record.id,
-    type: 'text' as const,
-    title: record.title,
-    content: record.content,
-    groupIds: record.groupIds || [],
-    order: record.order
-  }));
-
-  // 合并所有收藏，按order排序
-  const allBookmarks = [...linksAsBookmarks, ...textRecordsAsBookmarks].sort((a, b) => a.order - b.order);
-
-  // 更新order值，确保全局唯一排序
-  const sortedBookmarks = allBookmarks.map((bookmark, index) => ({
-    ...bookmark,
-    order: index
-  }));
-
-  // 返回转换后的数据
-  return {
-    version: oldData.version || getVersion(),
-    groups: oldData.groups || [],
-    bookmarks: sortedBookmarks,
-    searchEngines: oldData.searchEngines || [],
-    settings: oldData.settings || {
-      searchEngine: 'baidu',
-      darkMode: 'auto',
-      hideIcpInfo: false
-    }
-  };
-};
 export const DataProvider: React.FC<DataProviderProps> = ({ children }) => {
   const [data, setData] = useState<Data>(() => {
     const loadedData = storage.loadData();
@@ -132,8 +74,7 @@ export const DataProvider: React.FC<DataProviderProps> = ({ children }) => {
   // 刷新数据（从 localStorage 重新加载）
   const refreshData = useCallback(() => {
     const loadedData = storage.loadData();
-    const convertedData = convertOldDataToNewFormat(loadedData);
-    setData(convertedData);
+    setData(loadedData);
   }, []);
 
   // 保存数据到 localStorage

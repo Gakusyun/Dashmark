@@ -1,5 +1,6 @@
 import React from 'react';
 import { Card, CardContent, Typography, Link as MuiLink } from '@mui/material';
+import { isLink } from '../utils/typeUtils';
 import type { Link, Bookmark } from '../types';
 
 interface BookmarkCardProps {
@@ -7,7 +8,7 @@ interface BookmarkCardProps {
 }
 
 export const BookmarkCard: React.FC<BookmarkCardProps> = ({ link }) => {
-  const isBookmark = 'type' in link && link.type === 'link';
+  const isBookmark = isLink(link);
   const href = isBookmark ? (link as Bookmark).url : (link as Link).url;
 
   const handleClick = (e: React.MouseEvent) => {
