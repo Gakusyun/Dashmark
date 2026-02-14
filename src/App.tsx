@@ -17,11 +17,25 @@ const projectId = "vay8fvwhta"
 const useCookieConsent = () => {
   const { data, updateSettings } = useData();
   const { confirm, ConfirmDialog } = useConfirmDialog();
+  const [showConsent, setShowConsent] = React.useState(false);
   
   useEffect(() => {
     // 检查用户是否已设置cookie同意状态
     if (data.settings.cookieConsent === null) {
-      // 显示cookie同意对话框
+      // 在下一个渲染周期显示cookie同意对话框，避免在渲染期间更新状态
+      const timer = setTimeout(() => {
+        setShowConsent(true);
+      }, 0);
+      return () => clearTimeout(timer);
+    } else if (data.settings.cookieConsent === true) {
+      // 用户已同意，初始化Clarity
+      Clarity.init(projectId);
+    }
+    // 如果用户拒绝（false），则不初始化Clarity
+  }, [data.settings.cookieConsent]);
+
+  useEffect(() => {
+    if (showConsent) {
       confirm({
         title: 'Cookie 同意',
         content: '我们使用 Microsoft Clarity 来分析网站使用情况，以改善用户体验。是否同意使用 Cookie 进行分析？（可在设置中随时关闭）',
@@ -53,12 +67,9 @@ const useCookieConsent = () => {
           updateSettings({ cookieConsent: false });
         }
       });
-    } else if (data.settings.cookieConsent === true) {
-      // 用户已同意，初始化Clarity
-      Clarity.init(projectId);
+      setShowConsent(false); // 重置状态以防止重复显示
     }
-    // 如果用户拒绝（false），则不初始化Clarity
-  }, [data.settings.cookieConsent, confirm, updateSettings]);
+  }, [showConsent, confirm, updateSettings]);
 
   return { ConfirmDialog };
 };
@@ -175,7 +186,7 @@ const App: React.FC = () => {
         </Box>
         {!data.settings.hideLegalInfo && (
           <Box sx={{ mt: 4, pt: 2, borderTop: 1, borderColor: 'divider', textAlign: 'center' }}>
-            <Typography variant="body2" color="text.secondary">
+            <Box component="div" sx={{ color: 'text.secondary', fontSize: '0.875rem' }}>
               <a
                 href="https://beian.miit.gov.cn/"
                 target="_blank"
@@ -200,7 +211,7 @@ const App: React.FC = () => {
                   鄂公网安备 42050002420933 号
                 </a>
               </Box>
-            </Typography>
+            </Box>
           </Box>
         )}
       </Container>

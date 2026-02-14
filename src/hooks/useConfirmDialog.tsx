@@ -140,9 +140,9 @@ export function useConfirmDialog(): UseConfirmDialogReturn {
   /**
    * 关闭对话框
    */
-  const handleClose = useCallback(() => {
+  const handleClose = useCallback((callCancel: boolean = true) => {
     setState(prev => {
-      if (prev.onCancel) {
+      if (callCancel && prev.onCancel) {
         prev.onCancel();
       }
       return { ...prev, open: false };
@@ -167,7 +167,7 @@ export function useConfirmDialog(): UseConfirmDialogReturn {
         cancelButtonProps={state.cancelButtonProps}
         onConfirm={() => {
           state.onConfirm();
-          handleClose();
+          handleClose(false); // 点击确认时，不调用onCancel
         }}
         onClose={handleClose}
       />
