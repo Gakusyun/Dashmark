@@ -349,10 +349,10 @@ function processData(
 
     // 保存导入的数据
     const importedData: Data = {
-      version: data.version || getVersion(),
+      version: data.version || getVersion(), // 使用当前版本号
       groups: data.groups || [],
       bookmarks: data.bookmarks || [],
-      searchEngines: searchEngines,
+      searchEngines: data.searchEngines || [],
       settings: {
         searchEngine: data.settings?.searchEngine || 'baidu',
         darkMode: data.settings?.darkMode || 'auto',
