@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { Box, Container, Typography, Toolbar, AppBar, IconButton, Grid, TextField } from '@mui/material';
 import { Settings as SettingsIcon } from '@mui/icons-material';
 import { useData } from './contexts/DataContext';
@@ -22,6 +22,12 @@ const App: React.FC = () => {
   const [showConsent, setShowConsent] = useState(false);
   const { confirm, ConfirmDialog } = useConfirmDialog();
 
+  // 创建一个ref来存储updateSettings函数，避免在useEffect依赖中引起循环
+  const updateSettingsRef = useRef(updateSettings);
+  useEffect(() => {
+    updateSettingsRef.current = updateSettings;
+  }, [updateSettings]);
+
   // Cookie同意对话框逻辑
   useEffect(() => {
     // 检查用户是否已设置cookie同意状态
@@ -40,6 +46,18 @@ const App: React.FC = () => {
 
   useEffect(() => {
     if (showConsent) {
+      const handleConfirm = () => {
+        updateSettingsRef.current({ cookieConsent: true });
+        // 初始化Clarity
+        Clarity.init(projectId);
+        setShowConsent(false); // 重置状态以防止重复显示
+      };
+      
+      const handleCancel = () => {
+        updateSettingsRef.current({ cookieConsent: false });
+        setShowConsent(false); // 重置状态以防止重复显示
+      };
+
       confirm({
         title: 'Cookie 同意',
         content: '我们使用 Microsoft Clarity 来分析网站使用情况，以改善用户体验。是否同意使用 Cookie 进行分析？（可在设置中随时关闭）',
@@ -62,18 +80,11 @@ const App: React.FC = () => {
             color: 'primary.main' // 拒绝按钮字体蓝色
           }
         },
-        onConfirm: () => {
-          updateSettings({ cookieConsent: true });
-          // 初始化Clarity
-          Clarity.init(projectId);
-        },
-        onCancel: () => {
-          updateSettings({ cookieConsent: false });
-        }
+        onConfirm: handleConfirm,
+        onCancel: handleCancel
       });
-      setShowConsent(false); // 重置状态以防止重复显示
     }
-  }, [showConsent, confirm, updateSettings]);
+  }, [showConsent, confirm]);
 
   const handleGroupClick = (groupId: string) => {
     setSelectedGroup(groupId);
