@@ -52,87 +52,16 @@ export function loadData(): Data {
     if (!json) {
       return DEFAULT_DATA;
     }
-    // 解析为any类型以便处理各种可能的数据格式
     const data: any = JSON.parse(json);
 
-    // 数据迁移：将旧的搜索引擎名称转换为 ID
-    let searchEngineId = data.settings?.searchEngine || 'google';
-    const engineNameToId: Record<string, string> = {
-      'Google': 'google',
-      'Bing': 'bing',
-      '百度': 'baidu',
-      'DuckDuckGo': 'duckduckgo'
-    };
-    if (engineNameToId[searchEngineId]) {
-      searchEngineId = engineNameToId[searchEngineId];
-    }
-
-    // 确定数据格式并进行转换
-    let bookmarks: Bookmark[] = [];
-    
-    // 如果有bookmarks字段，直接使用（新格式）
-    if (data.bookmarks && Array.isArray(data.bookmarks)) {
-      bookmarks = data.bookmarks;
-    } else {
-      // 否则从旧格式转换（links和textRecords）
-      const links = Array.isArray(data.links) ? data.links : [];
-      const textRecords = Array.isArray(data.textRecords) ? data.textRecords : [];
-      
-      // 转换链接为收藏格式
-      const linksAsBookmarks = links.map((link: any) => ({
-        id: link.id,
-        type: 'link' as const,
-        title: link.title,
-        url: link.url,
-        groupIds: link.groupIds,
-        order: link.order
-      }));
-
-      // 转换文字记录为收藏格式
-      const textRecordsAsBookmarks = textRecords.map((record: any) => ({
-        id: record.id,
-        type: 'text' as const,
-        title: record.title,
-        content: record.content,
-        groupIds: record.groupIds,
-        order: record.order
-      }));
-
-      // 合并所有收藏，按order排序
-      const allBookmarks = [...linksAsBookmarks, ...textRecordsAsBookmarks].sort((a: any, b: any) => a.order - b.order);
-      
-      // 更新order值，确保全局唯一排序
-      bookmarks = allBookmarks.map((bookmark: any, index: number) => ({
-        ...bookmark,
-        order: index
-      }));
-      
-      // 数据已从旧格式转换，需要保存回新的格式
-      const convertedData: Data = {
-        version: data.version || getVersion(),
-        groups: Array.isArray(data.groups) ? data.groups : [],
-        bookmarks: bookmarks,
-        searchEngines: Array.isArray(data.searchEngines) ? data.searchEngines : [],
-        settings: {
-          searchEngine: searchEngineId,
-          darkMode: data.settings?.darkMode || 'auto',
-          hideLegalInfo: data.settings?.hideLegalInfo || false
-        }
-      };
-      
-      // 保存转换后的数据到localStorage
-      saveData(convertedData);
-      return convertedData;
-    }
-
-    // 确保数据结构完整
+    // 直接使用最新的数据结构
     const result: Data = {
       version: data.version || getVersion(),
       groups: Array.isArray(data.groups) ? data.groups : [],
-      bookmarks: bookmarks,
+      bookmarks: Array.isArray(data.bookmarks) ? data.bookmarks : [],
       searchEngines: Array.isArray(data.searchEngines) ? data.searchEngines : [],
       settings: {
-        searchEngine: searchEngineId,
+        searchEngine: data.settings?.searchEngine || 'baidu',
         darkMode: data.settings?.darkMode || 'auto',
         hideLegalInfo: data.settings?.hideLegalInfo || false,
         cookieConsent: data.settings?.cookieConsent ?? null
@@ -259,37 +188,37 @@ function processData(
     const data: any = JSON.parse(json);
     checkDepth(data, 0);
 
-    // ==================== 确定数据格式并进行转换 ====================
-    let bookmarks: Bookmark[] = [];
-    
-    // 如果有bookmarks字段，直接使用（新格式）
-    if (data.bookmarks && Array.isArray(data.bookmarks)) {
-      // ==================== 数组长度限制 ====================
-      const MAX_GROUPS = 1000;
-      const MAX_LINKS = 10000;
-      const MAX_TEXT_RECORDS = 10000;
+    // ==================== 验证数据结构 ====================
+    // ==================== 数组长度限制 ====================
+    const MAX_GROUPS = 1000;
+    const MAX_LINKS = 10000;
+    const MAX_TEXT_RECORDS = 10000;
 
-      if (data.groups.length > MAX_GROUPS) {
-        throw new Error(`分组数量超出限制（最多 ${MAX_GROUPS} 个，实际 ${data.groups.length} 个）`);
-      }
-      // 验证书签数量（包含链接和文字记录）
+    if (data.groups && Array.isArray(data.groups) && data.groups.length > MAX_GROUPS) {
+      throw new Error(`分组数量超出限制（最多 ${MAX_GROUPS} 个，实际 ${data.groups.length} 个）`);
+    }
+    
+    // 验证书签数量（包含链接和文字记录）
+    if (data.bookmarks && Array.isArray(data.bookmarks)) {
       const linkCount = data.bookmarks.filter((b: { type?: string }) => b.type === 'link').length;
       if (linkCount > MAX_LINKS) {
         throw new Error(`链接数量超出限制（最多 ${MAX_LINKS} 个，实际 ${linkCount} 个）`);
       }
+    }
 
-      // ==================== 字段长度限制常量 ====================
-      const MAX_GROUP_NAME_LENGTH = 100;
-      const MAX_LINK_TITLE_LENGTH = 200;
-      const MAX_LINK_URL_LENGTH = 2048;
-      const MAX_TEXT_RECORD_TITLE_LENGTH = 200;
-      const MAX_TEXT_RECORD_CONTENT_LENGTH = 10000;
+    // ==================== 字段长度限制常量 ====================
+    const MAX_GROUP_NAME_LENGTH = 100;
+    const MAX_LINK_TITLE_LENGTH = 200;
+    const MAX_LINK_URL_LENGTH = 2048;
+    const MAX_TEXT_RECORD_TITLE_LENGTH = 200;
+    const MAX_TEXT_RECORD_CONTENT_LENGTH = 10000;
 
-      // ==================== 验证分组数据 ====================
-      if (!Array.isArray(data.groups)) {
-        throw new Error('分组数据格式错误：应为数组');
-      }
+    // ==================== 验证分组数据 ====================
+    if (data.groups !== undefined && !Array.isArray(data.groups)) {
+      throw new Error('分组数据格式错误：应为数组');
+    }
 
+    if (data.groups) {
       for (const group of data.groups) {
         if (typeof group !== 'object' || group === null) {
           throw new Error('分组数据格式错误：应为对象');
@@ -309,8 +238,14 @@ function processData(
           throw new Error('分组数据格式错误：order 字段应为数字');
         }
       }
+    }
 
-      // ==================== 验证链接数据 ====================
+    // ==================== 验证收藏数据 ====================
+    if (data.bookmarks !== undefined && !Array.isArray(data.bookmarks)) {
+      throw new Error('收藏数据格式错误：应为数组');
+    }
+
+    if (data.bookmarks) {
       // 验证bookmarks数组中的链接类型数据
       const linkBookmarks = data.bookmarks.filter((b: { type?: string }) => b.type === 'link');
       for (const link of linkBookmarks) {
@@ -344,7 +279,6 @@ function processData(
         }
       }
 
-      // ==================== 验证文字记录数据 ====================
       // 验证bookmarks数组中的文字记录类型数据
       const textBookmarks = data.bookmarks.filter((b: { type?: string }) => b.type === 'text');
       const textRecordsCount = textBookmarks.length;
@@ -385,42 +319,6 @@ function processData(
           throw new Error('文字记录数据格式错误：order 字段应为数字');
         }
       }
-      
-      // 直接使用现有bookmarks
-      bookmarks = data.bookmarks;
-    } else {
-      // 否则从旧格式转换（links和textRecords）
-      const links = Array.isArray(data.links) ? data.links : [];
-      const textRecords = Array.isArray(data.textRecords) ? data.textRecords : [];
-      
-      // 转换链接为收藏格式
-      const linksAsBookmarks = links.map((link: any) => ({
-        id: link.id,
-        type: 'link' as const,
-        title: link.title || '未命名链接',
-        url: link.url || '',
-        groupIds: Array.isArray(link.groupIds) ? link.groupIds : [],
-        order: typeof link.order === 'number' ? link.order : 0
-      }));
-
-      // 转换文字记录为收藏格式
-      const textRecordsAsBookmarks = textRecords.map((record: any) => ({
-        id: record.id,
-        type: 'text' as const,
-        title: record.title || '未命名文字记录',
-        content: record.content || '',
-        groupIds: Array.isArray(record.groupIds) ? record.groupIds : [],
-        order: typeof record.order === 'number' ? record.order : 0
-      }));
-
-      // 合并所有收藏，按order排序
-      const allBookmarks = [...linksAsBookmarks, ...textRecordsAsBookmarks].sort((a: any, b: any) => (a.order || 0) - (b.order || 0));
-      
-      // 更新order值，确保全局唯一排序
-      bookmarks = allBookmarks.map((bookmark: any, index: number) => ({
-        ...bookmark,
-        order: index
-      }));
     }
 
     // ==================== 验证搜索引擎数据 ====================
@@ -453,17 +351,16 @@ function processData(
     const importedData: Data = {
       version: data.version || getVersion(),
       groups: data.groups || [],
-      bookmarks: bookmarks, // 使用转换后的bookmarks数组
+      bookmarks: data.bookmarks || [],
       searchEngines: searchEngines,
       settings: {
-        searchEngine: data.settings?.searchEngine || 'google',
+        searchEngine: data.settings?.searchEngine || 'baidu',
         darkMode: data.settings?.darkMode || 'auto',
         hideLegalInfo: data.settings?.hideLegalInfo || false,
         cookieConsent: data.settings?.cookieConsent ?? null
       }
     };
 
-    // 使用转换后的数据
     if (saveData(importedData)) {
       onSuccess(importedData);
     } else {

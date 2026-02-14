@@ -48,6 +48,9 @@ const useCookieConsent = () => {
           updateSettings({ cookieConsent: true });
           // 初始化Clarity
           Clarity.init(projectId);
+        },
+        onCancel: () => {
+          updateSettings({ cookieConsent: false });
         }
       });
     } else if (data.settings.cookieConsent === true) {
