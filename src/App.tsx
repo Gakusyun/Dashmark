@@ -132,6 +132,22 @@ const App: React.FC = () => {
               >
                 鄂ICP备2024069158号-3
               </a>
+              <br />
+              <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 0.5, mt: 0.5 }}>
+                <img 
+                  src="https://cdn.gxj62.cn/police.png" 
+                  alt="备案图标" 
+                  style={{ height: '16.5px', verticalAlign: 'middle' }}
+                />
+                <a 
+                  href="https://beian.mps.gov.cn/#/query/webSearch?code=42050002420933" 
+                  rel="noreferrer" 
+                  target="_blank"
+                  style={{ color: 'inherit', textDecoration: 'none', verticalAlign: 'middle' }}
+                >
+                  鄂公网安备42050002420933号
+                </a>
+              </Box>
             </Typography>
           </Box>
         )}
