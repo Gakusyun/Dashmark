@@ -7,7 +7,8 @@ export interface SearchEngine {
 export interface Settings {
   searchEngine: string;
   darkMode: 'light' | 'dark' | 'auto';
-  hideIcpInfo?: boolean;
+  hideLegalInfo?: boolean;
+  cookieConsent?: boolean | null;
 }
 
 export interface Group {

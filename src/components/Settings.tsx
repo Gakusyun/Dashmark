@@ -189,11 +189,23 @@ export const Settings: React.FC = () => {
         <FormControlLabel
           control={
             <Switch
-              checked={data.settings.hideIcpInfo || false}
-              onChange={(e) => updateSettings({ hideIcpInfo: e.target.checked })}
+              checked={data.settings.hideLegalInfo || false}
+              onChange={(e) => updateSettings({ hideLegalInfo: e.target.checked })}
             />
           }
           label="隐藏备案信息"
+        />
+      </Box>
+
+      <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 4 }}>
+        <FormControlLabel
+          control={
+            <Switch
+              checked={data.settings.cookieConsent === true}
+              onChange={(e) => updateSettings({ cookieConsent: e.target.checked })}
+            />
+          }
+          label="Cookie 同意状态"
         />
       </Box>
       

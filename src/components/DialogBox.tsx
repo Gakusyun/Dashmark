@@ -1,5 +1,5 @@
 import React from 'react';
-import { Dialog, DialogTitle, DialogContent, DialogActions, Button, Typography, type DialogProps } from '@mui/material';
+import { Dialog, DialogTitle, DialogContent, DialogActions, Button, Typography, type DialogProps, type ButtonProps } from '@mui/material';
 
 export interface DialogBoxProps extends Omit<DialogProps, 'content'> {
   open: boolean;
@@ -14,6 +14,8 @@ export interface DialogBoxProps extends Omit<DialogProps, 'content'> {
   cancelVariant?: 'text' | 'outlined' | 'contained';
   showCancel?: boolean;
   children?: React.ReactNode;
+  confirmButtonProps?: ButtonProps;
+  cancelButtonProps?: ButtonProps;
 }
 
 export const DialogBox: React.FC<DialogBoxProps> = ({
@@ -31,6 +33,8 @@ export const DialogBox: React.FC<DialogBoxProps> = ({
   children,
   maxWidth = 'sm',
   fullWidth = true,
+  confirmButtonProps,
+  cancelButtonProps,
   ...props
 }) => {
   return (
@@ -41,9 +45,9 @@ export const DialogBox: React.FC<DialogBoxProps> = ({
         {children}
       </DialogContent>
       <DialogActions>
-        {showCancel && <Button onClick={onClose} variant={cancelVariant}>{cancelText}</Button>}
+        {showCancel && <Button onClick={onClose} variant={cancelVariant} {...cancelButtonProps}>{cancelText}</Button>}
         {onConfirm && (
-          <Button onClick={onConfirm} color={confirmColor} variant={confirmVariant}>
+          <Button onClick={onConfirm} color={confirmColor} variant={confirmVariant} {...confirmButtonProps}>
             {confirmText}
           </Button>
         )}
