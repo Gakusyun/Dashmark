@@ -11,6 +11,8 @@ export interface ConfirmOptions {
   content?: string;
   /** 确认按钮的回调函数 */
   onConfirm: () => void;
+  /** 取消按钮的回调函数（可选） */
+  onCancel?: () => void;
   /** 确认按钮文本（默认："确定"） */
   confirmText?: string;
   /** 取消按钮文本（默认："取消"） */
@@ -39,6 +41,8 @@ interface ConfirmDialogState {
   content: string;
   /** 确认回调 */
   onConfirm: () => void;
+  /** 取消回调 */
+  onCancel?: () => void;
   /** 确认按钮文本 */
   confirmText: string;
   /** 取消按钮文本 */
@@ -122,6 +126,7 @@ export function useConfirmDialog(): UseConfirmDialogReturn {
       title: options.title,
       content: options.content || '',
       onConfirm: options.onConfirm,
+      onCancel: options.onCancel,
       confirmText: options.confirmText || '删除',
       cancelText: options.cancelText || '取消',
       confirmColor: options.confirmColor || 'error',
@@ -135,8 +140,13 @@ export function useConfirmDialog(): UseConfirmDialogReturn {
   /**
    * 关闭对话框
    */
-  const handleClose = useCallback(() => {
-    setState(prev => ({ ...prev, open: false }));
+  const handleClose = useCallback((callCancel: boolean = true) => {
+    setState(prev => {
+      if (callCancel && prev.onCancel) {
+        prev.onCancel();
+      }
+      return { ...prev, open: false };
+    });
   }, []);
 
   /**
@@ -157,7 +167,7 @@ export function useConfirmDialog(): UseConfirmDialogReturn {
         cancelButtonProps={state.cancelButtonProps}
         onConfirm={() => {
           state.onConfirm();
-          handleClose();
+          handleClose(false); // 点击确认时，不调用onCancel
         }}
         onClose={handleClose}
       />
