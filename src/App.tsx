@@ -201,7 +201,7 @@ const App: React.FC = () => {
               <br />
               <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 0.5, mt: 0.5 }}>
                 <img 
-                  src="https://cdn.gxj62.cn/police.png" 
+                  src="/police.webp" 
                   alt="备案图标" 
                   style={{ height: '16.5px', verticalAlign: 'middle' }}
                 />
