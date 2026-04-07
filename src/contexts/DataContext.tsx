@@ -1,3 +1,4 @@
+/* eslint-disable react-refresh/only-export-components */
 import React, { createContext, useContext, useState, useCallback, useMemo, type ReactNode } from 'react';
 import type { Data, Settings, Group, SearchEngine, Bookmark } from '../types';
 import * as storage from '../utils/storage';
@@ -68,7 +69,7 @@ interface DataProviderProps {
 export const DataProvider: React.FC<DataProviderProps> = ({ children }) => {
   const [data, setData] = useState<Data>(() => {
     const loadedData = storage.loadData();
-    
+
     // 检查版本是否需要升级
     const currentVersion = getVersion();
     if (loadedData.version !== currentVersion) {
@@ -80,11 +81,9 @@ export const DataProvider: React.FC<DataProviderProps> = ({ children }) => {
       storage.saveData(upgradedData);
       return upgradedData;
     }
-    
+
     return loadedData;
   });
-  // 使用 useMemo 优化 data 对象的引用稳定性
-  const memoizedData = useMemo(() => data, [data]);
 
   // 刷新数据（从 localStorage 重新加载）
   const refreshData = useCallback(() => {
@@ -455,7 +454,7 @@ export const DataProvider: React.FC<DataProviderProps> = ({ children }) => {
 
   // 使用 useMemo 优化 context value 的引用稳定性
   const contextValue = useMemo<DataContextType>(() => ({
-    data: memoizedData,
+    data,
     refreshData,
     addGroup,
     updateGroup,
@@ -484,7 +483,7 @@ export const DataProvider: React.FC<DataProviderProps> = ({ children }) => {
     importData,
     clearAllData,
   }), [
-    memoizedData,
+    data,
     refreshData,
     addGroup,
     updateGroup,
