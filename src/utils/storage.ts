@@ -52,7 +52,7 @@ export function loadData(): Data {
     if (!json) {
       return DEFAULT_DATA;
     }
-    const data: any = JSON.parse(json);
+    const data = JSON.parse(json) as Partial<Data>;
 
     // 直接使用最新的数据结构
     const result: Data = {
@@ -70,7 +70,17 @@ export function loadData(): Data {
 
     return result;
   } catch (error) {
-    console.error('Failed to load data:', error);
+    const errorMessage = error instanceof Error ? error.message : '未知错误';
+    console.error(`[DashMark] 数据加载失败: ${errorMessage}，已恢复默认设置`);
+
+    // 尝试清理损坏的数据
+    try {
+      localStorage.removeItem(STORAGE_KEY);
+      console.log('[DashMark] 已清理损坏的数据');
+    } catch (cleanupError) {
+      console.error('[DashMark] 清理数据失败:', cleanupError);
+    }
+
     return DEFAULT_DATA;
   }
 }
@@ -78,14 +88,28 @@ export function loadData(): Data {
 export function saveData(data: Data): boolean {
   try {
     // 确保数据始终包含版本号
-    const saveData = {
+    const dataToSave = {
       ...data,
       version: data.version || getVersion()
     };
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(saveData));
+
+    // 检查数据大小（localStorage 限制通常为 5-10MB）
+    const json = JSON.stringify(dataToSave);
+    if (json.length > 5 * 1024 * 1024) { // 5MB
+      throw new Error(`数据过大（${(json.length / 1024 / 1024).toFixed(2)}MB），超出 localStorage 限制`);
+    }
+
+    localStorage.setItem(STORAGE_KEY, json);
     return true;
   } catch (error) {
-    console.error('Failed to save data:', error);
+    const errorMessage = error instanceof Error ? error.message : '未知错误';
+    console.error(`[DashMark] 数据保存失败: ${errorMessage}`);
+
+    // 如果是配额错误，给用户更友好的提示
+    if (errorMessage.includes('quota') || errorMessage.includes('存储空间') || errorMessage.includes('数据过大')) {
+      console.error('[DashMark] 提示：请删除部分收藏或导出备份后清理数据');
+    }
+
     return false;
   }
 }
@@ -149,7 +173,8 @@ export function importData(
     }
   };
   reader.onerror = function () {
-    onError(new Error('Failed to read file'));
+    console.error('[DashMark] 文件读取失败');
+    onError(new Error('文件读取失败，请检查文件格式是否正确'));
   };
 
   // 根据文件类型选择读取方式
@@ -185,7 +210,7 @@ function processData(
       }
     };
 
-    const data: any = JSON.parse(json);
+    const data = JSON.parse(json) as Partial<Data>;
     checkDepth(data, 0);
 
     // ==================== 验证数据结构 ====================
@@ -362,12 +387,15 @@ function processData(
     };
 
     if (saveData(importedData)) {
+      console.log(`[DashMark] 成功导入 ${importedData.bookmarks.length} 个收藏，${importedData.groups.length} 个分组`);
       onSuccess(importedData);
     } else {
-      onError(new Error('保存导入数据失败'));
+      onError(new Error('保存导入数据失败，请检查存储空间是否足够'));
     }
   } catch (error) {
-    onError(error instanceof Error ? error : new Error('未知错误'));
+    const errorMessage = error instanceof Error ? error.message : '未知错误';
+    console.error(`[DashMark] 数据处理失败: ${errorMessage}`);
+    onError(new Error(errorMessage));
   }
 }
 

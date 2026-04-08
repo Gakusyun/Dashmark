@@ -7,6 +7,7 @@ import { TextRecordCard } from './TextRecordCard';
 import { filterItemsByQuery } from '../utils/itemFilter';
 import { isLink } from '../utils/typeUtils';
 import type { Item, Group, Link, TextRecord, Bookmark } from '../utils/typeUtils';
+import { useDebouncedValue } from '../hooks/useDebouncedValue';
 
 interface GroupSectionProps {
   group: Group;
@@ -49,16 +50,20 @@ const CommonBookmarksSection: React.FC<CommonBookmarksSectionProps> = ({
   const [fullscreenTextRecordId, setFullscreenTextRecordId] = useState<string | null>(null);
 
   // 动态加载拼音库
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const [pinyinModule, setPinyinModule] = useState<any>(null);
+
+  // 防抖搜索查询（300ms 延迟）
+  const debouncedSearchQuery = useDebouncedValue(searchQuery, 300);
 
   // 当有搜索词时，动态加载拼音库
   React.useEffect(() => {
-    if (searchQuery.trim() && !pinyinModule) {
+    if (debouncedSearchQuery.trim() && !pinyinModule) {
       import('pinyin-pro').then(module => {
         setPinyinModule(module);
       });
     }
-  }, [searchQuery, pinyinModule]);
+  }, [debouncedSearchQuery, pinyinModule]);
 
   // 根据搜索关键词过滤项目
   const filteredItems = React.useMemo(() => {
@@ -89,13 +94,13 @@ const CommonBookmarksSection: React.FC<CommonBookmarksSectionProps> = ({
       }
     });
     
-    const filteredCompatibleItems = filterItemsByQuery(compatibleItems, searchQuery, new Map(), pinyinModule);
-    
+    const filteredCompatibleItems = filterItemsByQuery(compatibleItems, debouncedSearchQuery, new Map(), pinyinModule);
+
     // 将过滤后的结果转换回原始类型
     return filteredCompatibleItems.map(filteredItem => {
       return items.find(originalItem => originalItem.id === filteredItem.id) || filteredItem;
     }) as Item[];
-  }, [items, searchQuery, pinyinModule]);
+  }, [items, debouncedSearchQuery, pinyinModule]);
 
   // 处理文字记录全屏关闭
   const handleCloseTextRecordFullscreen = () => {
@@ -193,7 +198,7 @@ const CommonBookmarksSection: React.FC<CommonBookmarksSectionProps> = ({
   };
 
   // 搜索模式下不使用 Paper 容器
-  if (searchQuery.trim()) {
+  if (debouncedSearchQuery.trim()) {
     return (
       <Box>
         <Box sx={{ mb: 2 }}>

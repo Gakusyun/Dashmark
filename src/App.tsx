@@ -11,7 +11,10 @@ import Clarity from '@microsoft/clarity';
 type ViewMode = 'all' | 'group' | null;
 type SelectedGroup = string | 'all' | null;
 
-const projectId = "vay8fvwhta"
+const projectId = import.meta.env.VITE_CLARITY_PROJECT_ID || "vay8fvwhta";
+
+// 防止重复初始化 Clarity
+let clarityInitialized = false;
 
 const App: React.FC = () => {
   const { data, updateSettings } = useData();
@@ -38,8 +41,17 @@ const App: React.FC = () => {
       }, 0);
       return () => clearTimeout(timer);
     } else if (data.settings.cookieConsent === true) {
-      // 用户已同意，初始化Clarity
-      Clarity.init(projectId);
+      // 用户已同意，初始化Clarity（带错误处理）
+      if (!clarityInitialized) {
+        try {
+          Clarity.init(projectId);
+          clarityInitialized = true;
+          console.log('[DashMark] Clarity 分析已初始化');
+        } catch (error) {
+          console.warn('[DashMark] Clarity 初始化失败（可能是广告拦截器）:', error);
+          // 不影响应用正常使用
+        }
+      }
     }
     // 如果用户拒绝（false），则不初始化Clarity
   }, [data.settings.cookieConsent]);
@@ -48,8 +60,16 @@ const App: React.FC = () => {
     if (showConsent) {
       const handleConfirm = () => {
         updateSettingsRef.current({ cookieConsent: true });
-        // 初始化Clarity
-        Clarity.init(projectId);
+        // 初始化Clarity（带错误处理）
+        if (!clarityInitialized) {
+          try {
+            Clarity.init(projectId);
+            clarityInitialized = true;
+            console.log('[DashMark] Clarity 分析已初始化');
+          } catch (error) {
+            console.warn('[DashMark] Clarity 初始化失败（可能是广告拦截器）:', error);
+          }
+        }
         setShowConsent(false); // 重置状态以防止重复显示
       };
       
