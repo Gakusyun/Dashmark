@@ -263,13 +263,26 @@ const CommonBookmarksSection: React.FC<CommonBookmarksSectionProps> = ({
           alignItems: 'center',
           justifyContent: 'space-between',
           mb: 2,
-          cursor: canCollapse ? 'pointer' : 'default',
         }}
-        onClick={canCollapse ? (e) => { e.stopPropagation(); setCollapsed(!collapsed); } : undefined}
       >
-        <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
+        <Box
+          sx={{
+            display: 'flex',
+            alignItems: 'center',
+            gap: 0.5,
+            cursor: canCollapse ? 'pointer' : 'default',
+            py: 0.5,
+            px: 1,
+            ml: -1,
+            borderRadius: 1,
+            '&:hover': canCollapse ? { backgroundColor: 'action.hover' } : {},
+          }}
+          onClick={canCollapse ? (e) => { e.stopPropagation(); setCollapsed(!collapsed); } : undefined}
+        >
           {canCollapse && (
-            collapsed ? <ChevronRightIcon fontSize="small" /> : <ExpandMoreIcon fontSize="small" />
+            collapsed
+              ? <ChevronRightIcon fontSize="medium" />
+              : <ExpandMoreIcon fontSize="medium" />
           )}
           <Typography variant="h6">{title}</Typography>
         </Box>
@@ -277,8 +290,8 @@ const CommonBookmarksSection: React.FC<CommonBookmarksSectionProps> = ({
           {getCountDisplay()}
         </Typography>
       </Box>
-      {isAllBookmarks ? (
-        // "所有"分组始终显示完整卡片
+      {/* 折叠时隐藏内容 */}
+      {!collapsed && (
         items.length === 0 ? (
           <Typography color="text.secondary" variant="body2">
             暂无项目
@@ -290,7 +303,7 @@ const CommonBookmarksSection: React.FC<CommonBookmarksSectionProps> = ({
                 xs: 6,
                 sm: 4,
                 md: 3,
-                lg: 3
+                lg: isAllBookmarks ? 3 : 6
               };
               return (
                 <Grid key={item.id} size={gridSizes}>
@@ -306,37 +319,6 @@ const CommonBookmarksSection: React.FC<CommonBookmarksSectionProps> = ({
               );
             })}
           </Grid>
-        )
-      ) : (
-        // 普通分组：折叠时隐藏，展开时显示标题预览列表
-        collapsed ? null : (
-          items.length === 0 ? (
-            <Typography color="text.secondary" variant="body2">
-              暂无项目
-            </Typography>
-          ) : (
-            <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.5 }}>
-              {items.slice(0, 5).map((item) => (
-                <Typography
-                  key={item.id}
-                  variant="body2"
-                  color="text.secondary"
-                  sx={{
-                    overflow: 'hidden',
-                    textOverflow: 'ellipsis',
-                    whiteSpace: 'nowrap',
-                  }}
-                >
-                  {item.title}
-                </Typography>
-              ))}
-              {items.length > 5 && (
-                <Typography variant="body2" color="text.secondary">
-                  ...还有 {items.length - 5} 个项目
-                </Typography>
-              )}
-            </Box>
-          )
         )
       )}
     </Paper>
