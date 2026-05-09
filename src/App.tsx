@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Box, Container, Typography, Toolbar, AppBar, IconButton, Grid, TextField, InputAdornment, Fab } from '@mui/material';
+import { Box, Container, Typography, Toolbar, AppBar, IconButton, Grid, TextField, InputAdornment, Fab, CircularProgress } from '@mui/material';
 import { Settings as SettingsIcon, Close as CloseIcon, Add as AddIcon } from '@mui/icons-material';
 import { useData } from './contexts/DataContext';
 import { SearchBox } from './components/SearchBox';
@@ -17,7 +17,7 @@ const projectId = import.meta.env.VITE_CLARITY_PROJECT_ID || "vay8fvwhta";
 let clarityInitialized = false;
 
 const App: React.FC = () => {
-  const { data, updateSettings } = useData();
+  const { data, loading, updateSettings } = useData();
   const [managePanelOpen, setManagePanelOpen] = useState(false);
   const [viewMode, setViewMode] = useState<ViewMode>(null);
   const [selectedGroup, setSelectedGroup] = useState<SelectedGroup>(null);
@@ -220,6 +220,15 @@ const App: React.FC = () => {
       </>
     );
   };
+
+  if (loading) {
+    return (
+      <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', minHeight: '100vh', gap: 2 }}>
+        <CircularProgress />
+        <Typography color="text.secondary">正在加载数据...</Typography>
+      </Box>
+    );
+  }
 
   return (
     <>
