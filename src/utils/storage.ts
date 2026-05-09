@@ -163,8 +163,9 @@ export async function exportData(): Promise<void> {
 
 export function importData(
   file: File,
-  onSuccess: (data: Data) => void,
-  onError: (error: Error) => void
+  onSuccess: (data: Data, warnings: string[]) => void,
+  onError: (error: Error) => void,
+  merge: boolean = false
 ): void {
   const isGzip = file.name.endsWith('.gz');
 
@@ -186,7 +187,7 @@ export function importData(
         }
         json = result;
       }
-      await processData(json, onSuccess, onError);
+      await processData(json, onSuccess, onError, merge);
     } catch (error) {
       onError(error instanceof Error ? error : new Error('Unknown error'));
     }
@@ -205,8 +206,9 @@ export function importData(
 
 async function processData(
   json: string,
-  onSuccess: (data: Data) => void,
-  onError: (error: Error) => void
+  onSuccess: (data: Data, warnings: string[]) => void,
+  onError: (error: Error) => void,
+  merge: boolean = false
 ): Promise<void> {
   try {
     if (json.length > 50 * 1024 * 1024) {
@@ -227,6 +229,18 @@ async function processData(
 
     const data = JSON.parse(json) as Partial<Data>;
     checkDepth(data, 0);
+
+    // ==================== 版本兼容性检查 ====================
+    const warnings: string[] = [];
+    const currentVersion = getVersion();
+    const currentMajor = parseInt(currentVersion.split('.')[0], 10);
+    const importedMajor = data.version ? parseInt(data.version.split('.')[0], 10) : NaN;
+
+    if (!isNaN(importedMajor) && !isNaN(currentMajor) && importedMajor !== currentMajor) {
+      warnings.push(
+        `备份文件版本（v${data.version}）与当前版本（v${currentVersion}）主版本号不同，部分数据可能不兼容。`
+      );
+    }
 
     // ==================== 数组长度限制 ====================
     const MAX_GROUPS = 1000;
@@ -383,22 +397,59 @@ async function processData(
       throw new Error('设置数据格式错误：应为对象');
     }
 
-    const importedData: Data = {
-      version: data.version || getVersion(),
-      groups: data.groups || [],
-      bookmarks: data.bookmarks || [],
-      searchEngines: data.searchEngines || [],
-      settings: {
-        searchEngine: data.settings?.searchEngine || 'baidu',
-        darkMode: data.settings?.darkMode || 'auto',
-        hideLegalInfo: data.settings?.hideLegalInfo || false,
-        cookieConsent: data.settings?.cookieConsent ?? null
-      }
-    };
+    const importedGroups = data.groups || [];
+    const importedBookmarks = data.bookmarks || [];
+    const importedEngines = data.searchEngines || [];
 
-    await saveData(importedData);
-    console.log(`[DashMark] 成功导入 ${importedData.bookmarks.length} 个收藏，${importedData.groups.length} 个分组`);
-    onSuccess(importedData);
+    let finalData: Data;
+
+    if (merge) {
+      // 合并模式：与现有数据合并，按 id 去重
+      const existing = await loadData();
+
+      const existingGroupIds = new Set(existing.groups.map(g => g.id));
+      const mergedGroups = [
+        ...existing.groups,
+        ...importedGroups.filter(g => !existingGroupIds.has(g.id))
+      ];
+
+      const existingBookmarkIds = new Set(existing.bookmarks.map(b => b.id));
+      const mergedBookmarks = [
+        ...existing.bookmarks,
+        ...importedBookmarks.filter(b => !existingBookmarkIds.has(b.id))
+      ];
+
+      const existingEngineIds = new Set(existing.searchEngines.map(e => e.id));
+      const mergedEngines = [
+        ...existing.searchEngines,
+        ...importedEngines.filter(e => !existingEngineIds.has(e.id))
+      ];
+
+      finalData = {
+        version: currentVersion,
+        groups: mergedGroups,
+        bookmarks: mergedBookmarks,
+        searchEngines: mergedEngines,
+        settings: existing.settings
+      };
+    } else {
+      finalData = {
+        version: data.version || getVersion(),
+        groups: importedGroups,
+        bookmarks: importedBookmarks,
+        searchEngines: importedEngines,
+        settings: {
+          searchEngine: data.settings?.searchEngine || 'baidu',
+          darkMode: data.settings?.darkMode || 'auto',
+          hideLegalInfo: data.settings?.hideLegalInfo || false,
+          cookieConsent: data.settings?.cookieConsent ?? null
+        }
+      };
+    }
+
+    await saveData(finalData);
+    console.log(`[DashMark] 成功导入 ${finalData.bookmarks.length} 个收藏，${finalData.groups.length} 个分组`);
+    onSuccess(finalData, warnings);
   } catch (error) {
     const errorMessage = error instanceof Error ? error.message : '未知错误';
     console.error(`[DashMark] 数据处理失败: ${errorMessage}`);

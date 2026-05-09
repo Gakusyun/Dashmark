@@ -47,7 +47,7 @@ interface DataContextType {
 
   // 导入导出
   exportData: () => Promise<void>;
-  importData: (file: File, onSuccess: () => void, onError: (error: Error) => void) => void;
+  importData: (file: File, onSuccess: (warnings: string[]) => void, onError: (error: Error) => void, merge?: boolean) => void;
 
   // 清除数据
   clearAllData: () => Promise<void>;
@@ -460,14 +460,15 @@ export const DataProvider: React.FC<DataProviderProps> = ({ children }) => {
     await storage.exportData();
   }, []);
 
-  const importData = useCallback((file: File, onSuccess: () => void, onError: (error: Error) => void) => {
+  const importData = useCallback((file: File, onSuccess: (warnings: string[]) => void, onError: (error: Error) => void, merge?: boolean) => {
     storage.importData(
       file,
-      (importedData) => {
+      (importedData, warnings) => {
         setData(importedData);
-        onSuccess();
+        onSuccess(warnings);
       },
-      onError
+      onError,
+      merge
     );
   }, []);
 

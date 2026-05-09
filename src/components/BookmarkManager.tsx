@@ -1,4 +1,4 @@
-import React, { useState, useCallback } from 'react';
+import React, { useState, useCallback, useEffect, useRef } from 'react';
 import {
   Box,
   Button,
@@ -25,9 +25,11 @@ import { isValidUrl, normalizeUrl } from '../utils/urlValidator';
 
 interface BookmarkManagerProps {
   onClose?: () => void;
+  autoAdd?: number;
+  onAutoAddConsumed?: () => void;
 }
 
-export const BookmarkManager: React.FC<BookmarkManagerProps> = () => {
+export const BookmarkManager: React.FC<BookmarkManagerProps> = ({ autoAdd, onAutoAddConsumed }) => {
   const { data, deleteBookmark, updateBookmark, addBookmark, batchDeleteBookmarks, addGroup, updateBookmarkOrder } = useData();
   const { showError, showWarning } = useToast();
 
@@ -60,6 +62,18 @@ export const BookmarkManager: React.FC<BookmarkManagerProps> = () => {
   
   // 添加排序模式状态
   const [isSortingMode, setIsSortingMode] = useState(false);
+
+  // 自动打开添加对话框（由 FAB 触发）
+  const autoAddConsumedRef = useRef(false);
+  useEffect(() => {
+    if (autoAdd && !autoAddConsumedRef.current) {
+      autoAddConsumedRef.current = true;
+      setEditingBookmark(null);
+      setFormData({ type: 'link', title: '', url: '', content: '', groupIds: [] });
+      setModalOpen(true);
+      onAutoAddConsumed?.();
+    }
+  }, [autoAdd, onAutoAddConsumed]);
 
   const handleBatchDelete = () => {
     if (selectedCount === 0) return;

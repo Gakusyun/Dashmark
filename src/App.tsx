@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Box, Container, Typography, Toolbar, AppBar, IconButton, Grid, TextField, InputAdornment, CircularProgress } from '@mui/material';
-import { Settings as SettingsIcon, Close as CloseIcon } from '@mui/icons-material';
+import { Box, Container, Typography, Toolbar, AppBar, IconButton, Grid, TextField, InputAdornment, Fab, CircularProgress } from '@mui/material';
+import { Settings as SettingsIcon, Close as CloseIcon, Add as AddIcon } from '@mui/icons-material';
 import { useData } from './contexts/DataContext';
 import { SearchBox } from './components/SearchBox';
 import { GroupSection, AllBookmarks } from './components/GroupSection';
@@ -23,6 +23,7 @@ const App: React.FC = () => {
   const [selectedGroup, setSelectedGroup] = useState<SelectedGroup>(null);
   const [searchQuery, setSearchQuery] = useState('');
   const [showConsent, setShowConsent] = useState(false);
+  const [autoAdd, setAutoAdd] = useState(0);
   const { confirm, ConfirmDialog } = useConfirmDialog();
 
   // 创建一个ref来存储updateSettings函数，避免在useEffect依赖中引起循环
@@ -55,6 +56,41 @@ const App: React.FC = () => {
     }
     // 如果用户拒绝（false），则不初始化Clarity
   }, [data.settings.cookieConsent]);
+
+  // 全局键盘快捷键
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      // Ctrl+K: 聚焦页内搜索
+      if ((e.ctrlKey || e.metaKey) && e.key === 'k') {
+        e.preventDefault();
+        const searchInput = document.getElementById('dashmark-search');
+        if (searchInput) {
+          (searchInput as HTMLInputElement).focus();
+        }
+        return;
+      }
+
+      // /: 聚焦页内搜索（仅当焦点不在输入框中时）
+      if (e.key === '/' && !['INPUT', 'TEXTAREA'].includes((e.target as HTMLElement)?.tagName)) {
+        e.preventDefault();
+        const searchInput = document.getElementById('dashmark-search');
+        if (searchInput) {
+          (searchInput as HTMLInputElement).focus();
+        }
+        return;
+      }
+
+      // Escape: 关闭管理面板
+      if (e.key === 'Escape') {
+        if (managePanelOpen) {
+          setManagePanelOpen(false);
+        }
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [managePanelOpen]);
 
   useEffect(() => {
     if (showConsent) {
@@ -128,6 +164,11 @@ const App: React.FC = () => {
     setSelectedGroup(null);
   };
 
+  const handleFabClick = () => {
+    setAutoAdd(prev => prev + 1);
+    setManagePanelOpen(true);
+  };
+
   const renderContent = () => {
     // 搜索结果视图
     if (searchQuery.trim()) {
@@ -198,6 +239,7 @@ const App: React.FC = () => {
               DashMark
             </Typography>
             <TextField
+              id="dashmark-search"
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               label="页内搜索"
@@ -268,7 +310,20 @@ const App: React.FC = () => {
         )}
       </Container>
 
-      <ManagePanel open={managePanelOpen} onClose={() => setManagePanelOpen(false)} />
+      <Fab
+        color="primary"
+        aria-label="添加收藏"
+        onClick={handleFabClick}
+        sx={{
+          position: 'fixed',
+          bottom: 16,
+          right: 16,
+        }}
+      >
+        <AddIcon />
+      </Fab>
+
+      <ManagePanel open={managePanelOpen} onClose={() => setManagePanelOpen(false)} autoAdd={autoAdd} onAutoAddConsumed={() => setAutoAdd(0)} />
       <ConfirmDialog />
     </>
   );

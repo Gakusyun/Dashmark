@@ -1,6 +1,6 @@
 import React, { useState, useRef } from 'react';
 import { Box, Typography, Button, Paper, Grid, useMediaQuery, useTheme } from '@mui/material';
-import { ChevronLeft as ChevronLeftIcon } from '@mui/icons-material';
+import { ChevronLeft as ChevronLeftIcon, ExpandMore as ExpandMoreIcon, ChevronRight as ChevronRightIcon } from '@mui/icons-material';
 import { useData } from '../contexts/DataContext';
 import { BookmarkCard } from './BookmarkCard';
 import { TextRecordCard } from './TextRecordCard';
@@ -48,6 +48,9 @@ const CommonBookmarksSection: React.FC<CommonBookmarksSectionProps> = ({
 
   // 管理文字记录的全屏状态
   const [fullscreenTextRecordId, setFullscreenTextRecordId] = useState<string | null>(null);
+
+  // 管理折叠状态（默认展开）
+  const [collapsed, setCollapsed] = useState(false);
 
   // 动态加载拼音库（用 ref 避免重复 import）
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -113,6 +116,9 @@ const CommonBookmarksSection: React.FC<CommonBookmarksSectionProps> = ({
 
   // 判断是否是"所有"分组
   const isAllBookmarks = title === "所有收藏";
+
+  // 只有非"所有"分组才可折叠
+  const canCollapse = !isAllBookmarks;
 
   // 检测屏幕尺寸
   const isXsScreen = useMediaQuery(theme.breakpoints.down('sm'));
@@ -251,40 +257,87 @@ const CommonBookmarksSection: React.FC<CommonBookmarksSectionProps> = ({
         transition: 'background-color 200ms',
       }}
     >
-      <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 2 }}>
-        <Typography variant="h6">{title}</Typography>
+      <Box
+        sx={{
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'space-between',
+          mb: 2,
+          cursor: canCollapse ? 'pointer' : 'default',
+        }}
+        onClick={canCollapse ? (e) => { e.stopPropagation(); setCollapsed(!collapsed); } : undefined}
+      >
+        <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
+          {canCollapse && (
+            collapsed ? <ChevronRightIcon fontSize="small" /> : <ExpandMoreIcon fontSize="small" />
+          )}
+          <Typography variant="h6">{title}</Typography>
+        </Box>
         <Typography variant="body2" color="text.secondary">
           {getCountDisplay()}
         </Typography>
       </Box>
-      {items.length === 0 ? (
-        <Typography color="text.secondary" variant="body2">
-          暂无项目
-        </Typography>
+      {isAllBookmarks ? (
+        // "所有"分组始终显示完整卡片
+        items.length === 0 ? (
+          <Typography color="text.secondary" variant="body2">
+            暂无项目
+          </Typography>
+        ) : (
+          <Grid container spacing={2}>
+            {items.slice(0, maxItems).map((item) => {
+              const gridSizes = {
+                xs: 6,
+                sm: 4,
+                md: 3,
+                lg: 3
+              };
+              return (
+                <Grid key={item.id} size={gridSizes}>
+                  {isLink(item) ?
+                    <BookmarkCard link={item as (Link | Bookmark)} /> :
+                    <TextRecordCard
+                      record={item as (TextRecord | Bookmark)}
+                      isFullscreen={fullscreenTextRecordId === item.id}
+                      onOpenFullscreen={() => setFullscreenTextRecordId(item.id)}
+                      onCloseFullscreen={handleCloseTextRecordFullscreen}
+                    />}
+                </Grid>
+              );
+            })}
+          </Grid>
+        )
       ) : (
-        <Grid container spacing={2}>
-                      {items.slice(0, maxItems).map((item) => {
-                      // 对于"所有"分组，在大屏幕时显示4个/行（lg: 3），对于普通分组显示2个/行（lg: 6）
-                      const gridSizes = {
-                        xs: 6,      // 2列
-                        sm: 4,      // 3列
-                        md: 3,      // 4列
-                        lg: isAllBookmarks ? 3 : 6 // "所有"分组: 4列(1/4屏), 普通分组: 2列(1/2屏)
-                      };
-          
-                      return (
-                        <Grid key={item.id} size={gridSizes}>
-                          {isLink(item) ?
-                            <BookmarkCard link={item as (Link | Bookmark)} /> :
-                            <TextRecordCard
-                              record={item as (TextRecord | Bookmark)}
-                              isFullscreen={fullscreenTextRecordId === item.id}
-                              onOpenFullscreen={() => setFullscreenTextRecordId(item.id)}
-                              onCloseFullscreen={handleCloseTextRecordFullscreen}
-                            />}
-                        </Grid>
-                      );
-                    })}        </Grid>
+        // 普通分组：折叠时隐藏，展开时显示标题预览列表
+        collapsed ? null : (
+          items.length === 0 ? (
+            <Typography color="text.secondary" variant="body2">
+              暂无项目
+            </Typography>
+          ) : (
+            <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.5 }}>
+              {items.slice(0, 5).map((item) => (
+                <Typography
+                  key={item.id}
+                  variant="body2"
+                  color="text.secondary"
+                  sx={{
+                    overflow: 'hidden',
+                    textOverflow: 'ellipsis',
+                    whiteSpace: 'nowrap',
+                  }}
+                >
+                  {item.title}
+                </Typography>
+              ))}
+              {items.length > 5 && (
+                <Typography variant="body2" color="text.secondary">
+                  ...还有 {items.length - 5} 个项目
+                </Typography>
+              )}
+            </Box>
+          )
+        )
       )}
     </Paper>
   );

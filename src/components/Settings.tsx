@@ -1,7 +1,6 @@
 import React, { useState, useRef } from 'react';
 import {
   Box,
-  Typography,
   FormControl,
   InputLabel,
   Select,
@@ -15,6 +14,8 @@ import {
   Alert,
   FormControlLabel,
   Switch,
+  Radio,
+  RadioGroup,
 } from '@mui/material';
 import { Delete as DeleteIcon, Edit as EditIcon, Add as AddIcon, CloudUpload as UploadIcon, CloudDownload as DownloadIcon } from '@mui/icons-material';
 import { useData } from '../contexts/DataContext';
@@ -41,6 +42,9 @@ export const Settings: React.FC = () => {
 
   // 使用确认对话框 Hook
   const { confirm, ConfirmDialog } = useConfirmDialog();
+
+  // 导入模式：replace=覆盖, merge=合并
+  const [importMode, setImportMode] = useState<'replace' | 'merge'>('replace');
 
   const customEngines = data.searchEngines;
 
@@ -115,10 +119,15 @@ export const Settings: React.FC = () => {
     const file = e.target.files?.[0];
     if (!file) return;
 
+    const isMerge = importMode === 'merge';
+
     importData(
       file,
-      () => {
-        showSuccess('数据导入成功');
+      (warnings) => {
+        if (warnings.length > 0) {
+          warnings.forEach(w => showError(w));
+        }
+        showSuccess(isMerge ? '数据合并成功' : '数据导入成功');
         refreshData();
         if (fileInputRef.current) {
           fileInputRef.current.value = '';
@@ -129,7 +138,8 @@ export const Settings: React.FC = () => {
         if (fileInputRef.current) {
           fileInputRef.current.value = '';
         }
-      }
+      },
+      isMerge
     );
   };
 
@@ -247,12 +257,12 @@ export const Settings: React.FC = () => {
           onChange={(e) => setEngineFormData({ ...engineFormData, url: e.target.value })}
           placeholder="https://www.bing.com/search?q="
         />
-        <Typography variant="body2" color="text.secondary" sx={{ mt: 1 }}>
+        <Alert severity="info" sx={{ mt: 1 }}>
           URL 中使用 {`{q}`} 作为搜索关键词的占位符，例如：https://example.com/search?q={`{q}`}
-        </Typography>
+        </Alert>
       </DialogBox>
 
-      <Box sx={{ display: 'flex', gap: 2, mb: 3 }}>
+      <Box sx={{ display: 'flex', gap: 2, mb: 2 }}>
         <Button
           variant="contained"
           startIcon={<DownloadIcon />}
@@ -283,6 +293,15 @@ export const Settings: React.FC = () => {
           清空数据
         </Button>
       </Box>
+      <RadioGroup
+        row
+        value={importMode}
+        onChange={(e) => setImportMode(e.target.value as 'replace' | 'merge')}
+        sx={{ mb: 3 }}
+      >
+        <FormControlLabel value="replace" control={<Radio size="small" />} label="覆盖现有数据" />
+        <FormControlLabel value="merge" control={<Radio size="small" />} label="合并到现有数据" />
+      </RadioGroup>
       <Alert severity="info">
         数据以 JSON 格式存储在本地浏览器中。建议定期备份数据以防丢失。
       </Alert>

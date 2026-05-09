@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useRef, useCallback } from 'react';
 import {
   List,
   ListItem,
@@ -31,6 +31,14 @@ export function DraggableItemList<T>({
 }: DraggableItemListProps<T>) {
   const [draggedItem, setDraggedItem] = useState<number | null>(null);
   const [dragOverIndex, setDragOverIndex] = useState<number | null>(null);
+
+  // Touch drag state
+  const [touchDraggingIndex, setTouchDraggingIndex] = useState<number | null>(null);
+  const [touchOverIndex, setTouchOverIndex] = useState<number | null>(null);
+  const touchState = useRef<{
+    startIndex: number;
+    currentOverIndex: number | null;
+  } | null>(null);
 
   if (items.length === 0) {
     return (
@@ -85,6 +93,55 @@ export function DraggableItemList<T>({
     setDragOverIndex(null);
   };
 
+  // Find the item index at a given touch coordinate
+  const findIndexAtPoint = useCallback((x: number, y: number): number | null => {
+    const el = document.elementFromPoint(x, y);
+    if (!el) return null;
+    const item = el.closest('[data-drag-index]');
+    if (!item) return null;
+    const idx = parseInt(item.getAttribute('data-drag-index') ?? '', 10);
+    return Number.isNaN(idx) ? null : idx;
+  }, []);
+
+  // Touch drag start (on the drag handle)
+  const handleTouchStart = useCallback((_e: React.TouchEvent, index: number) => {
+    touchState.current = {
+      startIndex: index,
+      currentOverIndex: index,
+    };
+    setTouchDraggingIndex(index);
+    setTouchOverIndex(index);
+  }, []);
+
+  // Touch move — detect which item is under the finger
+  const handleTouchMove = useCallback((e: React.TouchEvent) => {
+    if (!touchState.current) return;
+    e.preventDefault(); // prevent scroll while dragging
+    const touch = e.touches[0];
+    const overIndex = findIndexAtPoint(touch.clientX, touch.clientY);
+    if (overIndex !== null && overIndex !== touchState.current.currentOverIndex) {
+      touchState.current.currentOverIndex = overIndex;
+      setTouchOverIndex(overIndex);
+    }
+  }, [findIndexAtPoint]);
+
+  // Touch end — finalize the reorder
+  const handleTouchEnd = useCallback(() => {
+    if (!touchState.current) return;
+    const { startIndex, currentOverIndex } = touchState.current;
+    if (currentOverIndex !== null && startIndex !== currentOverIndex) {
+      const newItems = [...items];
+      const dragged = newItems[startIndex];
+      newItems.splice(startIndex, 1);
+      newItems.splice(currentOverIndex, 0, dragged);
+      const orderedIds = newItems.map(item => getItemId(item));
+      onOrderChange(orderedIds);
+    }
+    touchState.current = null;
+    setTouchDraggingIndex(null);
+    setTouchOverIndex(null);
+  }, [items, getItemId, onOrderChange]);
+
   return (
     <List>
       {items.map((item, index) => {
@@ -92,22 +149,29 @@ export function DraggableItemList<T>({
         const isSelected = selectedIds?.has(id);
         const isDragged = draggedItem === index;
         const isDragOver = dragOverIndex === index;
-        
+        const isTouchDragging = touchDraggingIndex === index;
+        const isTouchOver = touchOverIndex === index && touchDraggingIndex !== index;
+
         return (
           <ListItem
             key={id}
+            data-drag-index={index}
             draggable
             onDragStart={(e) => handleDragStart(e, index)}
             onDragOver={(e) => handleDragOver(e, index)}
             onDragLeave={handleDragLeave}
             onDrop={(e) => handleDrop(e, index)}
             onDragEnd={handleDragEnd}
+            onTouchMove={handleTouchMove}
+            onTouchEnd={handleTouchEnd}
             secondaryAction={
               <IconButton
                 edge="end"
+                onTouchStart={(e) => handleTouchStart(e, index)}
                 sx={{
                   cursor: 'move',
-                  opacity: isDragged ? 0.5 : 1,
+                  opacity: (isDragged || isTouchDragging) ? 0.5 : 1,
+                  touchAction: 'none',
                 }}
               >
                 <DragHandleIcon />
@@ -116,11 +180,12 @@ export function DraggableItemList<T>({
             sx={{
               bgcolor: isSelected ? 'action.selected' : 'transparent',
               borderRadius: 1,
-              opacity: isDragged ? 0.5 : 1,
-              border: isDragOver ? '2px dashed #1976d2' : 'none',
-              transform: isDragged ? 'rotate(5deg)' : 'none',
-              transition: 'all 0.2s ease',
+              opacity: (isDragged || isTouchDragging) ? 0.5 : 1,
+              border: (isDragOver || isTouchOver) ? '2px dashed #1976d2' : 'none',
+              transform: (isDragged || isTouchDragging) ? 'rotate(5deg)' : 'none',
+              transition: touchDraggingIndex !== null ? 'border 0.15s ease, opacity 0.15s ease' : 'all 0.2s ease',
               cursor: 'grab',
+              touchAction: touchDraggingIndex !== null ? 'none' : 'auto',
               '&:active': {
                 cursor: 'grabbing',
               },
