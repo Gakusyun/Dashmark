@@ -34,6 +34,9 @@ const App: React.FC = () => {
 
   // Cookie同意对话框逻辑
   useEffect(() => {
+    // 数据加载中，暂不处理
+    if (loading) return;
+
     // 检查用户是否已设置cookie同意状态
     if (data.settings.cookieConsent === null) {
       // 在下一个渲染周期显示cookie同意对话框，避免在渲染期间更新状态
@@ -55,7 +58,7 @@ const App: React.FC = () => {
       }
     }
     // 如果用户拒绝（false），则不初始化Clarity
-  }, [data.settings.cookieConsent]);
+  }, [data.settings.cookieConsent, loading]);
 
   // 全局键盘快捷键
   useEffect(() => {
