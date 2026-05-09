@@ -11,9 +11,11 @@ const About = lazy(() => import('./About').then(m => ({ default: m.About })));
 interface ManagePanelProps {
   open: boolean;
   onClose: () => void;
+  autoAdd?: number;
+  onAutoAddConsumed?: () => void;
 }
 
-export const ManagePanel: React.FC<ManagePanelProps> = ({ open, onClose }) => {
+export const ManagePanel: React.FC<ManagePanelProps> = ({ open, onClose, autoAdd, onAutoAddConsumed }) => {
   const [tabValue, setTabValue] = React.useState(0);
 
   const handleTabChange = (_event: React.SyntheticEvent, newValue: number) => {
@@ -70,7 +72,7 @@ export const ManagePanel: React.FC<ManagePanelProps> = ({ open, onClose }) => {
 
         <Box sx={{ flex: 1, overflow: 'auto', p: 2 }}>
           <Suspense fallback={<Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100%' }}><CircularProgress /></Box>}>
-            {tabValue === 0 && <BookmarkManager onClose={onClose} />}
+            {tabValue === 0 && <BookmarkManager onClose={onClose} autoAdd={autoAdd} onAutoAddConsumed={onAutoAddConsumed} />}
             {tabValue === 1 && <GroupManager onClose={onClose} />}
             {tabValue === 2 && <Settings />}
             {tabValue === 3 && <About />}
