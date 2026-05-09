@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Box, Container, Typography, Toolbar, AppBar, IconButton, Grid, TextField } from '@mui/material';
-import { Settings as SettingsIcon } from '@mui/icons-material';
+import { Box, Container, Typography, Toolbar, AppBar, IconButton, Grid, TextField, InputAdornment } from '@mui/material';
+import { Settings as SettingsIcon, Close as CloseIcon } from '@mui/icons-material';
 import { useData } from './contexts/DataContext';
 import { SearchBox } from './components/SearchBox';
 import { GroupSection, AllBookmarks } from './components/GroupSection';
@@ -195,6 +195,21 @@ const App: React.FC = () => {
               variant="standard"
               size='small'
               sx={{ width: 200 }}
+              slotProps={{
+                input: {
+                  endAdornment: searchQuery ? (
+                    <InputAdornment position="end">
+                      <IconButton
+                        size="small"
+                        onClick={() => setSearchQuery('')}
+                        aria-label="清除搜索"
+                      >
+                        <CloseIcon fontSize="small" />
+                      </IconButton>
+                    </InputAdornment>
+                  ) : null,
+                }
+              }}
             />
             <IconButton
               color="inherit"

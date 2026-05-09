@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Card, CardContent, Typography, IconButton, Dialog, DialogContent, Toolbar, AppBar, Button, TextField, Box } from '@mui/material';
+import { Card, CardContent, Typography, IconButton, Dialog, DialogContent, Toolbar, AppBar, Button, TextField } from '@mui/material';
 import { ContentCopy as CopyIcon, Close as CloseIcon, Edit as EditIcon, Save as SaveIcon, Cancel as CancelIcon } from '@mui/icons-material';
 import { useToast } from '../contexts/ToastContext';
 import { useData } from '../contexts/DataContext';
@@ -82,8 +82,8 @@ export const TextRecordCard: React.FC<TextRecordCardProps> = ({
         <CardContent sx={{ flex: 1, pb: 1 }}>
           <Typography
             variant="body1"
-            fontWeight={500}
             sx={{
+              fontWeight: 500,
               overflow: 'hidden',
               textOverflow: 'ellipsis',
               whiteSpace: 'nowrap',
@@ -196,7 +196,7 @@ export const TextRecordCard: React.FC<TextRecordCardProps> = ({
                 fontSize: '1.1rem',
               }}
             >
-              {content}
+              {isBookmark ? (record as Bookmark).content || '' : (record as TextRecord).content}
             </Typography>
           )}
         </DialogContent>

@@ -98,7 +98,7 @@ export async function getAllData(): Promise<{
     groups,
     searchEngines,
     settings: settings || {
-      searchEngine: 'google',
+      searchEngine: 'baidu',
       darkMode: 'auto',
       hideLegalInfo: false,
       cookieConsent: null

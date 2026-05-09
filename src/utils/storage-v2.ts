@@ -20,7 +20,7 @@ export async function loadData(): Promise<Data> {
       console.log('[Dashmark v2.0] 从 IndexedDB 加载数据...');
       const data = await getAllData();
       return {
-        version: '2.0.0',
+        version: getVersion(),
         ...data
       };
     }
@@ -38,7 +38,7 @@ export async function loadData(): Promise<Data> {
     // 返回迁移后的数据
     const migratedData = await getAllData();
     return {
-      version: '2.0.0',
+      version: getVersion(),
       ...migratedData
     };
   } catch (error) {
@@ -83,16 +83,17 @@ export function generateId(): string {
  * 默认数据
  */
 export const DEFAULT_DATA: Data = {
-  version: '2.0.0',
+  version: getVersion(),
   groups: [],
   bookmarks: [],
   searchEngines: [
     { id: 'google', name: 'Google', url: 'https://www.google.com/search?q=' },
     { id: 'bing', name: 'Bing', url: 'https://www.bing.com/search?q=' },
-    { id: 'baidu', name: '百度', url: 'https://www.baidu.com/s?wd=' }
+    { id: 'baidu', name: '百度', url: 'https://www.baidu.com/s?wd=' },
+    { id: 'quark', name: '夸克', url: 'https://ai.quark.cn/s?q=' }
   ],
   settings: {
-    searchEngine: 'google',
+    searchEngine: 'baidu',
     darkMode: 'auto',
     hideLegalInfo: false,
     cookieConsent: null
@@ -119,7 +120,7 @@ function loadV1Data(): Data {
       bookmarks: Array.isArray(data.bookmarks) ? data.bookmarks : [],
       searchEngines: Array.isArray(data.searchEngines) ? data.searchEngines : [],
       settings: {
-        searchEngine: data.settings?.searchEngine || 'google',
+        searchEngine: data.settings?.searchEngine || 'baidu',
         darkMode: data.settings?.darkMode || 'auto',
         hideLegalInfo: data.settings?.hideLegalInfo || false,
         cookieConsent: data.settings?.cookieConsent ?? null

@@ -345,11 +345,11 @@ export const DataProvider: React.FC<DataProviderProps> = ({ children }) => {
   const deleteSearchEngine = useCallback((id: string) => {
     let newSettings = data.settings;
 
-    // 如果删除的是当前使用的搜索引擎，切换到默认的 Google
+    // 如果删除的是当前使用的搜索引擎，切换到默认的百度
     if (data.settings.searchEngine === id) {
       newSettings = {
         ...data.settings,
-        searchEngine: 'google'
+        searchEngine: 'baidu'
       };
     }
 
@@ -384,7 +384,14 @@ export const DataProvider: React.FC<DataProviderProps> = ({ children }) => {
     const newData = {
       ...data,
       bookmarks: data.bookmarks ? data.bookmarks.map(b =>
-        b.id === id ? { ...b, type, title, groupIds, url, content } : b
+        b.id === id ? {
+          ...b,
+          type,
+          title,
+          groupIds,
+          ...(url !== undefined ? { url } : {}),
+          ...(content !== undefined ? { content } : {}),
+        } : b
       ) : []
     };
     saveData(newData);

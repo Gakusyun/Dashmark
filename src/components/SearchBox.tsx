@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
-import { Box, TextField, Button } from '@mui/material';
-import { Search as SearchIcon } from '@mui/icons-material';
+import { Box, TextField, Button, IconButton, InputAdornment } from '@mui/material';
+import { Search as SearchIcon, Close as CloseIcon } from '@mui/icons-material';
 import { useData } from '../contexts/DataContext';
 import { getAllSearchEngines } from '../utils/storage';
 
@@ -38,6 +38,17 @@ export const SearchBox: React.FC = () => {
           slotProps={{
             input: {
               startAdornment: <SearchIcon sx={{ mr: 1, color: 'action.active' }} />,
+              endAdornment: searchQuery ? (
+                <InputAdornment position="end">
+                  <IconButton
+                    size="small"
+                    onClick={() => setSearchQuery('')}
+                    aria-label="清除搜索"
+                  >
+                    <CloseIcon fontSize="small" />
+                  </IconButton>
+                </InputAdornment>
+              ) : null,
             }
           }}
         />

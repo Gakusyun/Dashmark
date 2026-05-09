@@ -37,8 +37,8 @@ export const BookmarkCard: React.FC<BookmarkCardProps> = ({ link }) => {
         <CardContent>
           <Typography
             variant="body1"
-            fontWeight={500}
             sx={{
+              fontWeight: 500,
               overflow: 'hidden',
               textOverflow: 'ellipsis',
               whiteSpace: 'nowrap',

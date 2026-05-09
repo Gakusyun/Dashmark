@@ -3,8 +3,6 @@ import { getVersion } from './version';
 import type {
   Data,
   SearchEngine,
-  Bookmark,
-  Settings,
 } from '../types';
 
 const STORAGE_KEY = 'dashmark_data';
@@ -426,7 +424,7 @@ export function deleteSearchEngine(id: string): boolean {
   const data = loadData();
 
   if (data.settings.searchEngine === id) {
-    data.settings.searchEngine = 'google';
+    data.settings.searchEngine = 'baidu';
   }
 
   data.searchEngines = data.searchEngines.filter(e => e.id !== id);

@@ -80,6 +80,22 @@ export const About: React.FC = () => {
                 更新日志
             </Typography>
             <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
+                2.2.0
+                <br />
+                修复 TypeScript 编译错误（MUI v9 兼容、未使用导入）
+                <br />
+                修复搜索引擎删除后默认切换不一致
+                <br />
+                修复文字记录编辑后内容不刷新
+                <br />
+                修复 storage-v2 硬编码版本号和默认搜索引擎
+                <br />
+                修复 updateBookmark 可能丢失字段的问题
+                <br />
+                新增搜索框清除按钮
+                <br />
+                优化拼音库动态加载，避免重复请求
+                <br />
                 2.1.0
                 <br />
                 修复搜索占位符模板解析、全选切换、状态变异等问题

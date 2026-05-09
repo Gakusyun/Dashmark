@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useRef } from 'react';
 import { Box, Typography, Button, Paper, Grid, useMediaQuery, useTheme } from '@mui/material';
 import { ChevronLeft as ChevronLeftIcon } from '@mui/icons-material';
 import { useData } from '../contexts/DataContext';
@@ -49,21 +49,23 @@ const CommonBookmarksSection: React.FC<CommonBookmarksSectionProps> = ({
   // 管理文字记录的全屏状态
   const [fullscreenTextRecordId, setFullscreenTextRecordId] = useState<string | null>(null);
 
-  // 动态加载拼音库
+  // 动态加载拼音库（用 ref 避免重复 import）
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const [pinyinModule, setPinyinModule] = useState<any>(null);
+  const pinyinModuleRef = useRef<any>(null);
+  const [pinyinLoaded, setPinyinLoaded] = useState(false);
 
   // 防抖搜索查询（300ms 延迟）
   const debouncedSearchQuery = useDebouncedValue(searchQuery, 300);
 
-  // 当有搜索词时，动态加载拼音库
+  // 当有搜索词时，动态加载拼音库（只加载一次）
   React.useEffect(() => {
-    if (debouncedSearchQuery.trim() && !pinyinModule) {
+    if (debouncedSearchQuery.trim() && !pinyinModuleRef.current) {
       import('pinyin-pro').then(module => {
-        setPinyinModule(module);
+        pinyinModuleRef.current = module;
+        setPinyinLoaded(true);
       });
     }
-  }, [debouncedSearchQuery, pinyinModule]);
+  }, [debouncedSearchQuery]);
 
   // 根据搜索关键词过滤项目
   const filteredItems = React.useMemo(() => {
@@ -93,24 +95,20 @@ const CommonBookmarksSection: React.FC<CommonBookmarksSectionProps> = ({
         return item;
       }
     });
-    
-    const filteredCompatibleItems = filterItemsByQuery(compatibleItems, debouncedSearchQuery, new Map(), pinyinModule);
+
+    const filteredCompatibleItems = filterItemsByQuery(compatibleItems, debouncedSearchQuery, new Map(), pinyinModuleRef.current);
 
     // 将过滤后的结果转换回原始类型
     return filteredCompatibleItems.map(filteredItem => {
       return items.find(originalItem => originalItem.id === filteredItem.id) || filteredItem;
     }) as Item[];
-  }, [items, debouncedSearchQuery, pinyinModule]);
+    // pinyinLoaded 确保 pinyin 加载后重新计算
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [items, debouncedSearchQuery, pinyinLoaded]);
 
   // 处理文字记录全屏关闭
   const handleCloseTextRecordFullscreen = () => {
-    if (isFullscreen) {
-      // 如果当前在分组详情或全部详情页（全屏模式），关闭文字记录全屏后应返回详情页
-      setFullscreenTextRecordId(null);
-    } else {
-      // 如果在主页（非全屏模式），关闭文字记录全屏后只关闭对话框，返回主页
-      setFullscreenTextRecordId(null);
-    }
+    setFullscreenTextRecordId(null);
   };
 
   // 判断是否是"所有"分组
