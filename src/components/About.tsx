@@ -80,6 +80,24 @@ export const About: React.FC = () => {
                 更新日志
             </Typography>
             <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
+                2.1.0
+                <br />
+                修复搜索占位符模板解析、全选切换、状态变异等问题
+                <br />
+                新增文字记录全屏编辑功能
+                <br />
+                修复 MUI v9 图标兼容性问题
+                <br />
+                清理冗余代码，优化构建产物
+                <br />
+                2.0.0
+                <br />
+                迁移至 IndexedDB 存储，支持更大数据量
+                <br />
+                新增 PWA 支持，可添加到主屏幕
+                <br />
+                修复已知 Bug
+                <br />
                 1.4.0
                 <br />
                 新增App离线可用，防止服务器问题到处资料无法取回

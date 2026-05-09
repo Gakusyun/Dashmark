@@ -37,3 +37,4 @@ nul
 dashmark-old/
 
 .vite
+.playwright-cli

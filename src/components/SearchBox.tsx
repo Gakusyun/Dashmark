@@ -16,7 +16,9 @@ export const SearchBox: React.FC = () => {
     if (!searchQuery.trim()) return;
 
     if (currentEngine) {
-      const url = currentEngine.url + encodeURIComponent(searchQuery);
+      const url = currentEngine.url.includes('{q}')
+        ? currentEngine.url.replace('{q}', encodeURIComponent(searchQuery))
+        : currentEngine.url + encodeURIComponent(searchQuery);
       window.open(url, '_blank');
       setSearchQuery('');
     }

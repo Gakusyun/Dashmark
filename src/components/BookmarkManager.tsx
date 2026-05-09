@@ -224,7 +224,7 @@ export const BookmarkManager: React.FC<BookmarkManagerProps> = () => {
           </Box>
           {isSortingMode ? (
             <DraggableItemList
-              items={(data.bookmarks || []).sort((a, b) => a.order - b.order)}
+              items={[...(data.bookmarks || [])].sort((a, b) => a.order - b.order)}
               getItemId={(bookmark) => bookmark.id}
               emptyMessage='暂无收藏，点击"添加收藏"开始添加'
               onOrderChange={updateBookmarkOrder}
@@ -238,7 +238,7 @@ export const BookmarkManager: React.FC<BookmarkManagerProps> = () => {
             />
           ) : (
             <ItemList
-              items={(data.bookmarks || []).sort((a, b) => a.order - b.order)}
+              items={[...(data.bookmarks || [])].sort((a, b) => a.order - b.order)}
               getItemId={(bookmark) => bookmark.id}
               emptyMessage='暂无收藏，点击"添加收藏"开始添加'
               selectedIds={selectedIds}

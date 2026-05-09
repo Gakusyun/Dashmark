@@ -70,39 +70,44 @@ const App: React.FC = () => {
             console.warn('[DashMark] Clarity 初始化失败（可能是广告拦截器）:', error);
           }
         }
-        setShowConsent(false); // 重置状态以防止重复显示
-      };
-      
-      const handleCancel = () => {
-        updateSettingsRef.current({ cookieConsent: false });
-        setShowConsent(false); // 重置状态以防止重复显示
+        setShowConsent(false);
       };
 
-      confirm({
-        title: 'Cookie 同意',
-        content: '我们使用 Microsoft Clarity 来分析网站使用情况，以改善用户体验。是否同意使用 Cookie 进行分析？（可在设置中随时关闭）',
-        confirmText: '同意',
-        cancelText: '拒绝',
-        confirmColor: 'primary',
-        confirmVariant: 'contained',
-        cancelVariant: 'contained',
-        confirmButtonProps: {
-          color: 'primary',
-          variant: 'contained',
-          sx: {
-            color: 'inherit' // 同意按钮字体无色
-          }
-        },
-        cancelButtonProps: {
-          color: 'primary',
-          variant: 'outlined',
-          sx: {
-            color: 'primary.main' // 拒绝按钮字体蓝色
-          }
-        },
-        onConfirm: handleConfirm,
-        onCancel: handleCancel
-      });
+      const handleCancel = () => {
+        updateSettingsRef.current({ cookieConsent: false });
+        setShowConsent(false);
+      };
+
+      // Defer to avoid setState-during-render warning
+      const timer = setTimeout(() => {
+        confirm({
+          title: 'Cookie 同意',
+          content: '我们使用 Microsoft Clarity 来分析网站使用情况，以改善用户体验。是否同意使用 Cookie 进行分析？（可在设置中随时关闭）',
+          confirmText: '同意',
+          cancelText: '拒绝',
+          confirmColor: 'primary',
+          confirmVariant: 'contained',
+          cancelVariant: 'contained',
+          confirmButtonProps: {
+            color: 'primary',
+            variant: 'contained',
+            sx: {
+              color: 'inherit'
+            }
+          },
+          cancelButtonProps: {
+            color: 'primary',
+            variant: 'outlined',
+            sx: {
+              color: 'primary.main'
+            }
+          },
+          onConfirm: handleConfirm,
+          onCancel: handleCancel
+        });
+      }, 0);
+
+      return () => clearTimeout(timer);
     }
   }, [showConsent, confirm]);
 

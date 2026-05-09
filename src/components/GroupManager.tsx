@@ -50,7 +50,7 @@ export const GroupManager: React.FC<GroupManagerProps> = () => {
 
     const itemsText = itemsDescription.join(' 和 ');
     const title = itemsText
-      ? `分组"${group.name}"包含 ${itemsText}，删除分组将同时删除这些内容。确定要删除吗？`
+      ? `分组"${group.name}"包含 ${itemsText}，删除分组将同时删除仅属于此分组的收藏。确定要删除吗？`
       : `确定删除分组"${group.name}"吗？`;
 
     confirm({
@@ -116,7 +116,7 @@ export const GroupManager: React.FC<GroupManagerProps> = () => {
         </Typography>
       ) : isSortingMode ? (
         <DraggableItemList
-          items={data.groups.sort((a, b) => a.order - b.order)}
+          items={[...data.groups].sort((a, b) => a.order - b.order)}
           getItemId={(group) => group.id}
           emptyMessage='暂无分组，点击"添加分组"开始添加'
           onOrderChange={updateGroupOrder}
@@ -140,7 +140,7 @@ export const GroupManager: React.FC<GroupManagerProps> = () => {
         />
       ) : (
         <ItemList
-          items={data.groups.sort((a, b) => a.order - b.order)}
+          items={[...data.groups].sort((a, b) => a.order - b.order)}
           getItemId={(group) => group.id}
           emptyMessage='暂无分组，点击"添加分组"开始添加'
           onEdit={openEdit}
