@@ -22,15 +22,14 @@ import { useTheme } from '../contexts/ThemeContext';
 import { useToast } from '../contexts/ToastContext';
 import { DialogBox } from './DialogBox';
 import { useConfirmDialog } from '../hooks/useConfirmDialog';
-import { getAllSearchEngines } from '../utils/storage';
 import type { SearchEngine } from '../types';
 import { isValidUrl, normalizeUrl } from '../utils/urlValidator';
 
 export const Settings: React.FC = () => {
-  const { data, updateSettings, addSearchEngine, updateSearchEngine, deleteSearchEngine, exportData, importData, refreshData, clearAllData } = useData();
+  const { data, allSearchEngines, updateSettings, addSearchEngine, updateSearchEngine, deleteSearchEngine, exportData, importData, refreshData, clearAllData } = useData();
   const { mode, setMode } = useTheme();
   const { showError, showSuccess } = useToast();
-  const allEngines = getAllSearchEngines();
+  const allEngines = allSearchEngines;
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const [modalOpen, setModalOpen] = useState(false);

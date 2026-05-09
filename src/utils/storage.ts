@@ -1,11 +1,13 @@
 import pako from 'pako';
 import { getVersion } from './version';
+import { db, getAllData, initDatabase } from '../db';
 import type {
   Data,
   SearchEngine,
 } from '../types';
 
-const STORAGE_KEY = 'dashmark_data';
+const V2_MIGRATION_KEY = 'dashmark_v2_migrated';
+const V1_STORAGE_KEY = 'dashmark_data';
 
 // ==================== 常量 ====================
 
@@ -37,15 +39,76 @@ export function generateId(): string {
 
 // ==================== 存储操作 ====================
 
-export function loadData(): Data {
+export async function loadData(): Promise<Data> {
   try {
-    const json = localStorage.getItem(STORAGE_KEY);
+    const migrated = localStorage.getItem(V2_MIGRATION_KEY);
+    if (migrated === 'true') {
+      const data = await getAllData();
+      return {
+        version: getVersion(),
+        ...data
+      };
+    }
+
+    // 首次访问：从 v1.6 localStorage 迁移
+    console.log('[DashMark] 检测到 v1.6 数据，开始迁移到 IndexedDB...');
+    const v1Data = loadV1Data();
+    await initDatabase(v1Data);
+    localStorage.setItem(V2_MIGRATION_KEY, 'true');
+
+    const migratedData = await getAllData();
+    return {
+      version: getVersion(),
+      ...migratedData
+    };
+  } catch (error) {
+    console.error('[DashMark] IndexedDB 加载失败，回退到 localStorage:', error);
+    return loadV1Data();
+  }
+}
+
+export async function saveData(data: Data): Promise<void> {
+  try {
+    const dataToSave = {
+      ...data,
+      version: data.version || getVersion()
+    };
+
+    await db.transaction('rw', [db.bookmarks, db.groups, db.searchEngines, db.settings], async () => {
+      await db.bookmarks.clear();
+      await db.groups.clear();
+      await db.searchEngines.clear();
+      await db.settings.clear();
+
+      if (dataToSave.bookmarks.length > 0) {
+        await db.bookmarks.bulkPut(dataToSave.bookmarks);
+      }
+      if (dataToSave.groups.length > 0) {
+        await db.groups.bulkPut(dataToSave.groups);
+      }
+      if (dataToSave.searchEngines.length > 0) {
+        await db.searchEngines.bulkPut(dataToSave.searchEngines);
+      }
+      await db.settings.put({ ...dataToSave.settings, key: 'main' });
+    });
+  } catch (error) {
+    const errorMessage = error instanceof Error ? error.message : '未知错误';
+    console.error(`[DashMark] 数据保存失败: ${errorMessage}`);
+    throw error;
+  }
+}
+
+// ==================== v1.6 localStorage 迁移 ====================
+
+function loadV1Data(): Data {
+  try {
+    const json = localStorage.getItem(V1_STORAGE_KEY);
     if (!json) {
       return DEFAULT_DATA;
     }
     const data = JSON.parse(json) as Partial<Data>;
 
-    const result: Data = {
+    return {
       version: data.version || getVersion(),
       groups: Array.isArray(data.groups) ? data.groups : [],
       bookmarks: Array.isArray(data.bookmarks) ? data.bookmarks : [],
@@ -57,15 +120,12 @@ export function loadData(): Data {
         cookieConsent: data.settings?.cookieConsent ?? null
       }
     };
-
-    return result;
   } catch (error) {
     const errorMessage = error instanceof Error ? error.message : '未知错误';
     console.error(`[DashMark] 数据加载失败: ${errorMessage}，已恢复默认设置`);
 
-    // 尝试清理损坏的数据
     try {
-      localStorage.removeItem(STORAGE_KEY);
+      localStorage.removeItem(V1_STORAGE_KEY);
       console.log('[DashMark] 已清理损坏的数据');
     } catch (cleanupError) {
       console.error('[DashMark] 清理数据失败:', cleanupError);
@@ -75,39 +135,12 @@ export function loadData(): Data {
   }
 }
 
-export function saveData(data: Data): boolean {
-  try {
-    // 确保数据始终包含版本号
-    const dataToSave = {
-      ...data,
-      version: data.version || getVersion()
-    };
+// ==================== 导出/导入 ====================
 
-    // 检查数据大小（localStorage 限制通常为 5-10MB）
-    const json = JSON.stringify(dataToSave);
-    if (json.length > 5 * 1024 * 1024) { // 5MB
-      throw new Error(`数据过大（${(json.length / 1024 / 1024).toFixed(2)}MB），超出 localStorage 限制`);
-    }
+export async function exportData(): Promise<void> {
+  const data = await loadData();
 
-    localStorage.setItem(STORAGE_KEY, json);
-    return true;
-  } catch (error) {
-    const errorMessage = error instanceof Error ? error.message : '未知错误';
-    console.error(`[DashMark] 数据保存失败: ${errorMessage}`);
-
-    // 如果是配额错误，给用户更友好的提示
-    if (errorMessage.includes('quota') || errorMessage.includes('存储空间') || errorMessage.includes('数据过大')) {
-      console.error('[DashMark] 提示：请删除部分收藏或导出备份后清理数据');
-    }
-
-    return false;
-  }
-}
-
-export function exportData(): void {
-  const data = loadData();
-
-  const exportData = {
+  const exportPayload = {
     version: data.version,
     groups: data.groups,
     bookmarks: data.bookmarks,
@@ -115,7 +148,7 @@ export function exportData(): void {
     settings: data.settings
   };
 
-  const json = JSON.stringify(exportData, null, 2);
+  const json = JSON.stringify(exportPayload, null, 2);
   const compressed = pako.gzip(json);
   const blob = new Blob([compressed], { type: 'application/gzip' });
   const url = URL.createObjectURL(blob);
@@ -136,23 +169,24 @@ export function importData(
   const isGzip = file.name.endsWith('.gz');
 
   const reader = new FileReader();
-  reader.onload = function (e) {
+  reader.onload = async function (e) {
     try {
+      let json: string;
       if (isGzip) {
         const result = e.target?.result;
         if (!(result instanceof ArrayBuffer)) {
           throw new Error('Invalid gzip file content');
         }
         const compressed = new Uint8Array(result);
-        const json = pako.ungzip(compressed, { to: 'string' });
-        processData(json, onSuccess, onError);
+        json = pako.ungzip(compressed, { to: 'string' });
       } else {
         const result = e.target?.result;
         if (typeof result !== 'string') {
           throw new Error('Invalid JSON file content');
         }
-        processData(result, onSuccess, onError);
+        json = result;
       }
+      await processData(json, onSuccess, onError);
     } catch (error) {
       onError(error instanceof Error ? error : new Error('Unknown error'));
     }
@@ -169,11 +203,11 @@ export function importData(
   }
 }
 
-function processData(
+async function processData(
   json: string,
   onSuccess: (data: Data) => void,
   onError: (error: Error) => void
-): void {
+): Promise<void> {
   try {
     if (json.length > 50 * 1024 * 1024) {
       throw new Error('导入文件过大（超过 50MB）');
@@ -362,12 +396,9 @@ function processData(
       }
     };
 
-    if (saveData(importedData)) {
-      console.log(`[DashMark] 成功导入 ${importedData.bookmarks.length} 个收藏，${importedData.groups.length} 个分组`);
-      onSuccess(importedData);
-    } else {
-      onError(new Error('保存导入数据失败，请检查存储空间是否足够'));
-    }
+    await saveData(importedData);
+    console.log(`[DashMark] 成功导入 ${importedData.bookmarks.length} 个收藏，${importedData.groups.length} 个分组`);
+    onSuccess(importedData);
   } catch (error) {
     const errorMessage = error instanceof Error ? error.message : '未知错误';
     console.error(`[DashMark] 数据处理失败: ${errorMessage}`);
@@ -377,8 +408,8 @@ function processData(
 
 // ==================== 搜索引擎操作 ====================
 
-export function getAllSearchEngines(): SearchEngine[] {
-  const data = loadData();
+export async function getAllSearchEngines(): Promise<SearchEngine[]> {
+  const data = await loadData();
   const allEngines: SearchEngine[] = [...DEFAULT_SEARCH_ENGINES];
 
   data.searchEngines.forEach((engine, index) => {
@@ -391,43 +422,43 @@ export function getAllSearchEngines(): SearchEngine[] {
   return allEngines;
 }
 
-export function getSearchEngineConfig(engineId: string): SearchEngine | undefined {
-  const allEngines = getAllSearchEngines();
+export async function getSearchEngineConfig(engineId: string): Promise<SearchEngine | undefined> {
+  const allEngines = await getAllSearchEngines();
   return allEngines.find(e => e.id === engineId);
 }
 
-export function addSearchEngine(name: string, url: string): SearchEngine {
-  const data = loadData();
+export async function addSearchEngine(name: string, url: string): Promise<SearchEngine> {
+  const data = await loadData();
   const engine: SearchEngine = {
     id: 'custom_' + Date.now(),
     name: name,
     url: url
   };
   data.searchEngines.push(engine);
-  saveData(data);
+  await saveData(data);
   return engine;
 }
 
-export function updateSearchEngine(id: string, name: string, url: string): boolean {
-  const data = loadData();
+export async function updateSearchEngine(id: string, name: string, url: string): Promise<boolean> {
+  const data = await loadData();
   const index = data.searchEngines.findIndex(e => e.id === id);
   if (index !== -1) {
     data.searchEngines[index].name = name;
     data.searchEngines[index].url = url;
-    saveData(data);
+    await saveData(data);
     return true;
   }
   return false;
 }
 
-export function deleteSearchEngine(id: string): boolean {
-  const data = loadData();
+export async function deleteSearchEngine(id: string): Promise<boolean> {
+  const data = await loadData();
 
   if (data.settings.searchEngine === id) {
     data.settings.searchEngine = 'baidu';
   }
 
   data.searchEngines = data.searchEngines.filter(e => e.id !== id);
-  saveData(data);
+  await saveData(data);
   return true;
 }

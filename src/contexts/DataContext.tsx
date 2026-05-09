@@ -1,54 +1,56 @@
 /* eslint-disable react-refresh/only-export-components */
-import React, { createContext, useContext, useState, useCallback, useMemo, type ReactNode } from 'react';
+import React, { createContext, useContext, useState, useCallback, useEffect, useMemo, type ReactNode } from 'react';
 import type { Data, Settings, Group, SearchEngine, Bookmark } from '../types';
 import * as storage from '../utils/storage';
 import { getVersion } from '../utils/version';
 
 interface DataContextType {
   data: Data;
-  refreshData: () => void;
+  loading: boolean;
+  allSearchEngines: SearchEngine[];
+  refreshData: () => Promise<void>;
 
   // 分组操作
-  addGroup: (name: string) => Group;
-  updateGroup: (id: string, name: string) => void;
-  deleteGroup: (id: string) => void;
-  updateGroupOrder: (orderedIds: string[]) => void;
+  addGroup: (name: string) => Promise<Group>;
+  updateGroup: (id: string, name: string) => Promise<void>;
+  deleteGroup: (id: string) => Promise<void>;
+  updateGroupOrder: (orderedIds: string[]) => Promise<void>;
 
   // 链接操作
-  addLink: (title: string, url: string, groupIds: string[]) => void;
-  updateLink: (id: string, title: string, url: string, groupIds: string[]) => void;
-  deleteLink: (id: string) => void;
-  batchDeleteLinks: (ids: string[]) => void;
-  updateLinkOrder: (orderedIds: string[]) => void;
+  addLink: (title: string, url: string, groupIds: string[]) => Promise<void>;
+  updateLink: (id: string, title: string, url: string, groupIds: string[]) => Promise<void>;
+  deleteLink: (id: string) => Promise<void>;
+  batchDeleteLinks: (ids: string[]) => Promise<void>;
+  updateLinkOrder: (orderedIds: string[]) => Promise<void>;
 
   // 文字记录操作
-  addTextRecord: (title: string, content: string, groupIds: string[]) => void;
-  updateTextRecord: (id: string, title: string, content: string, groupIds: string[]) => void;
-  deleteTextRecord: (id: string) => void;
-  batchDeleteTextRecords: (ids: string[]) => void;
-  updateTextRecordOrder: (orderedIds: string[]) => void;
+  addTextRecord: (title: string, content: string, groupIds: string[]) => Promise<void>;
+  updateTextRecord: (id: string, title: string, content: string, groupIds: string[]) => Promise<void>;
+  deleteTextRecord: (id: string) => Promise<void>;
+  batchDeleteTextRecords: (ids: string[]) => Promise<void>;
+  updateTextRecordOrder: (orderedIds: string[]) => Promise<void>;
 
   // 收藏操作
-  addBookmark: (type: 'link' | 'text', title: string, groupIds: string[], url?: string, content?: string) => void;
-  updateBookmark: (id: string, type: 'link' | 'text', title: string, groupIds: string[], url?: string, content?: string) => void;
-  deleteBookmark: (id: string) => void;
-  batchDeleteBookmarks: (ids: string[]) => void;
-  updateBookmarkOrder: (orderedIds: string[]) => void;
+  addBookmark: (type: 'link' | 'text', title: string, groupIds: string[], url?: string, content?: string) => Promise<void>;
+  updateBookmark: (id: string, type: 'link' | 'text', title: string, groupIds: string[], url?: string, content?: string) => Promise<void>;
+  deleteBookmark: (id: string) => Promise<void>;
+  batchDeleteBookmarks: (ids: string[]) => Promise<void>;
+  updateBookmarkOrder: (orderedIds: string[]) => Promise<void>;
 
   // 设置操作
-  updateSettings: (settings: Partial<Settings>) => void;
+  updateSettings: (settings: Partial<Settings>) => Promise<void>;
 
   // 搜索引擎操作
-  addSearchEngine: (name: string, url: string) => void;
-  updateSearchEngine: (id: string, name: string, url: string) => void;
-  deleteSearchEngine: (id: string) => void;
+  addSearchEngine: (name: string, url: string) => Promise<void>;
+  updateSearchEngine: (id: string, name: string, url: string) => Promise<void>;
+  deleteSearchEngine: (id: string) => Promise<void>;
 
   // 导入导出
-  exportData: () => void;
+  exportData: () => Promise<void>;
   importData: (file: File, onSuccess: () => void, onError: (error: Error) => void) => void;
 
   // 清除数据
-  clearAllData: () => void;
+  clearAllData: () => Promise<void>;
 }
 
 const DataContext = createContext<DataContextType | undefined>(undefined);
@@ -67,45 +69,61 @@ interface DataProviderProps {
 
 
 export const DataProvider: React.FC<DataProviderProps> = ({ children }) => {
-  const [data, setData] = useState<Data>(() => {
-    const loadedData = storage.loadData();
+  const [data, setData] = useState<Data>(storage.DEFAULT_DATA);
+  const [loading, setLoading] = useState(true);
 
-    // 检查版本是否需要升级
-    const currentVersion = getVersion();
-    if (loadedData.version !== currentVersion) {
-      // 版本不匹配，更新为当前版本并保存
-      const upgradedData = {
-        ...loadedData,
-        version: currentVersion
-      };
-      storage.saveData(upgradedData);
-      return upgradedData;
+  // 从 IndexedDB 加载数据
+  useEffect(() => {
+    let cancelled = false;
+
+    async function init() {
+      try {
+        let loadedData = await storage.loadData();
+        const currentVersion = getVersion();
+        if (loadedData.version !== currentVersion) {
+          loadedData = { ...loadedData, version: currentVersion };
+          await storage.saveData(loadedData);
+        }
+        if (!cancelled) {
+          setData(loadedData);
+          setLoading(false);
+        }
+      } catch (error) {
+        console.error('[DashMark] 数据加载失败:', error);
+        if (!cancelled) {
+          setLoading(false);
+        }
+      }
     }
 
-    return loadedData;
-  });
+    init();
+    return () => { cancelled = true; };
+  }, []);
 
-  // 刷新数据（从 localStorage 重新加载）
-  const refreshData = useCallback(() => {
-    const loadedData = storage.loadData();
+  // 合并默认搜索引擎和自定义搜索引擎
+  const allSearchEngines = useMemo<SearchEngine[]>(() => {
+    return [...storage.DEFAULT_SEARCH_ENGINES, ...data.searchEngines];
+  }, [data.searchEngines]);
+
+  // 刷新数据（从 IndexedDB 重新加载）
+  const refreshData = useCallback(async () => {
+    const loadedData = await storage.loadData();
     setData(loadedData);
   }, []);
 
-  // 保存数据到 localStorage
-  const saveData = useCallback((newData: Data) => {
+  // 保存数据到 IndexedDB
+  const saveData = useCallback(async (newData: Data) => {
     const dataWithVersion = {
       ...newData,
       version: newData.version || getVersion()
     };
-    storage.saveData(dataWithVersion);
-    // 从localStorage重新加载数据以确保格式一致
-    const savedData = storage.loadData();
-    setData(savedData);
+    await storage.saveData(dataWithVersion);
+    setData(dataWithVersion);
   }, []);
 
   // ==================== 分组操作 ====================
 
-  const addGroup = useCallback((name: string): Group => {
+  const addGroup = useCallback(async (name: string): Promise<Group> => {
     const newGroup: Group = {
       id: storage.generateId(),
       name: name,
@@ -115,21 +133,21 @@ export const DataProvider: React.FC<DataProviderProps> = ({ children }) => {
       ...data,
       groups: [...data.groups, newGroup]
     };
-    saveData(newData);
+    await saveData(newData);
     return newGroup;
   }, [data, saveData]);
 
-  const updateGroup = useCallback((id: string, name: string) => {
+  const updateGroup = useCallback(async (id: string, name: string) => {
     const newData = {
       ...data,
       groups: data.groups.map(g =>
         g.id === id ? { ...g, name } : g
       )
     };
-    saveData(newData);
+    await saveData(newData);
   }, [data, saveData]);
 
-  const deleteGroup = useCallback((id: string) => {
+  const deleteGroup = useCallback(async (id: string) => {
     // 删除分组
     const filteredGroups = data.groups.filter(g => g.id !== id);
 
@@ -144,11 +162,11 @@ export const DataProvider: React.FC<DataProviderProps> = ({ children }) => {
       groups: filteredGroups,
       bookmarks: updatedBookmarks
     };
-    saveData(newData);
+    await saveData(newData);
   }, [data, saveData]);
 
   // 更新分组顺序
-  const updateGroupOrder = useCallback((orderedIds: string[]) => {
+  const updateGroupOrder = useCallback(async (orderedIds: string[]) => {
     const orderedGroups = orderedIds.map((id, index) => {
       const group = data.groups.find(g => g.id === id);
       return group ? { ...group, order: index } : null;
@@ -165,12 +183,12 @@ export const DataProvider: React.FC<DataProviderProps> = ({ children }) => {
       groups: [...orderedGroups, ...remainingGroups]
     };
 
-    saveData(newData);
+    await saveData(newData);
   }, [data, saveData]);
 
   // ==================== 链接操作 ====================
 
-  const addLink = useCallback((title: string, url: string, groupIds: string[]) => {
+  const addLink = useCallback(async (title: string, url: string, groupIds: string[]) => {
     const newBookmark: Bookmark = {
       id: storage.generateId(),
       type: 'link',
@@ -183,37 +201,37 @@ export const DataProvider: React.FC<DataProviderProps> = ({ children }) => {
       ...data,
       bookmarks: [...data.bookmarks, newBookmark]
     };
-    saveData(newData);
+    await saveData(newData);
   }, [data, saveData]);
 
-  const updateLink = useCallback((id: string, title: string, url: string, groupIds: string[]) => {
+  const updateLink = useCallback(async (id: string, title: string, url: string, groupIds: string[]) => {
     const newData = {
       ...data,
       bookmarks: data.bookmarks.map(b =>
         b.id === id && b.type === 'link' ? { ...b, title, url, groupIds } : b
       )
     };
-    saveData(newData);
+    await saveData(newData);
   }, [data, saveData]);
 
-  const deleteLink = useCallback((id: string) => {
+  const deleteLink = useCallback(async (id: string) => {
     const newData = {
       ...data,
       bookmarks: data.bookmarks.filter(b => !(b.id === id && b.type === 'link'))
     };
-    saveData(newData);
+    await saveData(newData);
   }, [data, saveData]);
 
-  const batchDeleteLinks = useCallback((ids: string[]) => {
+  const batchDeleteLinks = useCallback(async (ids: string[]) => {
     const newData = {
       ...data,
       bookmarks: data.bookmarks.filter(b => !(ids.includes(b.id) && b.type === 'link'))
     };
-    saveData(newData);
+    await saveData(newData);
   }, [data, saveData]);
 
   // 更新链接顺序
-  const updateLinkOrder = useCallback((orderedIds: string[]) => {
+  const updateLinkOrder = useCallback(async (orderedIds: string[]) => {
     const orderedLinks = orderedIds.map((id, index) => {
       const link = data.bookmarks.find(b => b.id === id && b.type === 'link');
       return link ? { ...link, order: index } : null;
@@ -233,12 +251,12 @@ export const DataProvider: React.FC<DataProviderProps> = ({ children }) => {
       bookmarks: [...orderedLinks, ...remainingLinks, ...otherBookmarks]
     };
 
-    saveData(newData);
+    await saveData(newData);
   }, [data, saveData]);
 
   // ==================== 文字记录操作 ====================
 
-  const addTextRecord = useCallback((title: string, content: string, groupIds: string[]) => {
+  const addTextRecord = useCallback(async (title: string, content: string, groupIds: string[]) => {
     const newBookmark: Bookmark = {
       id: storage.generateId(),
       type: 'text',
@@ -251,37 +269,37 @@ export const DataProvider: React.FC<DataProviderProps> = ({ children }) => {
       ...data,
       bookmarks: [...data.bookmarks, newBookmark]
     };
-    saveData(newData);
+    await saveData(newData);
   }, [data, saveData]);
 
-  const updateTextRecord = useCallback((id: string, title: string, content: string, groupIds: string[]) => {
+  const updateTextRecord = useCallback(async (id: string, title: string, content: string, groupIds: string[]) => {
     const newData = {
       ...data,
       bookmarks: data.bookmarks.map(b =>
         b.id === id && b.type === 'text' ? { ...b, title, content, groupIds } : b
       )
     };
-    saveData(newData);
+    await saveData(newData);
   }, [data, saveData]);
 
-  const deleteTextRecord = useCallback((id: string) => {
+  const deleteTextRecord = useCallback(async (id: string) => {
     const newData = {
       ...data,
       bookmarks: data.bookmarks.filter(b => !(b.id === id && b.type === 'text'))
     };
-    saveData(newData);
+    await saveData(newData);
   }, [data, saveData]);
 
-  const batchDeleteTextRecords = useCallback((ids: string[]) => {
+  const batchDeleteTextRecords = useCallback(async (ids: string[]) => {
     const newData = {
       ...data,
       bookmarks: data.bookmarks.filter(b => !(ids.includes(b.id) && b.type === 'text'))
     };
-    saveData(newData);
+    await saveData(newData);
   }, [data, saveData]);
 
   // 更新文字记录顺序
-  const updateTextRecordOrder = useCallback((orderedIds: string[]) => {
+  const updateTextRecordOrder = useCallback(async (orderedIds: string[]) => {
     const orderedTextRecords = orderedIds.map((id, index) => {
       const record = data.bookmarks.find(b => b.id === id && b.type === 'text');
       return record ? { ...record, order: index } : null;
@@ -301,12 +319,12 @@ export const DataProvider: React.FC<DataProviderProps> = ({ children }) => {
       bookmarks: [...orderedTextRecords, ...remainingTextRecords, ...otherBookmarks]
     };
 
-    saveData(newData);
+    await saveData(newData);
   }, [data, saveData]);
 
   // ==================== 设置操作 ====================
 
-  const updateSettings = useCallback((settings: Partial<Settings>) => {
+  const updateSettings = useCallback(async (settings: Partial<Settings>) => {
     const newData = {
       ...data,
       settings: {
@@ -314,12 +332,12 @@ export const DataProvider: React.FC<DataProviderProps> = ({ children }) => {
         ...settings
       }
     };
-    saveData(newData);
+    await saveData(newData);
   }, [data, saveData]);
 
   // ==================== 搜索引擎操作 ====================
 
-  const addSearchEngine = useCallback((name: string, url: string) => {
+  const addSearchEngine = useCallback(async (name: string, url: string) => {
     const newEngine: SearchEngine = {
       id: 'custom_' + Date.now(),
       name: name,
@@ -329,20 +347,20 @@ export const DataProvider: React.FC<DataProviderProps> = ({ children }) => {
       ...data,
       searchEngines: [...data.searchEngines, newEngine]
     };
-    saveData(newData);
+    await saveData(newData);
   }, [data, saveData]);
 
-  const updateSearchEngine = useCallback((id: string, name: string, url: string) => {
+  const updateSearchEngine = useCallback(async (id: string, name: string, url: string) => {
     const newData = {
       ...data,
       searchEngines: data.searchEngines.map(e =>
         e.id === id ? { ...e, name, url } : e
       )
     };
-    saveData(newData);
+    await saveData(newData);
   }, [data, saveData]);
 
-  const deleteSearchEngine = useCallback((id: string) => {
+  const deleteSearchEngine = useCallback(async (id: string) => {
     let newSettings = data.settings;
 
     // 如果删除的是当前使用的搜索引擎，切换到默认的百度
@@ -358,12 +376,12 @@ export const DataProvider: React.FC<DataProviderProps> = ({ children }) => {
       settings: newSettings,
       searchEngines: data.searchEngines.filter(e => e.id !== id)
     };
-    saveData(newData);
+    await saveData(newData);
   }, [data, saveData]);
 
   // ==================== 收藏操作 ====================
 
-  const addBookmark = useCallback((type: 'link' | 'text', title: string, groupIds: string[], url?: string, content?: string) => {
+  const addBookmark = useCallback(async (type: 'link' | 'text', title: string, groupIds: string[], url?: string, content?: string) => {
     const newBookmark = {
       id: storage.generateId(),
       type,
@@ -377,10 +395,10 @@ export const DataProvider: React.FC<DataProviderProps> = ({ children }) => {
       ...data,
       bookmarks: data.bookmarks ? [...data.bookmarks, newBookmark] : [newBookmark]
     };
-    saveData(newData);
+    await saveData(newData);
   }, [data, saveData]);
 
-  const updateBookmark = useCallback((id: string, type: 'link' | 'text', title: string, groupIds: string[], url?: string, content?: string) => {
+  const updateBookmark = useCallback(async (id: string, type: 'link' | 'text', title: string, groupIds: string[], url?: string, content?: string) => {
     const newData = {
       ...data,
       bookmarks: data.bookmarks ? data.bookmarks.map(b =>
@@ -394,27 +412,27 @@ export const DataProvider: React.FC<DataProviderProps> = ({ children }) => {
         } : b
       ) : []
     };
-    saveData(newData);
+    await saveData(newData);
   }, [data, saveData]);
 
-  const deleteBookmark = useCallback((id: string) => {
+  const deleteBookmark = useCallback(async (id: string) => {
     const newData = {
       ...data,
       bookmarks: data.bookmarks ? data.bookmarks.filter(b => b.id !== id) : []
     };
-    saveData(newData);
+    await saveData(newData);
   }, [data, saveData]);
 
-  const batchDeleteBookmarks = useCallback((ids: string[]) => {
+  const batchDeleteBookmarks = useCallback(async (ids: string[]) => {
     const newData = {
       ...data,
       bookmarks: data.bookmarks ? data.bookmarks.filter(b => !ids.includes(b.id)) : []
     };
-    saveData(newData);
+    await saveData(newData);
   }, [data, saveData]);
 
   // 更新收藏顺序
-  const updateBookmarkOrder = useCallback((orderedIds: string[]) => {
+  const updateBookmarkOrder = useCallback(async (orderedIds: string[]) => {
     if (!data.bookmarks) return;
 
     const orderedBookmarks = orderedIds.map((id, index) => {
@@ -433,13 +451,13 @@ export const DataProvider: React.FC<DataProviderProps> = ({ children }) => {
       bookmarks: [...orderedBookmarks, ...remainingBookmarks]
     };
 
-    saveData(newData);
+    await saveData(newData);
   }, [data, saveData]);
 
   // ==================== 导入导出 ====================
 
-  const exportData = useCallback(() => {
-    storage.exportData();
+  const exportData = useCallback(async () => {
+    await storage.exportData();
   }, []);
 
   const importData = useCallback((file: File, onSuccess: () => void, onError: (error: Error) => void) => {
@@ -453,15 +471,16 @@ export const DataProvider: React.FC<DataProviderProps> = ({ children }) => {
     );
   }, []);
 
-  const clearAllData = useCallback(() => {
-    storage.saveData(storage.DEFAULT_DATA);
-    const freshData = storage.loadData();
-    setData(freshData);
+  const clearAllData = useCallback(async () => {
+    await storage.saveData(storage.DEFAULT_DATA);
+    setData(storage.DEFAULT_DATA);
   }, []);
 
   // 使用 useMemo 优化 context value 的引用稳定性
   const contextValue = useMemo<DataContextType>(() => ({
     data,
+    loading,
+    allSearchEngines,
     refreshData,
     addGroup,
     updateGroup,
@@ -491,6 +510,8 @@ export const DataProvider: React.FC<DataProviderProps> = ({ children }) => {
     clearAllData,
   }), [
     data,
+    loading,
+    allSearchEngines,
     refreshData,
     addGroup,
     updateGroup,
