@@ -1,4 +1,5 @@
 import React, { useState, useCallback, useMemo } from 'react';
+import { Button } from '@mui/material';
 import { DialogBox } from '../components/DialogBox';
 
 /**
@@ -24,9 +25,9 @@ export interface ConfirmOptions {
   /** 取消按钮变体（默认："contained"） */
   cancelVariant?: 'text' | 'outlined' | 'contained';
   /** 确认按钮额外属性 */
-  confirmButtonProps?: any;
+  confirmButtonProps?: Partial<React.ComponentProps<typeof Button>>;
   /** 取消按钮额外属性 */
-  cancelButtonProps?: any;
+  cancelButtonProps?: Partial<React.ComponentProps<typeof Button>>;
 }
 
 /**
@@ -54,9 +55,9 @@ interface ConfirmDialogState {
   /** 取消按钮变体 */
   cancelVariant: ConfirmOptions['cancelVariant'];
   /** 确认按钮额外属性 */
-  confirmButtonProps: any;
+  confirmButtonProps: Partial<React.ComponentProps<typeof Button>> | undefined;
   /** 取消按钮额外属性 */
-  cancelButtonProps: any;
+  cancelButtonProps: Partial<React.ComponentProps<typeof Button>> | undefined;
 }
 
 /**
@@ -142,8 +143,13 @@ export function useConfirmDialog(): UseConfirmDialogReturn {
    */
   const handleClose = useCallback((callCancel: boolean = true) => {
     setState(prev => {
+      // 使用 setTimeout 将回调延迟到下一个事件循环，避免在渲染期间调用 setState
       if (callCancel && prev.onCancel) {
-        prev.onCancel();
+        setTimeout(() => {
+          if (prev.onCancel) {
+            prev.onCancel();
+          }
+        }, 0);
       }
       return { ...prev, open: false };
     });
@@ -166,7 +172,8 @@ export function useConfirmDialog(): UseConfirmDialogReturn {
         confirmButtonProps={state.confirmButtonProps}
         cancelButtonProps={state.cancelButtonProps}
         onConfirm={() => {
-          state.onConfirm();
+          // 同样使用 setTimeout 避免渲染期间调用 setState
+          setTimeout(() => state.onConfirm(), 0);
           handleClose(false); // 点击确认时，不调用onCancel
         }}
         onClose={handleClose}

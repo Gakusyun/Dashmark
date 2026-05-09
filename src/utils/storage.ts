@@ -3,13 +3,6 @@ import { getVersion } from './version';
 import type {
   Data,
   SearchEngine,
-  Group,
-  Link,
-  TextRecord,
-  Bookmark,
-  Settings,
-  LinkWithGroups,
-  TextRecordWithGroups
 } from '../types';
 
 const STORAGE_KEY = 'dashmark_data';
@@ -44,17 +37,14 @@ export function generateId(): string {
 
 // ==================== 存储操作 ====================
 
-
-
 export function loadData(): Data {
   try {
     const json = localStorage.getItem(STORAGE_KEY);
     if (!json) {
       return DEFAULT_DATA;
     }
-    const data: any = JSON.parse(json);
+    const data = JSON.parse(json) as Partial<Data>;
 
-    // 直接使用最新的数据结构
     const result: Data = {
       version: data.version || getVersion(),
       groups: Array.isArray(data.groups) ? data.groups : [],
@@ -70,7 +60,17 @@ export function loadData(): Data {
 
     return result;
   } catch (error) {
-    console.error('Failed to load data:', error);
+    const errorMessage = error instanceof Error ? error.message : '未知错误';
+    console.error(`[DashMark] 数据加载失败: ${errorMessage}，已恢复默认设置`);
+
+    // 尝试清理损坏的数据
+    try {
+      localStorage.removeItem(STORAGE_KEY);
+      console.log('[DashMark] 已清理损坏的数据');
+    } catch (cleanupError) {
+      console.error('[DashMark] 清理数据失败:', cleanupError);
+    }
+
     return DEFAULT_DATA;
   }
 }
@@ -78,22 +78,35 @@ export function loadData(): Data {
 export function saveData(data: Data): boolean {
   try {
     // 确保数据始终包含版本号
-    const saveData = {
+    const dataToSave = {
       ...data,
       version: data.version || getVersion()
     };
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(saveData));
+
+    // 检查数据大小（localStorage 限制通常为 5-10MB）
+    const json = JSON.stringify(dataToSave);
+    if (json.length > 5 * 1024 * 1024) { // 5MB
+      throw new Error(`数据过大（${(json.length / 1024 / 1024).toFixed(2)}MB），超出 localStorage 限制`);
+    }
+
+    localStorage.setItem(STORAGE_KEY, json);
     return true;
   } catch (error) {
-    console.error('Failed to save data:', error);
+    const errorMessage = error instanceof Error ? error.message : '未知错误';
+    console.error(`[DashMark] 数据保存失败: ${errorMessage}`);
+
+    // 如果是配额错误，给用户更友好的提示
+    if (errorMessage.includes('quota') || errorMessage.includes('存储空间') || errorMessage.includes('数据过大')) {
+      console.error('[DashMark] 提示：请删除部分收藏或导出备份后清理数据');
+    }
+
     return false;
   }
 }
 
 export function exportData(): void {
   const data = loadData();
-  
-  // 创建导出的数据对象，只导出新的bookmarks数据结构
+
   const exportData = {
     version: data.version,
     groups: data.groups,
@@ -101,9 +114,8 @@ export function exportData(): void {
     searchEngines: data.searchEngines,
     settings: data.settings
   };
-  
+
   const json = JSON.stringify(exportData, null, 2);
-  // 使用 gzip 压缩
   const compressed = pako.gzip(json);
   const blob = new Blob([compressed], { type: 'application/gzip' });
   const url = URL.createObjectURL(blob);
@@ -118,41 +130,39 @@ export function exportData(): void {
 
 export function importData(
   file: File,
-  onSuccess: (data: Data) => void,
-  onError: (error: Error) => void
+  onSuccess: (data: Data, warnings: string[]) => void,
+  onError: (error: Error) => void,
+  merge: boolean = false
 ): void {
-  // 检查是否为 gzip 文件（通过文件扩展名判断）
   const isGzip = file.name.endsWith('.gz');
 
   const reader = new FileReader();
   reader.onload = function (e) {
     try {
       if (isGzip) {
-        // gzip 文件：读取为 ArrayBuffer
         const result = e.target?.result;
         if (!(result instanceof ArrayBuffer)) {
           throw new Error('Invalid gzip file content');
         }
         const compressed = new Uint8Array(result);
         const json = pako.ungzip(compressed, { to: 'string' });
-        processData(json, onSuccess, onError);
+        processData(json, onSuccess, onError, merge);
       } else {
-        // 普通 JSON 文件：读取为文本
         const result = e.target?.result;
         if (typeof result !== 'string') {
           throw new Error('Invalid JSON file content');
         }
-        processData(result, onSuccess, onError);
+        processData(result, onSuccess, onError, merge);
       }
     } catch (error) {
       onError(error instanceof Error ? error : new Error('Unknown error'));
     }
   };
   reader.onerror = function () {
-    onError(new Error('Failed to read file'));
+    console.error('[DashMark] 文件读取失败');
+    onError(new Error('文件读取失败，请检查文件格式是否正确'));
   };
 
-  // 根据文件类型选择读取方式
   if (isGzip) {
     reader.readAsArrayBuffer(file);
   } else {
@@ -162,17 +172,15 @@ export function importData(
 
 function processData(
   json: string,
-  onSuccess: (data: Data) => void,
-  onError: (error: Error) => void
+  onSuccess: (data: Data, warnings: string[]) => void,
+  onError: (error: Error) => void,
+  merge: boolean = false
 ): void {
   try {
-    // 验证 JSON 大小（防止超大文件攻击）
     if (json.length > 50 * 1024 * 1024) {
-      // 50MB 限制
       throw new Error('导入文件过大（超过 50MB）');
     }
 
-    // 验证嵌套深度（使用递归检查）
     const maxDepth = 100;
     const checkDepth = (obj: unknown, currentDepth: number): void => {
       if (currentDepth > maxDepth) {
@@ -185,10 +193,21 @@ function processData(
       }
     };
 
-    const data: any = JSON.parse(json);
+    const data = JSON.parse(json) as Partial<Data>;
     checkDepth(data, 0);
 
-    // ==================== 验证数据结构 ====================
+    // ==================== 版本兼容性检查 ====================
+    const warnings: string[] = [];
+    const currentVersion = getVersion();
+    const currentMajor = parseInt(currentVersion.split('.')[0], 10);
+    const importedMajor = data.version ? parseInt(data.version.split('.')[0], 10) : NaN;
+
+    if (!isNaN(importedMajor) && !isNaN(currentMajor) && importedMajor !== currentMajor) {
+      warnings.push(
+        `备份文件版本（v${data.version}）与当前版本（v${currentVersion}）主版本号不同，部分数据可能不兼容。`
+      );
+    }
+
     // ==================== 数组长度限制 ====================
     const MAX_GROUPS = 1000;
     const MAX_LINKS = 10000;
@@ -197,8 +216,7 @@ function processData(
     if (data.groups && Array.isArray(data.groups) && data.groups.length > MAX_GROUPS) {
       throw new Error(`分组数量超出限制（最多 ${MAX_GROUPS} 个，实际 ${data.groups.length} 个）`);
     }
-    
-    // 验证书签数量（包含链接和文字记录）
+
     if (data.bookmarks && Array.isArray(data.bookmarks)) {
       const linkCount = data.bookmarks.filter((b: { type?: string }) => b.type === 'link').length;
       if (linkCount > MAX_LINKS) {
@@ -246,7 +264,6 @@ function processData(
     }
 
     if (data.bookmarks) {
-      // 验证bookmarks数组中的链接类型数据
       const linkBookmarks = data.bookmarks.filter((b: { type?: string }) => b.type === 'link');
       for (const link of linkBookmarks) {
         if (typeof link !== 'object' || link === null) {
@@ -279,7 +296,6 @@ function processData(
         }
       }
 
-      // 验证bookmarks数组中的文字记录类型数据
       const textBookmarks = data.bookmarks.filter((b: { type?: string }) => b.type === 'text');
       const textRecordsCount = textBookmarks.length;
 
@@ -347,276 +363,76 @@ function processData(
       throw new Error('设置数据格式错误：应为对象');
     }
 
-    // 保存导入的数据
-    const importedData: Data = {
-      version: data.version || getVersion(), // 使用当前版本号
-      groups: data.groups || [],
-      bookmarks: data.bookmarks || [],
-      searchEngines: data.searchEngines || [],
-      settings: {
-        searchEngine: data.settings?.searchEngine || 'baidu',
-        darkMode: data.settings?.darkMode || 'auto',
-        hideLegalInfo: data.settings?.hideLegalInfo || false,
-        cookieConsent: data.settings?.cookieConsent ?? null
-      }
-    };
+    const importedGroups = data.groups || [];
+    const importedBookmarks = data.bookmarks || [];
+    const importedEngines = data.searchEngines || [];
 
-    if (saveData(importedData)) {
-      onSuccess(importedData);
+    let finalData: Data;
+
+    if (merge) {
+      // 合并模式：与现有数据合并，按 id 去重
+      const existing = loadData();
+
+      const existingGroupIds = new Set(existing.groups.map(g => g.id));
+      const mergedGroups = [
+        ...existing.groups,
+        ...importedGroups.filter(g => !existingGroupIds.has(g.id))
+      ];
+
+      const existingBookmarkIds = new Set(existing.bookmarks.map(b => b.id));
+      const mergedBookmarks = [
+        ...existing.bookmarks,
+        ...importedBookmarks.filter(b => !existingBookmarkIds.has(b.id))
+      ];
+
+      const existingEngineIds = new Set(existing.searchEngines.map(e => e.id));
+      const mergedEngines = [
+        ...existing.searchEngines,
+        ...importedEngines.filter(e => !existingEngineIds.has(e.id))
+      ];
+
+      finalData = {
+        version: currentVersion,
+        groups: mergedGroups,
+        bookmarks: mergedBookmarks,
+        searchEngines: mergedEngines,
+        settings: existing.settings // 合并模式保留现有设置
+      };
     } else {
-      onError(new Error('保存导入数据失败'));
+      // 覆盖模式（原有逻辑）
+      finalData = {
+        version: data.version || getVersion(),
+        groups: importedGroups,
+        bookmarks: importedBookmarks,
+        searchEngines: importedEngines,
+        settings: {
+          searchEngine: data.settings?.searchEngine || 'baidu',
+          darkMode: data.settings?.darkMode || 'auto',
+          hideLegalInfo: data.settings?.hideLegalInfo || false,
+          cookieConsent: data.settings?.cookieConsent ?? null
+        }
+      };
+    }
+
+    if (saveData(finalData)) {
+      console.log(`[DashMark] 成功导入 ${finalData.bookmarks.length} 个收藏，${finalData.groups.length} 个分组`);
+      onSuccess(finalData, warnings);
+    } else {
+      onError(new Error('保存导入数据失败，请检查存储空间是否足够'));
     }
   } catch (error) {
-    onError(error instanceof Error ? error : new Error('未知错误'));
+    const errorMessage = error instanceof Error ? error.message : '未知错误';
+    console.error(`[DashMark] 数据处理失败: ${errorMessage}`);
+    onError(new Error(errorMessage));
   }
-}
-
-// ==================== 分组操作 ====================
-
-export function getGroups(): Group[] {
-  return loadData().groups;
-}
-
-export function addGroup(name: string): Group {
-  const data = loadData();
-  const group: Group = {
-    id: generateId(),
-    name: name,
-    order: data.groups.length
-  };
-  data.groups.push(group);
-  saveData(data);
-  return group;
-}
-
-export function updateGroup(id: string, name: string): boolean {
-  const data = loadData();
-  const index = data.groups.findIndex(g => g.id === id);
-  if (index !== -1) {
-    data.groups[index].name = name;
-    saveData(data);
-    return true;
-  }
-  return false;
-}
-
-export function deleteGroup(id: string): boolean {
-  const data = loadData();
-  // 删除分组
-  data.groups = data.groups.filter(g => g.id !== id);
-  // 更新属于该分组的收藏的groupIds
-  data.bookmarks = data.bookmarks.map(bookmark => ({
-    ...bookmark,
-    groupIds: bookmark.groupIds.filter(gid => gid !== id)
-  })).filter(bookmark => bookmark.groupIds.length > 0); // 移除不再属于任何分组的收藏
-  saveData(data);
-  return true;
-}
-
-// ==================== 链接操作 ====================
-
-export function getLinks(): Link[] {
-  const data = loadData();
-  return data.bookmarks
-    .filter(b => b.type === 'link')
-    .map(b => ({
-      id: b.id,
-      title: b.title,
-      url: b.url || '',
-      groupIds: b.groupIds,
-      order: b.order
-    }));
-}
-
-export function getLinksByGroupId(groupId: string): Link[] {
-  const data = loadData();
-  return data.bookmarks
-    .filter(b => b.type === 'link' && b.groupIds.includes(groupId))
-    .map(b => ({
-      id: b.id,
-      title: b.title,
-      url: b.url || '',
-      groupIds: b.groupIds,
-      order: b.order
-    }));
-}
-
-export function getLinksWithGroups(): LinkWithGroups[] {
-  const data = loadData();
-  return data.bookmarks
-    .filter(b => b.type === 'link')
-    .map(b => ({
-      id: b.id,
-      title: b.title,
-      url: b.url || '',
-      groupIds: b.groupIds,
-      order: b.order,
-      groups: data.groups.filter(g => b.groupIds.includes(g.id))
-    }));
-}
-
-export function addLink(title: string, url: string, groupIds: string[]): Link {
-  const data = loadData();
-  const newBookmark: Bookmark = {
-    id: generateId(),
-    type: 'link',
-    title: title,
-    url: url,
-    groupIds: groupIds,
-    order: data.bookmarks.length
-  };
-  data.bookmarks.push(newBookmark);
-  saveData(data);
-  return {
-    id: newBookmark.id,
-    title: newBookmark.title,
-    url: newBookmark.url || '',
-    groupIds: newBookmark.groupIds,
-    order: newBookmark.order
-  };
-}
-
-export function updateLink(id: string, title: string, url: string, groupIds: string[]): boolean {
-  const data = loadData();
-  const index = data.bookmarks.findIndex(b => b.id === id && b.type === 'link');
-  if (index === -1) return false;
-  
-  data.bookmarks[index].title = title;
-  data.bookmarks[index].url = url;
-  data.bookmarks[index].groupIds = groupIds;
-  
-  saveData(data);
-  return true;
-}
-
-export function deleteLink(id: string): boolean {
-  const data = loadData();
-  data.bookmarks = data.bookmarks.filter(b => !(b.id === id && b.type === 'link'));
-  saveData(data);
-  return true;
-}
-
-export function batchDeleteLinks(ids: string[]): boolean {
-  const data = loadData();
-  data.bookmarks = data.bookmarks.filter(b => !(ids.includes(b.id) && b.type === 'link'));
-  saveData(data);
-  return true;
-}
-
-// ==================== 文字记录操作 ====================
-
-export function getTextRecords(): TextRecord[] {
-  const data = loadData();
-  return data.bookmarks
-    .filter(b => b.type === 'text')
-    .map(b => ({
-      id: b.id,
-      title: b.title,
-      content: b.content || '',
-      groupIds: b.groupIds,
-      order: b.order
-    }));
-}
-
-export function getTextRecordsByGroupId(groupId: string): TextRecord[] {
-  const data = loadData();
-  return data.bookmarks
-    .filter(b => b.type === 'text' && b.groupIds.includes(groupId))
-    .map(b => ({
-      id: b.id,
-      title: b.title,
-      content: b.content || '',
-      groupIds: b.groupIds,
-      order: b.order
-    }));
-}
-
-export function getTextRecordsWithGroups(): TextRecordWithGroups[] {
-  const data = loadData();
-  return data.bookmarks
-    .filter(b => b.type === 'text')
-    .map(b => ({
-      id: b.id,
-      title: b.title,
-      content: b.content || '',
-      groupIds: b.groupIds,
-      order: b.order,
-      groups: data.groups.filter(g => b.groupIds.includes(g.id))
-    }));
-}
-
-export function addTextRecord(title: string, content: string, groupIds: string[]): TextRecord {
-  const data = loadData();
-  const newBookmark: Bookmark = {
-    id: generateId(),
-    type: 'text',
-    title: title,
-    content: content,
-    groupIds: groupIds,
-    order: data.bookmarks.length
-  };
-  data.bookmarks.push(newBookmark);
-  saveData(data);
-  return {
-    id: newBookmark.id,
-    title: newBookmark.title,
-    content: newBookmark.content || '',
-    groupIds: newBookmark.groupIds,
-    order: newBookmark.order
-  };
-}
-
-export function updateTextRecord(id: string, title: string, content: string, groupIds: string[]): boolean {
-  const data = loadData();
-  const index = data.bookmarks.findIndex(b => b.id === id && b.type === 'text');
-  if (index !== -1) {
-    data.bookmarks[index].title = title;
-    data.bookmarks[index].content = content;
-    data.bookmarks[index].groupIds = groupIds;
-    saveData(data);
-    return true;
-  }
-  return false;
-}
-
-export function deleteTextRecord(id: string): boolean {
-  const data = loadData();
-  data.bookmarks = data.bookmarks.filter(b => !(b.id === id && b.type === 'text'));
-  saveData(data);
-  return true;
-}
-
-export function batchDeleteTextRecords(ids: string[]): boolean {
-  const data = loadData();
-  data.bookmarks = data.bookmarks.filter(b => !(ids.includes(b.id) && b.type === 'text'));
-  saveData(data);
-  return true;
-}
-
-// ==================== 设置操作 ====================
-
-export function getSettings(): Settings {
-  return loadData().settings;
-}
-
-export function updateSettings(settings: Partial<Settings>): Settings {
-  const data = loadData();
-  data.settings = {
-    ...data.settings,
-    ...settings
-  };
-  saveData(data);
-  return data.settings;
 }
 
 // ==================== 搜索引擎操作 ====================
 
 export function getAllSearchEngines(): SearchEngine[] {
   const data = loadData();
-  // 合并预设和用户自定义搜索引擎
   const allEngines: SearchEngine[] = [...DEFAULT_SEARCH_ENGINES];
 
-  // 确保用户自定义搜索引擎有ID
   data.searchEngines.forEach((engine, index) => {
     if (!engine.id) {
       engine.id = 'custom_' + Date.now() + '_' + index;
@@ -659,9 +475,8 @@ export function updateSearchEngine(id: string, name: string, url: string): boole
 export function deleteSearchEngine(id: string): boolean {
   const data = loadData();
 
-  // 如果删除的是当前使用的搜索引擎，切换到默认的 Google
   if (data.settings.searchEngine === id) {
-    data.settings.searchEngine = 'google';
+    data.settings.searchEngine = 'baidu';
   }
 
   data.searchEngines = data.searchEngines.filter(e => e.id !== id);

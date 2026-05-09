@@ -1,3 +1,4 @@
+/* eslint-disable react-refresh/only-export-components */
 import React, { createContext, useContext, useState, useCallback, useMemo, type ReactNode } from 'react';
 import type { Data, Settings, Group, SearchEngine, Bookmark } from '../types';
 import * as storage from '../utils/storage';
@@ -44,7 +45,7 @@ interface DataContextType {
 
   // 导入导出
   exportData: () => void;
-  importData: (file: File, onSuccess: () => void, onError: (error: Error) => void) => void;
+  importData: (file: File, onSuccess: (warnings: string[]) => void, onError: (error: Error) => void, merge?: boolean) => void;
 
   // 清除数据
   clearAllData: () => void;
@@ -68,7 +69,7 @@ interface DataProviderProps {
 export const DataProvider: React.FC<DataProviderProps> = ({ children }) => {
   const [data, setData] = useState<Data>(() => {
     const loadedData = storage.loadData();
-    
+
     // 检查版本是否需要升级
     const currentVersion = getVersion();
     if (loadedData.version !== currentVersion) {
@@ -80,11 +81,9 @@ export const DataProvider: React.FC<DataProviderProps> = ({ children }) => {
       storage.saveData(upgradedData);
       return upgradedData;
     }
-    
+
     return loadedData;
   });
-  // 使用 useMemo 优化 data 对象的引用稳定性
-  const memoizedData = useMemo(() => data, [data]);
 
   // 刷新数据（从 localStorage 重新加载）
   const refreshData = useCallback(() => {
@@ -346,11 +345,11 @@ export const DataProvider: React.FC<DataProviderProps> = ({ children }) => {
   const deleteSearchEngine = useCallback((id: string) => {
     let newSettings = data.settings;
 
-    // 如果删除的是当前使用的搜索引擎，切换到默认的 Google
+    // 如果删除的是当前使用的搜索引擎，切换到默认的百度
     if (data.settings.searchEngine === id) {
       newSettings = {
         ...data.settings,
-        searchEngine: 'google'
+        searchEngine: 'baidu'
       };
     }
 
@@ -385,7 +384,14 @@ export const DataProvider: React.FC<DataProviderProps> = ({ children }) => {
     const newData = {
       ...data,
       bookmarks: data.bookmarks ? data.bookmarks.map(b =>
-        b.id === id ? { ...b, type, title, groupIds, url, content } : b
+        b.id === id ? {
+          ...b,
+          type,
+          title,
+          groupIds,
+          ...(url !== undefined ? { url } : {}),
+          ...(content !== undefined ? { content } : {}),
+        } : b
       ) : []
     };
     saveData(newData);
@@ -436,14 +442,15 @@ export const DataProvider: React.FC<DataProviderProps> = ({ children }) => {
     storage.exportData();
   }, []);
 
-  const importData = useCallback((file: File, onSuccess: () => void, onError: (error: Error) => void) => {
+  const importData = useCallback((file: File, onSuccess: (warnings: string[]) => void, onError: (error: Error) => void, merge?: boolean) => {
     storage.importData(
       file,
-      (importedData) => {
+      (importedData, warnings) => {
         setData(importedData);
-        onSuccess();
+        onSuccess(warnings);
       },
-      onError
+      onError,
+      merge
     );
   }, []);
 
@@ -455,7 +462,7 @@ export const DataProvider: React.FC<DataProviderProps> = ({ children }) => {
 
   // 使用 useMemo 优化 context value 的引用稳定性
   const contextValue = useMemo<DataContextType>(() => ({
-    data: memoizedData,
+    data,
     refreshData,
     addGroup,
     updateGroup,
@@ -484,7 +491,7 @@ export const DataProvider: React.FC<DataProviderProps> = ({ children }) => {
     importData,
     clearAllData,
   }), [
-    memoizedData,
+    data,
     refreshData,
     addGroup,
     updateGroup,

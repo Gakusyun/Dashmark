@@ -1,7 +1,7 @@
 import React, { Component } from 'react';
 import type { ReactNode } from 'react';
 import { Box, Typography, Button, Container } from '@mui/material';
-import { ErrorOutline } from '@mui/icons-material';
+import { ErrorOutlineOutlined } from '@mui/icons-material';
 
 interface ErrorBoundaryProps {
   children: ReactNode;
@@ -74,7 +74,7 @@ export class ErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoundarySt
               gap: 3
             }}
           >
-            <ErrorOutline
+            <ErrorOutlineOutlined
               sx={{
                 fontSize: 80,
                 color: 'error.main'

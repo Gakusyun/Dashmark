@@ -72,11 +72,16 @@ export function useBatchSelection<T>({
   }, []);
 
   /**
-   * 全选所有项目
+   * 全选/取消全选所有项目
    */
   const selectAll = useCallback(() => {
-    const allIds = items.map(getItemId);
-    setSelectedIds(new Set(allIds));
+    setSelectedIds(prev => {
+      const allIds = items.map(getItemId);
+      if (prev.size === allIds.length) {
+        return new Set();
+      }
+      return new Set(allIds);
+    });
   }, [items, getItemId]);
 
   /**

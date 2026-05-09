@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Box, Container, Typography, Toolbar, AppBar, IconButton, Grid, TextField } from '@mui/material';
-import { Settings as SettingsIcon } from '@mui/icons-material';
+import { Box, Container, Typography, Toolbar, AppBar, IconButton, Grid, TextField, InputAdornment, Fab } from '@mui/material';
+import { Settings as SettingsIcon, Close as CloseIcon, Add as AddIcon } from '@mui/icons-material';
 import { useData } from './contexts/DataContext';
 import { SearchBox } from './components/SearchBox';
 import { GroupSection, AllBookmarks } from './components/GroupSection';
@@ -11,7 +11,10 @@ import Clarity from '@microsoft/clarity';
 type ViewMode = 'all' | 'group' | null;
 type SelectedGroup = string | 'all' | null;
 
-const projectId = "vay8fvwhta"
+const projectId = import.meta.env.VITE_CLARITY_PROJECT_ID || "vay8fvwhta";
+
+// 防止重复初始化 Clarity
+let clarityInitialized = false;
 
 const App: React.FC = () => {
   const { data, updateSettings } = useData();
@@ -20,6 +23,7 @@ const App: React.FC = () => {
   const [selectedGroup, setSelectedGroup] = useState<SelectedGroup>(null);
   const [searchQuery, setSearchQuery] = useState('');
   const [showConsent, setShowConsent] = useState(false);
+  const [autoAdd, setAutoAdd] = useState(0);
   const { confirm, ConfirmDialog } = useConfirmDialog();
 
   // 创建一个ref来存储updateSettings函数，避免在useEffect依赖中引起循环
@@ -38,51 +42,108 @@ const App: React.FC = () => {
       }, 0);
       return () => clearTimeout(timer);
     } else if (data.settings.cookieConsent === true) {
-      // 用户已同意，初始化Clarity
-      Clarity.init(projectId);
+      // 用户已同意，初始化Clarity（带错误处理）
+      if (!clarityInitialized) {
+        try {
+          Clarity.init(projectId);
+          clarityInitialized = true;
+          console.log('[DashMark] Clarity 分析已初始化');
+        } catch (error) {
+          console.warn('[DashMark] Clarity 初始化失败（可能是广告拦截器）:', error);
+          // 不影响应用正常使用
+        }
+      }
     }
     // 如果用户拒绝（false），则不初始化Clarity
   }, [data.settings.cookieConsent]);
+
+  // 全局键盘快捷键
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      // Ctrl+K: 聚焦页内搜索
+      if ((e.ctrlKey || e.metaKey) && e.key === 'k') {
+        e.preventDefault();
+        const searchInput = document.getElementById('dashmark-search');
+        if (searchInput) {
+          (searchInput as HTMLInputElement).focus();
+        }
+        return;
+      }
+
+      // /: 聚焦页内搜索（仅当焦点不在输入框中时）
+      if (e.key === '/' && !['INPUT', 'TEXTAREA'].includes((e.target as HTMLElement)?.tagName)) {
+        e.preventDefault();
+        const searchInput = document.getElementById('dashmark-search');
+        if (searchInput) {
+          (searchInput as HTMLInputElement).focus();
+        }
+        return;
+      }
+
+      // Escape: 关闭管理面板
+      if (e.key === 'Escape') {
+        if (managePanelOpen) {
+          setManagePanelOpen(false);
+        }
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [managePanelOpen]);
 
   useEffect(() => {
     if (showConsent) {
       const handleConfirm = () => {
         updateSettingsRef.current({ cookieConsent: true });
-        // 初始化Clarity
-        Clarity.init(projectId);
-        setShowConsent(false); // 重置状态以防止重复显示
-      };
-      
-      const handleCancel = () => {
-        updateSettingsRef.current({ cookieConsent: false });
-        setShowConsent(false); // 重置状态以防止重复显示
+        // 初始化Clarity（带错误处理）
+        if (!clarityInitialized) {
+          try {
+            Clarity.init(projectId);
+            clarityInitialized = true;
+            console.log('[DashMark] Clarity 分析已初始化');
+          } catch (error) {
+            console.warn('[DashMark] Clarity 初始化失败（可能是广告拦截器）:', error);
+          }
+        }
+        setShowConsent(false);
       };
 
-      confirm({
-        title: 'Cookie 同意',
-        content: '我们使用 Microsoft Clarity 来分析网站使用情况，以改善用户体验。是否同意使用 Cookie 进行分析？（可在设置中随时关闭）',
-        confirmText: '同意',
-        cancelText: '拒绝',
-        confirmColor: 'primary',
-        confirmVariant: 'contained',
-        cancelVariant: 'contained',
-        confirmButtonProps: {
-          color: 'primary',
-          variant: 'contained',
-          sx: {
-            color: 'inherit' // 同意按钮字体无色
-          }
-        },
-        cancelButtonProps: {
-          color: 'primary',
-          variant: 'outlined',
-          sx: {
-            color: 'primary.main' // 拒绝按钮字体蓝色
-          }
-        },
-        onConfirm: handleConfirm,
-        onCancel: handleCancel
-      });
+      const handleCancel = () => {
+        updateSettingsRef.current({ cookieConsent: false });
+        setShowConsent(false);
+      };
+
+      // Defer to avoid setState-during-render warning
+      const timer = setTimeout(() => {
+        confirm({
+          title: 'Cookie 同意',
+          content: '我们使用 Microsoft Clarity 来分析网站使用情况，以改善用户体验。是否同意使用 Cookie 进行分析？（可在设置中随时关闭）',
+          confirmText: '同意',
+          cancelText: '拒绝',
+          confirmColor: 'primary',
+          confirmVariant: 'contained',
+          cancelVariant: 'contained',
+          confirmButtonProps: {
+            color: 'primary',
+            variant: 'contained',
+            sx: {
+              color: 'inherit'
+            }
+          },
+          cancelButtonProps: {
+            color: 'primary',
+            variant: 'outlined',
+            sx: {
+              color: 'primary.main'
+            }
+          },
+          onConfirm: handleConfirm,
+          onCancel: handleCancel
+        });
+      }, 0);
+
+      return () => clearTimeout(timer);
     }
   }, [showConsent, confirm]);
 
@@ -101,6 +162,11 @@ const App: React.FC = () => {
   const handleBack = () => {
     setViewMode(null);
     setSelectedGroup(null);
+  };
+
+  const handleFabClick = () => {
+    setAutoAdd(prev => prev + 1);
+    setManagePanelOpen(true);
   };
 
   const renderContent = () => {
@@ -164,12 +230,28 @@ const App: React.FC = () => {
               DashMark
             </Typography>
             <TextField
+              id="dashmark-search"
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               label="页内搜索"
               variant="standard"
               size='small'
               sx={{ width: 200 }}
+              slotProps={{
+                input: {
+                  endAdornment: searchQuery ? (
+                    <InputAdornment position="end">
+                      <IconButton
+                        size="small"
+                        onClick={() => setSearchQuery('')}
+                        aria-label="清除搜索"
+                      >
+                        <CloseIcon fontSize="small" />
+                      </IconButton>
+                    </InputAdornment>
+                  ) : null,
+                }
+              }}
             />
             <IconButton
               color="inherit"
@@ -219,7 +301,20 @@ const App: React.FC = () => {
         )}
       </Container>
 
-      <ManagePanel open={managePanelOpen} onClose={() => setManagePanelOpen(false)} />
+      <Fab
+        color="primary"
+        aria-label="添加收藏"
+        onClick={handleFabClick}
+        sx={{
+          position: 'fixed',
+          bottom: 16,
+          right: 16,
+        }}
+      >
+        <AddIcon />
+      </Fab>
+
+      <ManagePanel open={managePanelOpen} onClose={() => setManagePanelOpen(false)} autoAdd={autoAdd} onAutoAddConsumed={() => setAutoAdd(0)} />
       <ConfirmDialog />
     </>
   );

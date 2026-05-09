@@ -46,6 +46,10 @@ export interface Bookmark {
   url?: string;
   // 文字记录特有属性
   content?: string;
+  // v2.0 新增字段
+  tags?: string[];      // 标签
+  createdAt?: number;   // 创建时间
+  updatedAt?: number;   // 更新时间
 }
 
 export interface Data {
