@@ -18,6 +18,7 @@ import {
 } from './components/Icons';
 import { Button } from './components/ui/Button';
 import { SunIcon, MoonIcon } from './components/Icons';
+import { cn } from './utils/cn';
 import { useTheme } from './contexts/ThemeContext';
 import type { Bookmark } from './types';
 
@@ -46,6 +47,7 @@ const App: React.FC = () => {
   const [managerOpen, setManagerOpen] = useState(false);
   const [managerTab, setManagerTab] = useState<ManagerTab>('bookmarks');
   const [addNonce, setAddNonce] = useState(0);
+  const [searchPanelOpen, setSearchPanelOpen] = useState(false);
 
   const { confirm, ConfirmDialog } = useConfirmDialog();
 
@@ -175,7 +177,11 @@ const App: React.FC = () => {
           </button>
 
           <div className="min-w-0 flex-1">
-            <CommandBar query={query} onQueryChange={setQuery} />
+            <CommandBar
+              query={query}
+              onQueryChange={setQuery}
+              onPanelOpenChange={setSearchPanelOpen}
+            />
           </div>
 
           <div className="flex shrink-0 items-center gap-0.5 sm:gap-1">
@@ -205,44 +211,59 @@ const App: React.FC = () => {
         </div>
       </header>
 
-      <main className="mx-auto w-full max-w-6xl flex-1 px-4 py-5">
-        {isEmpty ? (
-          <WelcomeEmpty onCreate={openNewEditor} onManage={() => openManager('groups')} />
-        ) : (
-          <>
-            <div className="mb-4 flex items-center gap-3">
-              <div className="min-w-0 flex-1">
-                <GroupTabs
-                  groups={data.groups}
-                  active={effectiveGroup}
-                  counts={counts}
-                  totalCount={data.bookmarks.length}
-                  onChange={setActiveGroup}
-                />
+      <main className="mx-auto flex w-full max-w-6xl flex-1 flex-col px-4 py-5">
+        {/* 搜索建议展开时弱化下方内容，把注意力集中到结果上。
+            使用模糊 + 降低不透明度，在浅色与深色下都能形成清晰的前后层次。 */}
+        <div
+          className={cn(
+            'transition-[opacity,filter] duration-200',
+            searchPanelOpen && trimmedQuery
+              ? 'pointer-events-none opacity-30 blur-[2px] select-none'
+              : 'opacity-100 blur-0'
+          )}
+          aria-hidden={searchPanelOpen && Boolean(trimmedQuery)}
+        >
+          {isEmpty ? (
+            <WelcomeEmpty onCreate={openNewEditor} onManage={() => openManager('groups')} />
+          ) : (
+            <>
+              <div className="mb-4 flex items-center gap-3">
+                <div className="min-w-0 flex-1">
+                  <GroupTabs
+                    groups={data.groups}
+                    active={effectiveGroup}
+                    counts={counts}
+                    totalCount={data.bookmarks.length}
+                    onChange={setActiveGroup}
+                  />
+                </div>
+                <span className="hidden shrink-0 sm:inline-flex">
+                  <Button variant="ghost" size="sm" onClick={() => openManager('bookmarks')}>
+                    管理
+                  </Button>
+                </span>
               </div>
-              <span className="hidden shrink-0 sm:inline-flex">
-                <Button variant="ghost" size="sm" onClick={() => openManager('bookmarks')}>
-                  管理
-                </Button>
-              </span>
-            </div>
 
-            {trimmedQuery && (
-              <p className="mb-3 text-xs text-slate-400 dark:text-slate-500">
-                找到 {visible.length} 个匹配「{trimmedQuery}」的收藏
-              </p>
-            )}
+              {trimmedQuery && (
+                <p className="mb-3 text-xs text-slate-400 dark:text-slate-500">
+                  找到 {visible.length} 个匹配「{trimmedQuery}」的收藏
+                </p>
+              )}
 
-            <BookmarkGrid
-              bookmarks={visible}
-              searching={Boolean(trimmedQuery)}
-              onEdit={openEditEditor}
-              onAdd={openNewEditor}
-            />
-          </>
-        )}
+              <BookmarkGrid
+                bookmarks={visible}
+                searching={Boolean(trimmedQuery)}
+                onEdit={openEditEditor}
+                onAdd={openNewEditor}
+              />
+            </>
+          )}
+        </div>
 
-        {!data.settings.hideLegalInfo && <Footer />}
+        {/* 页脚不参与搜索时的弱化处理，始终保持可读；mt-auto 使其贴住视口底部 */}
+        <div className="mt-auto pt-10">
+          {!data.settings.hideLegalInfo && <Footer />}
+        </div>
       </main>
 
       <BookmarkEditor
@@ -328,7 +349,7 @@ function WelcomeEmpty({
 
 function Footer() {
   return (
-    <footer className="mt-10 border-t border-slate-200 py-5 text-center text-xs text-slate-400 dark:border-slate-800 dark:text-slate-500">
+    <footer className="mt-auto border-t border-slate-200 pt-5 pb-2 text-center text-xs text-slate-400 dark:border-slate-800 dark:text-slate-500">
       <div className="flex flex-col items-center gap-1">
         <a
           href="https://beian.miit.gov.cn/"

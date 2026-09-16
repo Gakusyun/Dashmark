@@ -85,6 +85,9 @@ src/
 
 ## 设计约定
 
+> 完整的样式规范（色彩、圆角、间距、层级、禁止事项）见根目录 **[`STYLE.md`](./STYLE.md)**，
+> 改动 UI 前请先阅读。以下仅列关键原则。
+
 - **色彩**：中性灰基底 + 单一强调色 indigo（`indigo-600`）。语义色仅用于状态
   （rose=危险、emerald=成功、amber=警告）。不要为装饰引入新色相。
 - **图标**：全部经 `components/Icons.tsx` 导入，按语义命名（如 `PlusIcon`、`TrashIcon`）。
@@ -94,7 +97,7 @@ src/
 - **交互可达性**：
   - 所有仅图标按钮必须有 `aria-label`。
   - 卡片等可点击的 `div` 需带 `role="button"`、`tabIndex={0}` 与 Enter/Space 处理。
-  - 键盘焦点样式由 `index.css` 的 `:focus-visible` 统一提供。
+  - 键盘焦点样式由 `index.css` 的 `:focus-visible` 统一提供（输入类元素除外）。
 - **动效**：使用 `animate-fade-in` / `animate-rise` / `animate-pop`。已全局尊重
   `prefers-reduced-motion`。
 - **性能**：拼音库（`pinyin-pro`，约 300KB）必须保持动态加载，经 `usePinyin` 按需引入。
@@ -126,6 +129,13 @@ src/
 5. **搜索打分**
    `searchScorer.ts` 按 token 做 AND 匹配，任一 token 未命中即整体不匹配。
    修改打分权重时注意保持"标题 > 网址 > 正文 > 拼音 > 分组名"的优先级。
+
+6. **输入框的双框问题**
+   全局 `:focus-visible` 会给元素加 outline。输入类元素自身已用边框变色表达焦点，
+   若再叠 outline 或额外的 ring 就会出现"双框"。
+   → `index.css` 已将 `input/textarea/select` 从 `:focus-visible` 中排除；
+   命令栏等复合输入框统一用 `focus:outline-none focus-visible:outline-none` 并只保留
+   外层容器的单一边框 + 淡 ring。
 
 ## 测试
 

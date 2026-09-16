@@ -36,23 +36,21 @@ export function BookmarkGrid({ bookmarks, searching, onEdit, onAdd }: BookmarkGr
   }
 
   return (
-    <>
-      <div className="grid grid-cols-1 items-start gap-2.5 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
-        {sorted.map((bookmark) =>
-          bookmark.type === 'link' ? (
-            <BookmarkCard key={bookmark.id} bookmark={bookmark} onEdit={onEdit} />
-          ) : (
-            <TextRecordCard
-              key={bookmark.id}
-              bookmark={bookmark}
-              open={openTextId === bookmark.id}
-              onOpen={() => setOpenTextId(bookmark.id)}
-              onClose={() => setOpenTextId(null)}
-            />
-          )
-        )}
-      </div>
-    </>
+    <div className="grid grid-cols-2 gap-2.5 sm:gap-3 lg:grid-cols-3 xl:grid-cols-4">
+      {sorted.map((bookmark) =>
+        bookmark.type === 'link' ? (
+          <BookmarkCard key={bookmark.id} bookmark={bookmark} onEdit={onEdit} />
+        ) : (
+          <TextRecordCard
+            key={bookmark.id}
+            bookmark={bookmark}
+            open={openTextId === bookmark.id}
+            onOpen={() => setOpenTextId(bookmark.id)}
+            onClose={() => setOpenTextId(null)}
+          />
+        )
+      )}
+    </div>
   );
 }
 

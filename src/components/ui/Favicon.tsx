@@ -39,18 +39,30 @@ export function Favicon({ url, title, size = 32, className }: FaviconProps) {
   }
 
   return (
-    <img
-      src={src}
-      alt=""
-      aria-hidden="true"
-      width={size}
-      height={size}
-      loading="lazy"
-      decoding="async"
-      referrerPolicy="no-referrer"
-      onError={() => setFailed(true)}
-      className={cn('shrink-0 rounded-md object-contain', className)}
+    <span
+      className={cn(
+        'flex shrink-0 items-center justify-center overflow-hidden rounded-lg',
+        // 浅色下用极淡底区分白底图标；深色下用低透明度的白，
+        // 既能框住各站自带的白底图标，又不会在深色卡片上过于抢眼
+        'bg-slate-50 ring-1 ring-slate-900/[0.06] dark:bg-white/[0.08] dark:ring-0',
+        className
+      )}
       style={{ width: size, height: size }}
-    />
+    >
+      <img
+        src={src}
+        alt=""
+        aria-hidden="true"
+        width={size}
+        height={size}
+        loading="lazy"
+        decoding="async"
+        referrerPolicy="no-referrer"
+        onError={() => setFailed(true)}
+        className="object-contain"
+        // 内缩一点，让图标不贴边，视觉上更像“徽章”
+        style={{ width: size * 0.68, height: size * 0.68 }}
+      />
+    </span>
   );
 }

@@ -89,7 +89,7 @@ export function BookmarkCard({ bookmark, onEdit, onOpenText }: BookmarkCardProps
           e.preventDefault();
           openMenuAt(e.clientX, e.clientY);
         }}
-        className="group relative flex cursor-pointer items-start gap-3 rounded-xl border border-slate-200 bg-white p-3.5 transition-all hover:border-slate-300 hover:shadow-md hover:shadow-slate-900/5 focus-visible:border-indigo-400 dark:border-slate-700/70 dark:bg-slate-800/60 dark:hover:border-slate-600 dark:hover:bg-slate-800"
+        className="group relative flex h-full min-h-[4.5rem] cursor-pointer items-start gap-3 rounded-xl border border-slate-200 bg-white p-3.5 transition-all hover:border-slate-300 hover:shadow-md hover:shadow-slate-900/5 focus-visible:border-indigo-400 dark:border-slate-700/70 dark:bg-slate-800/60 dark:hover:border-slate-600 dark:hover:bg-slate-800"
       >
         {isLink ? (
           <Favicon url={url} title={bookmark.title} size={32} />

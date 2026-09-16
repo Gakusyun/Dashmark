@@ -59,4 +59,4 @@ React 19 · TypeScript · Tailwind CSS v4 · Vite · Dexie (IndexedDB) · vite-p
 欢迎任何组织或个人贡献代码，也欢迎 AI 生成代码。
 
 提交前请确保 `pnpm build` 与 `pnpm lint` 通过。若你使用 AI 编码代理，请让它先阅读
-[`AGENTS.md`](./AGENTS.md) —— 其中记录了架构约定与若干容易踩的坑。
+[`AGENTS.md`](./AGENTS.md)（架构约定与易错点）与 [`STYLE.md`](./STYLE.md)（样式规范）。

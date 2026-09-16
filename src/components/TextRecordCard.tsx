@@ -65,7 +65,7 @@ export function TextRecordCard({ bookmark, open, onOpen, onClose }: TextRecordCa
             handleOpen();
           }
         }}
-        className="group flex cursor-pointer flex-col rounded-xl border border-slate-200 bg-white p-3.5 transition-all hover:border-slate-300 hover:shadow-md hover:shadow-slate-900/5 focus-visible:border-indigo-400 dark:border-slate-700/70 dark:bg-slate-800/60 dark:hover:border-slate-600"
+        className="group flex h-full min-h-[4.5rem] cursor-pointer flex-col rounded-xl border border-slate-200 bg-white p-3.5 transition-all hover:border-slate-300 hover:shadow-md hover:shadow-slate-900/5 focus-visible:border-indigo-400 dark:border-slate-700/70 dark:bg-slate-800/60 dark:hover:border-slate-600"
       >
         <div className="flex items-start gap-3">
           <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-md bg-slate-100 text-slate-500 dark:bg-slate-700 dark:text-slate-300">
