@@ -1,6 +1,5 @@
 import { useMemo, useRef, useState } from 'react';
 import { useData } from '../contexts/DataContext';
-import { useTheme } from '../contexts/ThemeContext';
 import { useToast } from '../contexts/ToastContext';
 import { useConfirmDialog } from '../hooks/useConfirmDialog';
 import { Modal } from './ui/Modal';
@@ -12,9 +11,6 @@ import {
   TrashIcon,
   ExportIcon,
   ImportIcon,
-  SunIcon,
-  MoonIcon,
-  SystemIcon,
   SearchIcon,
 } from './Icons';
 import { isValidUrl, normalizeUrl } from '../utils/urlValidator';
@@ -37,7 +33,6 @@ export function SettingsPanel() {
     refreshData,
     clearAllData,
   } = useData();
-  const { mode, setMode } = useTheme();
   const { showError, showSuccess, showWarning } = useToast();
   const { confirm, ConfirmDialog } = useConfirmDialog();
 
@@ -128,18 +123,7 @@ export function SettingsPanel() {
   return (
     <div className="space-y-8">
       {/* ============ 外观 ============ */}
-      <Section title="外观" description="决定界面使用浅色还是深色">
-        <Row label="主题">
-          <Segmented
-            value={mode}
-            onChange={(value) => setMode(value)}
-            options={[
-              { value: 'light', label: '浅色', icon: <SunIcon size={13} /> },
-              { value: 'dark', label: '深色', icon: <MoonIcon size={13} /> },
-              { value: 'auto', label: '跟随系统', icon: <SystemIcon size={13} /> },
-            ]}
-          />
-        </Row>
+      <Section title="外观" description="主题固定跟随系统设置">
         <Row label="隐藏备案信息" description="关闭页脚的公网/ICP 备案展示">
           <Switch
             label="隐藏备案信息"

@@ -17,9 +17,7 @@ import {
   BookmarkTabIcon,
 } from './components/Icons';
 import { Button } from './components/ui/Button';
-import { SunIcon, MoonIcon } from './components/Icons';
 import { cn } from './utils/cn';
-import { useTheme } from './contexts/ThemeContext';
 import type { Bookmark } from './types';
 
 const projectId = import.meta.env.VITE_CLARITY_PROJECT_ID || 'vay8fvwhta';
@@ -211,7 +209,6 @@ const App: React.FC = () => {
             >
               <SettingsIcon size={18} />
             </Button>
-            <ThemeToggle />
           </div>
         </div>
       </header>
@@ -306,23 +303,6 @@ const App: React.FC = () => {
     </>
   );
 };
-
-/** 顶栏主题快捷切换：在浅色 / 深色之间切换，跟随系统状态保留在设置里 */
-function ThemeToggle() {
-  const { actualMode, setMode } = useTheme();
-  const isDark = actualMode === 'dark';
-  return (
-    <Button
-      variant="ghost"
-      size="icon"
-      onClick={() => setMode(isDark ? 'light' : 'dark')}
-      aria-label={isDark ? '切换到浅色模式' : '切换到深色模式'}
-      title={isDark ? '切换到浅色模式' : '切换到深色模式'}
-    >
-      {isDark ? <SunIcon size={18} /> : <MoonIcon size={18} />}
-    </Button>
-  );
-}
 
 function WelcomeEmpty({
   onCreate,

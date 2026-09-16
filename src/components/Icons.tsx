@@ -52,9 +52,6 @@ export {
   Download as ExportIcon,
   Upload as ImportIcon,
   Database as DataIcon,
-  Sun as SunIcon,
-  Moon as MoonIcon,
-  MonitorSmartphone as SystemIcon,
   Palette as ThemeIcon,
   Keyboard as KeyboardIcon,
 } from 'lucide-react';

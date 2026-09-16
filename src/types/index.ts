@@ -6,6 +6,7 @@ export interface SearchEngine {
 
 export interface Settings {
   searchEngine: string;
+  /** 已废弃：主题固定跟随系统，仅保留字段以兼容旧数据与导入导出 */
   darkMode: 'light' | 'dark' | 'auto';
   hideLegalInfo?: boolean;
   cookieConsent?: boolean | null;

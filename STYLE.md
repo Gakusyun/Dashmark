@@ -101,12 +101,25 @@ dark:border-slate-600 dark:bg-black
 - 全局已尊重 `prefers-reduced-motion`，无需在组件内单独处理。
 - **不要**为纯装饰添加动画。
 
+## 主题
+
+- **主题固定跟随系统 `prefers-color-scheme`，不提供手动切换**（顶栏无按钮、设置无选项）。
+- 用 Tailwind 的 `dark:` 变体表达深色样式，由 `ThemeContext` 写入 `<html>.dark`。
+- `index.html` 内联脚本会在 React 挂载前应用 `.dark`，避免深色系统下白屏闪烁。
+
+## 拖拽排序
+
+- 统一使用 `components/DraggableItemList.tsx`，基于 Pointer Events，鼠标与触摸共用一套逻辑。
+- 拖拽中只改 DOM `transform`（被拖行跟随指针、其它行动画让位），松手才回写一次顺序，
+  避免拖拽过程中频繁写库。
+- 让位动画时长 180ms、缓动 `cubic-bezier(0.2, 0, 0, 1)`。
+
 ## 响应式
 
 - 断点只用 Tailwind 默认值，最常用 `sm:`(640) 与 `lg:`(1024)。
 - 移动端优先：先写窄屏样式，再用 `sm:`/`lg:` 增强。
 - 收藏网格列数：移动端 2 列 → `lg` 3 列 → `xl` 4 列（移动端保持两列以确保信息密度）。
-- 顶栏在窄屏收敛：`+` 按钮隐藏（由 FAB 承担），只保留 logo、命令栏、设置、主题。
+- 顶栏在窄屏收敛：`+` 按钮隐藏（由 FAB 承担），只保留 logo、命令栏、设置。
 - 管理台：桌面左导航（`sm:w-56`），移动端顶部横向导航。
 
 ## 可访问性

@@ -32,7 +32,7 @@ src/
   types/index.ts           全部领域类型（Bookmark 是核心统一类型）
   contexts/
     DataContext.tsx        唯一的数据源与全部写操作（增删改、导入导出）
-    ThemeContext.tsx       light / dark / auto 主题，写入 <html>.dark
+    ThemeContext.tsx       主题固定跟随系统（prefers-color-scheme），写入 <html>.dark
     ToastContext.tsx       轻量提示
   hooks/
     useConfirmDialog.tsx   命令式确认框，返回 confirm + ConfirmDialog
@@ -53,7 +53,7 @@ src/
     GroupManager.tsx       分组管理：增删改、排序
     SettingsPanel.tsx      设置：外观 / 搜索 / 数据
     About.tsx              关于与更新日志
-    DraggableItemList.tsx  拖拽排序（鼠标 + 触摸）
+    DraggableItemList.tsx  拖拽排序（Pointer Events，鼠标 + 触摸统一，带让位动画）
     ErrorBoundary.tsx      顶层错误边界
     Icons.tsx              图标统一出口（lucide 语义化别名）
     ui/                    通用原语：Button / Modal / Menu / Field / Favicon
@@ -73,7 +73,7 @@ src/
 - `Group { id, name, order }` — 单层分组
 - `Bookmark { id, type: 'link'|'text', title, groupIds[], order, url?, content?, tags?, createdAt?, updatedAt? }`
   — 链接与文字记录共用同一类型，用 `type` 区分
-- `Settings { searchEngine, darkMode, hideLegalInfo, cookieConsent }`
+- `Settings { searchEngine, darkMode(已废弃), hideLegalInfo, cookieConsent }`
 - `Data { version, groups, bookmarks, searchEngines, settings }`
 
 **兼容性要求（重要）**：
@@ -143,13 +143,13 @@ src/
 ## 测试
 
 项目暂无自动化测试框架。此前用 Chromium + Chrome DevTools Protocol 做过端到端冒烟验证，
-覆盖：空状态、Cookie 同意、分组/收藏的增删改、命令栏搜索与键盘导航、Esc 行为、主题切换、
+覆盖：空状态、Cookie 同意、分组/收藏的增删改、命令栏搜索与键盘导航、Esc 行为、主题跟随系统、
 管理台四个页面。修改核心交互后建议至少手动回归以下路径：
 
 - 首页 → 新建分组 → 新建链接/文字收藏 → 卡片可打开
 - 命令栏：输入过滤、↑↓ 选择、Enter 打开、Esc 清空、无匹配时提示网络搜索
 - 管理台：四个页面可切换；在弹窗内按 Esc 只关弹窗、不关管理台
-- 明暗主题切换、移动端（<640px）顶栏与 FAB 布局
+- 明暗主题跟随系统（改系统外观即时生效，无手动开关）、移动端（<640px）顶栏与 FAB 布局
 
 ## 提交前检查
 

@@ -9,6 +9,17 @@
     <meta name="theme-color" media="(prefers-color-scheme: dark)" content="#000000" />
     <meta name="description" content="DashMark —— 链接有序，即刻可达。极简的本地优先书签起始页。" />
     <title>DashMark - 极简起始页</title>
+    <script>
+      // 主题固定跟随系统：在 React 挂载前先应用 .dark，避免深色下白屏闪烁
+      try {
+        if (window.matchMedia('(prefers-color-scheme: dark)').matches) {
+          document.documentElement.classList.add('dark');
+          document.documentElement.style.colorScheme = 'dark';
+        } else {
+          document.documentElement.style.colorScheme = 'light';
+        }
+      } catch (e) {}
+    </script>
   </head>
   <body>
     <div id="root"></div>
