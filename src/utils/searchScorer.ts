@@ -1,8 +1,6 @@
-import type { Link, TextRecord } from '../types';
+import type { Bookmark, Group } from '../types';
 
-// ==================== 类型定义 ====================
-
-interface PinyinOptions {
+export interface PinyinOptions {
   toneType?: 'none' | 'symbol' | 'num';
   pattern?: 'pinyin' | 'initial' | 'final' | 'head' | 'tail';
   type?: 'array' | 'string';
@@ -13,130 +11,105 @@ export interface PinyinModule {
   pinyin(text: string, options?: PinyinOptions): string | string[];
 }
 
-// ==================== 辅助函数 ====================
+export interface SearchHit {
+  bookmark: Bookmark;
+  score: number;
+  /** 命中的字段，用于排序权重与高亮提示 */
+  matchedTitle: boolean;
+}
 
-/**
- * 将文本转换为拼音字符串
- */
-function convertToPinyin(text: string, pinyinModule: PinyinModule | null): string {
-  if (!pinyinModule) {
-    return '';
-  }
-  const pinyinResult = pinyinModule.pinyin(text, { toneType: 'none', type: 'string' });
-  return Array.isArray(pinyinResult) ? pinyinResult.join('') : pinyinResult;
+function toPinyin(text: string, module: PinyinModule | null): string {
+  if (!module) return '';
+  const result = module.pinyin(text, { toneType: 'none', type: 'string' });
+  return (Array.isArray(result) ? result.join('') : result).toLowerCase();
+}
+
+/** 查询词按空白拆分，全部子串都必须命中（AND 语义） */
+function tokensOf(query: string): string[] {
+  return query.toLowerCase().split(/\s+/).filter(Boolean);
 }
 
 /**
- * 检查文本是否包含所有搜索字符（原文匹配）
+ * 为一个收藏计算相关性得分。0 表示不匹配。
+ *
+ * 打分策略（从高到低）：
+ *   标题精确 120 / 标题前缀 90 / 标题子串 70 / 标题拼音 40
+ *   URL 子串 45 / 域名子串 35
+ *   正文子串 30 / 正文拼音 15
+ *   分组名命中 +20
  */
-function containsAllChars(text: string, queryChars: string[]): boolean {
-  const lowerText = text.toLowerCase();
-  return queryChars.every((char) => lowerText.includes(char));
-}
-
-/**
- * 检查文本的拼音是否包含所有搜索字符（拼音匹配）
- */
-function containsAllCharsInPinyin(
-  text: string,
-  queryChars: string[],
-  pinyinModule: PinyinModule | null
-): boolean {
-  if (!pinyinModule) {
-    return false;
-  }
-  const pinyinText = convertToPinyin(text, pinyinModule);
-  return queryChars.every((char) => pinyinText.toLowerCase().includes(char));
-}
-
-// ==================== 主函数 ====================
-
-/**
- * 计算搜索查询与项目内容的匹配度分数
- */
-export function calculateRelevanceScore(
-  item: Link | TextRecord,
+export function scoreBookmark(
+  bookmark: Bookmark,
   query: string,
-  _groupNames: Map<string, string>,
-  pinyinModule?: PinyinModule | null
+  groups: Group[],
+  pinyin: PinyinModule | null
 ): number {
-  if (!query.trim()) {
-    return 0;
+  const tokens = tokensOf(query);
+  if (tokens.length === 0) return 0;
+
+  const title = bookmark.title.toLowerCase();
+  const url = (bookmark.url ?? '').toLowerCase();
+  const content = (bookmark.content ?? '').toLowerCase();
+
+  const titlePinyin = pinyin ? toPinyin(bookmark.title, pinyin) : '';
+  const contentPinyin = pinyin && bookmark.type === 'text' ? toPinyin(bookmark.content ?? '', pinyin) : '';
+
+  const groupNames = groups
+    .filter((g) => bookmark.groupIds.includes(g.id))
+    .map((g) => g.name.toLowerCase());
+
+  let total = 0;
+
+  for (const token of tokens) {
+    let best = 0;
+
+    if (title === token) best = 120;
+    else if (title.startsWith(token)) best = 90;
+    else if (title.includes(token)) best = 70;
+    else if (titlePinyin && titlePinyin.includes(token)) best = 40;
+
+    if (best < 45 && url && url.includes(token)) best = 45;
+    if (best < 30 && content && content.includes(token)) best = 30;
+    if (best < 15 && contentPinyin && contentPinyin.includes(token)) best = 15;
+
+    if (best === 0 && groupNames.some((name) => name.includes(token))) best = 20;
+
+    // 任一 token 完全不命中则整体不匹配
+    if (best === 0) return 0;
+    total += best;
   }
 
-  let score = 0;
-  const lowerQuery = query.toLowerCase();
-  const queryChars = lowerQuery.split('').filter((c) => c.trim());
+  return total;
+}
 
-  // 判断项目类型
-  const hasUrl = 'url' in item;
+export interface SearchResult {
+  hits: SearchHit[];
+  /** 标题命中的数量，用于界面提示 */
+  titleMatches: number;
+}
 
-  if (hasUrl) {
-    // ==================== Link 类型 ====================
-    const link = item as Link;
+/** 在全量收藏中检索并按得分排序 */
+export function searchBookmarks(
+  bookmarks: Bookmark[],
+  query: string,
+  groups: Group[],
+  pinyin: PinyinModule | null
+): SearchResult {
+  const trimmed = query.trim();
+  if (!trimmed) return { hits: [], titleMatches: 0 };
 
-    // 标题完全匹配（最高优先级）
-    if (link.title.toLowerCase() === lowerQuery) {
-      score += 100;
-    }
-    // 标题包含完整搜索词
-    else if (link.title.toLowerCase().includes(lowerQuery)) {
-      score += 80;
-    }
-    // 标题包含所有字符
-    else if (containsAllChars(link.title, queryChars)) {
-      score += 60;
-    }
+  const hits: SearchHit[] = [];
+  let titleMatches = 0;
 
-    // URL 包含完整搜索词
-    if (link.url.toLowerCase().includes(lowerQuery)) {
-      score += 50;
-    }
-    // URL 包含所有字符
-    else if (containsAllChars(link.url, queryChars)) {
-      score += 30;
-    }
-
-    // 拼音匹配（较低优先级）
-    if (pinyinModule && containsAllCharsInPinyin(link.title, queryChars, pinyinModule)) {
-      score += 20;
-    }
-  } else {
-    // ==================== TextRecord 类型 ====================
-    const record = item as TextRecord;
-
-    // 标题完全匹配
-    if (record.title.toLowerCase() === lowerQuery) {
-      score += 100;
-    }
-    // 标题包含完整搜索词
-    else if (record.title.toLowerCase().includes(lowerQuery)) {
-      score += 80;
-    }
-    // 标题包含所有字符
-    else if (containsAllChars(record.title, queryChars)) {
-      score += 60;
-    }
-
-    // 内容包含完整搜索词
-    if (record.content.toLowerCase().includes(lowerQuery)) {
-      score += 50;
-    }
-    // 内容包含所有字符
-    else if (containsAllChars(record.content, queryChars)) {
-      score += 30;
-    }
-
-    // 拼音匹配
-    if (pinyinModule) {
-      if (containsAllCharsInPinyin(record.title, queryChars, pinyinModule)) {
-        score += 20;
-      }
-      if (containsAllCharsInPinyin(record.content, queryChars, pinyinModule)) {
-        score += 10;
-      }
+  for (const bookmark of bookmarks) {
+    const score = scoreBookmark(bookmark, trimmed, groups, pinyin);
+    if (score > 0) {
+      const matchedTitle = bookmark.title.toLowerCase().includes(trimmed.toLowerCase());
+      if (matchedTitle) titleMatches++;
+      hits.push({ bookmark, score, matchedTitle });
     }
   }
 
-  return score;
+  hits.sort((a, b) => b.score - a.score || a.bookmark.order - b.bookmark.order);
+  return { hits, titleMatches };
 }

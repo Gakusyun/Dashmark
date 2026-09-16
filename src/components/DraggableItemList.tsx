@@ -128,12 +128,12 @@ export function DraggableItemList<T>({
 
   if (items.length === 0) {
     return (
-      <p className="py-6 text-center text-slate-500 dark:text-slate-400">{emptyMessage}</p>
+      <p className="py-16 text-center text-sm text-slate-400 dark:text-slate-500">{emptyMessage}</p>
     );
   }
 
   return (
-    <ul>
+    <ul className="space-y-1.5">
       {items.map((item, index) => {
         const id = getItemId(item);
         const isSelected = selectedIds?.has(id);
@@ -154,14 +154,14 @@ export function DraggableItemList<T>({
             onDragEnd={handleDragEnd}
             onTouchMove={handleTouchMove}
             onTouchEnd={handleTouchEnd}
-            className={`flex items-center gap-1 rounded-md px-1 py-1.5 ${
-              isSelected ? 'bg-blue-50 dark:bg-blue-900/20' : ''
+            className={`flex items-center gap-2 rounded-xl border-2 bg-white px-2.5 py-2 dark:bg-slate-900/40 ${
+              isSelected ? 'bg-indigo-50 dark:bg-indigo-950/30' : ''
             } ${
               isDragOver || isTouchOver
-                ? 'border-2 border-dashed border-blue-500'
-                : 'border-2 border-transparent'
+                ? 'border-dashed border-indigo-500'
+                : 'border-transparent'
             } ${
-              isDragged || isTouchDragging ? 'rotate-3 opacity-50' : ''
+              isDragged || isTouchDragging ? 'rotate-1 opacity-60' : ''
             } cursor-grab active:cursor-grabbing`}
             style={{
               touchAction: touchDraggingIndex !== null ? 'none' : 'auto',
@@ -181,7 +181,7 @@ export function DraggableItemList<T>({
             <button
               aria-label="拖动排序"
               onTouchStart={(e) => handleTouchStart(e, index)}
-              className={`shrink-0 cursor-move rounded p-2 text-slate-500 hover:bg-slate-100 dark:text-slate-400 dark:hover:bg-slate-700 ${
+              className={`shrink-0 cursor-move rounded-md p-1.5 text-slate-400 transition-colors hover:bg-slate-100 hover:text-slate-600 dark:text-slate-500 dark:hover:bg-slate-700 dark:hover:text-slate-300 ${
                 isDragged || isTouchDragging ? 'opacity-50' : ''
               }`}
               style={{ touchAction: 'none' }}

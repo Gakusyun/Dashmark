@@ -1,29 +1,65 @@
 /**
- * 图标统一导出（基于 lucide-react，轻量、支持 tree-shaking）
- * 组件中统一从这里导入，便于后续替换图标库或调整别名。
+ * 图标统一导出
+ *
+ * 全部基于 lucide-react，按"语义"命名而非按 MUI 旧名命名。
+ * 组件只从这里导入，便于将来整体替换图标方案。
  */
 export {
+  // 导航 / 结构
   Settings as SettingsIcon,
+  Bookmark as BookmarkTabIcon,
+  FolderClosed as GroupTabIcon,
+  Info as AboutTabIcon,
+  ChevronLeft as BackIcon,
+  ChevronDown as CaretDownIcon,
+  ChevronRight as CaretRightIcon,
+  LayoutGrid as GridIcon,
+  List as ListIcon,
+  Layers as AllIcon,
+
+  // 动作
+  Plus as PlusIcon,
   X as CloseIcon,
-  Plus as AddIcon,
   Search as SearchIcon,
-  ChevronLeft as ChevronLeftIcon,
-  ChevronRight as ChevronRightIcon,
-  ChevronDown as ExpandMoreIcon,
-  ExternalLink as OpenInNewIcon,
-  Copy as ContentCopyIcon,
   Pencil as EditIcon,
-  Save as SaveIcon,
-  XCircle as CancelIcon,
-  Trash2 as DeleteIcon,
-  GripVertical as DragHandleIcon,
-  Upload as CloudUploadIcon,
-  Download as CloudDownloadIcon,
+  Trash2 as TrashIcon,
+  Copy as CopyIcon,
   Check as CheckIcon,
-  AlertCircle as ErrorOutlineIcon,
+  CheckCheck as CheckAllIcon,
+  GripVertical as DragHandleIcon,
+  Save as SaveIcon,
+  CornerDownLeft as EnterIcon,
+  ExternalLink as OpenExternalIcon,
+  MoreHorizontal as MoreIcon,
+  MoreVertical as MoreVerticalIcon,
+  Filter as FilterIcon,
+  ArrowUpDown as SortIcon,
+
+  // 状态 / 反馈
+  AlertTriangle as WarningIcon,
+  CircleAlert as ErrorIcon,
+  CircleCheck as SuccessIcon,
+  Info as InfoIcon,
+  Loader2 as SpinnerIcon,
+
+  // 内容类型
+  Link2 as LinkIcon,
+  FileText as TextIcon,
+  Globe as GlobeIcon,
+  Lock as LockIcon,
+
+  // 数据
+  Download as ExportIcon,
+  Upload as ImportIcon,
+  Database as DataIcon,
+  Sun as SunIcon,
+  Moon as MoonIcon,
+  MonitorSmartphone as SystemIcon,
+  Palette as ThemeIcon,
+  Keyboard as KeyboardIcon,
 } from 'lucide-react';
 
-// lucide 已移除品牌图标，GitHub 图标使用官方 SVG path 内联
+/** GitHub 官方图标（lucide 不含品牌图标） */
 export const GitHubIcon = ({ size = 20, className }: { size?: number; className?: string }) => (
   <svg
     width={size}

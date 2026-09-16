@@ -27,7 +27,6 @@ package-lock.json
 pnpm-lock.yaml
 
 # Ai
-AGENTS.md
 IFLOW.md
 CLAUDE.md
 .omc/

@@ -1,4 +1,4 @@
-@import url('https://font.sec.miui.com/font/css?family=MiSans:400,700:MiSans');
+@import url('https://font.sec.miui.com/font/css?family=MiSans:400,500,600,700:MiSans');
 @import 'tailwindcss';
 
 /* 启用基于 class 的暗色模式（由 ThemeContext 控制 <html>.dark） */
@@ -8,6 +8,25 @@
   --font-sans:
     'MiSans', 'PingFang SC', 'Microsoft YaHei', system-ui, -apple-system,
     'BlinkMacSystemFont', 'Segoe UI', 'Helvetica Neue', Arial, sans-serif;
+
+  /* 语义化色板：以中性灰为基底，单一强调色 */
+  --color-canvas: #f6f7f9;
+  --color-canvas-dark: #0c0d10;
+  --color-surface: #ffffff;
+  --color-surface-dark: #16181d;
+  --color-surface-raised-dark: #1d2027;
+  --color-line: #e6e8ec;
+  --color-line-dark: #262a33;
+  --color-ink: #14161a;
+  --color-ink-dark: #f2f4f7;
+  --color-muted: #6b7280;
+  --color-muted-dark: #8b929e;
+  --color-accent: #4f46e5;
+  --color-accent-hover: #4338ca;
+  --color-accent-soft: #eef0ff;
+  --color-accent-soft-dark: #1e1b4b;
+
+  --radius-card: 0.875rem;
 }
 
 html,
@@ -21,6 +40,12 @@ body {
   font-family: var(--font-sans);
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
+  background-color: var(--color-canvas);
+  overscroll-behavior-y: none;
+}
+
+.dark body {
+  background-color: var(--color-canvas-dark);
 }
 
 #root {
@@ -29,18 +54,91 @@ body {
   flex-direction: column;
 }
 
-/* 确保链接继承颜色 */
 a {
   color: inherit;
   text-decoration: none;
 }
 
-/* 隐藏滚动条 */
-* {
-  scrollbar-width: none; /* Firefox */
-  -ms-overflow-style: none; /* IE/Edge */
+/* 隐藏滚动条但保留滚动能力 */
+.scrollbar-none {
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+.scrollbar-none::-webkit-scrollbar {
+  display: none;
 }
 
-*::-webkit-scrollbar {
-  display: none; /* Chrome/Safari */
+/* 细滚动条（用于管理面板等需要指示滚动位置的区域） */
+.scrollbar-thin {
+  scrollbar-width: thin;
+  scrollbar-color: rgb(148 163 184 / 0.4) transparent;
+}
+.scrollbar-thin::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+.scrollbar-thin::-webkit-scrollbar-thumb {
+  border-radius: 9999px;
+  background-color: rgb(148 163 184 / 0.4);
+}
+.scrollbar-thin::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+/* 统一的键盘焦点样式 */
+:focus-visible {
+  outline: 2px solid var(--color-accent);
+  outline-offset: 2px;
+}
+
+/* 尊重用户的减少动效偏好 */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}
+
+@keyframes dm-fade-in {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes dm-rise {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes dm-pop {
+  from {
+    opacity: 0;
+    transform: scale(0.97);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+.animate-fade-in {
+  animation: dm-fade-in 0.15s ease-out;
+}
+.animate-rise {
+  animation: dm-rise 0.18s ease-out;
+}
+.animate-pop {
+  animation: dm-pop 0.14s ease-out;
 }

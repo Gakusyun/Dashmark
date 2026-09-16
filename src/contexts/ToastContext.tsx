@@ -1,4 +1,16 @@
-import { createContext, useContext, useState, useCallback, useEffect, type ReactNode } from 'react';
+/* eslint-disable react-refresh/only-export-components */
+import {
+  createContext,
+  useContext,
+  useState,
+  useCallback,
+  useEffect,
+  useMemo,
+  type ReactNode,
+} from 'react';
+import { createPortal } from 'react-dom';
+import { cn } from '../utils/cn';
+import { CheckIcon, CloseIcon, ErrorIcon, InfoIcon, WarningIcon } from '../components/Icons';
 
 export type ToastSeverity = 'success' | 'error' | 'warning' | 'info';
 
@@ -6,11 +18,11 @@ interface Toast {
   id: string;
   message: string;
   severity: ToastSeverity;
-  autoHideDuration?: number;
+  duration: number;
 }
 
 interface ToastContextType {
-  showToast: (message: string, severity?: ToastSeverity, autoHideDuration?: number) => void;
+  showToast: (message: string, severity?: ToastSeverity, duration?: number) => void;
   showSuccess: (message: string) => void;
   showError: (message: string) => void;
   showWarning: (message: string) => void;
@@ -21,91 +33,80 @@ const ToastContext = createContext<ToastContextType | undefined>(undefined);
 
 export const useToast = () => {
   const context = useContext(ToastContext);
-  if (!context) {
-    throw new Error('useToast must be used within ToastProvider');
-  }
+  if (!context) throw new Error('useToast must be used within ToastProvider');
   return context;
 };
 
-const severityClasses: Record<ToastSeverity, string> = {
-  success: 'bg-green-600 text-white',
-  error: 'bg-red-600 text-white',
-  warning: 'bg-amber-500 text-white',
-  info: 'bg-blue-600 text-white',
+const severityStyles: Record<ToastSeverity, { icon: ReactNode; ring: string }> = {
+  success: { icon: <CheckIcon size={15} />, ring: 'text-emerald-600 dark:text-emerald-400' },
+  error: { icon: <ErrorIcon size={15} />, ring: 'text-rose-600 dark:text-rose-400' },
+  warning: { icon: <WarningIcon size={15} />, ring: 'text-amber-600 dark:text-amber-400' },
+  info: { icon: <InfoIcon size={15} />, ring: 'text-indigo-600 dark:text-indigo-400' },
 };
 
-const severityIcons: Record<ToastSeverity, string> = {
-  success: '✓',
-  error: '✕',
-  warning: '⚠',
-  info: 'ℹ',
-};
+export const ToastProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
+  const [toasts, setToasts] = useState<Toast[]>([]);
 
-interface ToastProviderProps {
-  children: ReactNode;
-}
-
-export const ToastProvider: React.FC<ToastProviderProps> = ({ children }) => {
-  const [toast, setToast] = useState<Toast | null>(null);
+  const dismiss = useCallback((id: string) => {
+    setToasts((prev) => prev.filter((t) => t.id !== id));
+  }, []);
 
   const showToast = useCallback(
-    (message: string, severity: ToastSeverity = 'info', autoHideDuration: number = 4000) => {
-      const id = Date.now().toString();
-      setToast({ id, message, severity, autoHideDuration });
+    (message: string, severity: ToastSeverity = 'info', duration: number = 3200) => {
+      const id = Math.random().toString(36).slice(2);
+      setToasts((prev) => [...prev.slice(-2), { id, message, severity, duration }]);
     },
     []
   );
 
-  const showSuccess = useCallback((message: string) => showToast(message, 'success'), [showToast]);
-  const showError = useCallback((message: string) => showToast(message, 'error'), [showToast]);
-  const showWarning = useCallback((message: string) => showToast(message, 'warning'), [showToast]);
-  const showInfo = useCallback((message: string) => showToast(message, 'info'), [showToast]);
-
-  const handleClose = useCallback(() => {
-    setToast(null);
-  }, []);
-
-  const value: ToastContextType = {
-    showToast,
-    showSuccess,
-    showError,
-    showWarning,
-    showInfo,
-  };
+  const value = useMemo<ToastContextType>(
+    () => ({
+      showToast,
+      showSuccess: (m) => showToast(m, 'success'),
+      showError: (m) => showToast(m, 'error'),
+      showWarning: (m) => showToast(m, 'warning'),
+      showInfo: (m) => showToast(m, 'info'),
+    }),
+    [showToast]
+  );
 
   return (
     <ToastContext.Provider value={value}>
       {children}
-      {toast && (
-        <div className="fixed bottom-6 left-1/2 z-[10000] -translate-x-1/2">
-          <div
-            key={toast.id}
-            className={`flex items-center gap-2 rounded-md px-4 py-3 text-sm font-medium shadow-lg ${severityClasses[toast.severity]}`}
-            role="alert"
-          >
-            <span className="flex h-5 w-5 items-center justify-center rounded-full bg-white/20 text-xs font-bold">
-              {severityIcons[toast.severity]}
-            </span>
-            <span>{toast.message}</span>
-            <button
-              onClick={handleClose}
-              className="ml-2 rounded p-0.5 opacity-70 hover:opacity-100"
-              aria-label="关闭"
-            >
-              ✕
-            </button>
-          </div>
-        </div>
+      {createPortal(
+        <div className="pointer-events-none fixed inset-x-0 bottom-0 z-[9999] flex flex-col items-center gap-2 p-4">
+          {toasts.map((toast) => (
+            <ToastItem key={toast.id} toast={toast} onDismiss={dismiss} />
+          ))}
+        </div>,
+        document.body
       )}
-      {toast && <AutoCloseToast duration={toast.autoHideDuration || 4000} onClose={handleClose} />}
     </ToastContext.Provider>
   );
 };
 
-function AutoCloseToast({ duration, onClose }: { duration: number; onClose: () => void }) {
+function ToastItem({ toast, onDismiss }: { toast: Toast; onDismiss: (id: string) => void }) {
+  const { icon, ring } = severityStyles[toast.severity];
+
   useEffect(() => {
-    const t = setTimeout(onClose, duration);
-    return () => clearTimeout(t);
-  }, [duration, onClose]);
-  return null;
+    const timer = setTimeout(() => onDismiss(toast.id), toast.duration);
+    return () => clearTimeout(timer);
+  }, [toast, onDismiss]);
+
+  return (
+    <div
+      role="status"
+      className="animate-rise pointer-events-auto flex max-w-md items-center gap-2.5 rounded-xl border border-slate-200 bg-white py-2.5 pr-2 pl-3.5 shadow-lg shadow-slate-900/10 dark:border-slate-700 dark:bg-slate-800"
+    >
+      <span className={cn('shrink-0', ring)}>{icon}</span>
+      <span className="flex-1 text-sm text-slate-700 dark:text-slate-200">{toast.message}</span>
+      <button
+        onClick={() => onDismiss(toast.id)}
+        aria-label="关闭提示"
+        className="rounded-md p-1 text-slate-400 transition-colors hover:bg-slate-100 hover:text-slate-600 dark:hover:bg-slate-700"
+      >
+        <CloseIcon size={14} />
+      </button>
+    </div>
+  );
 }

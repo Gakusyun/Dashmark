@@ -1,115 +1,87 @@
-import { useState, useCallback, useMemo, type ButtonHTMLAttributes } from 'react';
-import { DialogBox } from '../components/DialogBox';
+import { useState, useCallback, useRef, type ReactNode } from 'react';
+import { Modal } from '../components/ui/Modal';
+import { Button } from '../components/ui/Button';
 
-/**
- * 确认对话框选项
- */
 export interface ConfirmOptions {
   title: string;
-  content?: string;
-  onConfirm: () => void;
-  onCancel?: () => void;
+  content?: ReactNode;
   confirmText?: string;
   cancelText?: string;
-  confirmColor?: 'error' | 'primary' | 'warning' | 'success' | 'info';
-  confirmVariant?: 'solid' | 'outline' | 'ghost';
-  cancelVariant?: 'solid' | 'outline' | 'ghost';
-  confirmButtonProps?: ButtonHTMLAttributes<HTMLButtonElement>;
-  cancelButtonProps?: ButtonHTMLAttributes<HTMLButtonElement>;
-}
-
-interface ConfirmDialogState {
-  open: boolean;
-  title: string;
-  content: string;
+  tone?: 'danger' | 'primary';
   onConfirm: () => void;
   onCancel?: () => void;
-  confirmText: string;
-  cancelText: string;
-  confirmColor: ConfirmOptions['confirmColor'];
-  confirmVariant: ConfirmOptions['confirmVariant'];
-  cancelVariant: ConfirmOptions['cancelVariant'];
-  confirmButtonProps: ButtonHTMLAttributes<HTMLButtonElement> | undefined;
-  cancelButtonProps: ButtonHTMLAttributes<HTMLButtonElement> | undefined;
 }
 
-interface UseConfirmDialogReturn {
-  confirm: (options: ConfirmOptions) => void;
-  ConfirmDialog: React.ComponentType;
+interface ConfirmState extends ConfirmOptions {
+  open: boolean;
 }
+
+const INITIAL: ConfirmState = {
+  open: false,
+  title: '',
+  confirmText: '确定',
+  cancelText: '取消',
+  tone: 'danger',
+  onConfirm: () => {},
+};
 
 /**
- * 确认对话框Hook
+ * 命令式确认框。返回 `confirm` 触发函数与需要挂载的 `ConfirmDialog` 组件。
  */
-export function useConfirmDialog(): UseConfirmDialogReturn {
-  const [state, setState] = useState<ConfirmDialogState>({
-    open: false,
-    title: '',
-    content: '',
-    onConfirm: () => {},
-    confirmText: '删除',
-    cancelText: '取消',
-    confirmColor: 'error',
-    confirmVariant: 'solid',
-    cancelVariant: 'outline',
-    confirmButtonProps: undefined,
-    cancelButtonProps: undefined,
-  });
+export function useConfirmDialog() {
+  const [state, setState] = useState<ConfirmState>(INITIAL);
+  // 持有最新回调，避免闭包捕获过期引用
+  const confirmRef = useRef<() => void>(() => {});
 
   const confirm = useCallback((options: ConfirmOptions) => {
+    confirmRef.current = options.onConfirm;
     setState({
+      ...INITIAL,
+      ...options,
+      confirmText: options.confirmText ?? '确定',
+      cancelText: options.cancelText ?? '取消',
+      tone: options.tone ?? 'danger',
       open: true,
-      title: options.title,
-      content: options.content || '',
-      onConfirm: options.onConfirm,
-      onCancel: options.onCancel,
-      confirmText: options.confirmText || '删除',
-      cancelText: options.cancelText || '取消',
-      confirmColor: options.confirmColor || 'error',
-      confirmVariant: options.confirmVariant || 'solid',
-      cancelVariant: options.cancelVariant || 'outline',
-      confirmButtonProps: options.confirmButtonProps,
-      cancelButtonProps: options.cancelButtonProps,
     });
   }, []);
 
-  const handleClose = useCallback((callCancel: boolean = true) => {
-    setState((prev) => {
-      if (callCancel && prev.onCancel) {
-        setTimeout(() => {
-          if (prev.onCancel) {
-            prev.onCancel();
-          }
-        }, 0);
-      }
-      return { ...prev, open: false };
-    });
-  }, []);
+  const close = useCallback(() => setState((prev) => ({ ...prev, open: false })), []);
 
-  const ConfirmDialog = useMemo(() => {
-    return () => (
-      <DialogBox
+  const ConfirmDialog = useCallback(
+    () => (
+      <Modal
         open={state.open}
         title={state.title}
-        content={state.content}
-        confirmText={state.confirmText}
-        cancelText={state.cancelText}
-        confirmColor={state.confirmColor}
-        confirmVariant={state.confirmVariant}
-        cancelVariant={state.cancelVariant}
-        confirmButtonProps={state.confirmButtonProps}
-        cancelButtonProps={state.cancelButtonProps}
-        onConfirm={() => {
-          setTimeout(() => state.onConfirm(), 0);
-          handleClose(false);
-        }}
-        onClose={handleClose}
-      />
-    );
-  }, [state, handleClose]);
+        onClose={close}
+        size="sm"
+        footer={
+          <>
+            <Button variant="ghost" onClick={close}>
+              {state.cancelText}
+            </Button>
+            <Button
+              variant={state.tone === 'danger' ? 'danger' : 'primary'}
+              onClick={() => {
+                close();
+                confirmRef.current();
+              }}
+            >
+              {state.confirmText}
+            </Button>
+          </>
+        }
+      >
+        {typeof state.content === 'string' ? (
+          <p className="text-sm leading-relaxed text-slate-600 dark:text-slate-300">
+            {state.content}
+          </p>
+        ) : (
+          state.content
+        )}
+      </Modal>
+    ),
+    [state, close]
+  );
 
-  return {
-    confirm,
-    ConfirmDialog,
-  };
+  return { confirm, ConfirmDialog };
 }

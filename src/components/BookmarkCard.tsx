@@ -1,116 +1,127 @@
 import { useState } from 'react';
 import { useToast } from '../contexts/ToastContext';
-import { OpenInNewIcon, ContentCopyIcon, EditIcon } from './Icons';
-import type { Link, Bookmark } from '../types';
+import { Favicon } from './ui/Favicon';
+import { Menu, type MenuItemSpec } from './ui/Menu';
+import { getDisplayHost } from '../utils/urlDisplay';
+import {
+  OpenExternalIcon,
+  CopyIcon,
+  EditIcon,
+  MoreIcon,
+  TextIcon,
+} from './Icons';
+import type { Bookmark } from '../types';
 
 interface BookmarkCardProps {
-  link: Link | Bookmark;
-  onEdit?: () => void;
+  bookmark: Bookmark;
+  onEdit?: (bookmark: Bookmark) => void;
+  onOpenText?: (bookmark: Bookmark) => void;
 }
 
-export const BookmarkCard: React.FC<BookmarkCardProps> = ({ link, onEdit }) => {
-  const href = link.url ?? ('url' in link ? link.url : '');
+/**
+ * 收藏卡片。
+ *
+ * 与旧版不同：显示 favicon + 域名而非完整 URL；hover/聚焦时露出操作按钮；
+ * 同时支持右键菜单，使操作在鼠标与触摸设备上都可发现。
+ */
+export function BookmarkCard({ bookmark, onEdit, onOpenText }: BookmarkCardProps) {
   const { showSuccess, showError } = useToast();
+  const [menuAnchor, setMenuAnchor] = useState<{ x: number; y: number } | null>(null);
 
-  const [contextMenu, setContextMenu] = useState<{ x: number; y: number } | null>(null);
+  const isLink = bookmark.type === 'link';
+  const url = bookmark.url ?? '';
 
-  const handleClick = (e: React.MouseEvent) => {
-    e.stopPropagation();
-    setContextMenu(null);
-  };
-
-  const handleContextMenu = (e: React.MouseEvent) => {
-    e.preventDefault();
-    e.stopPropagation();
-    setContextMenu({ x: e.clientX + 2, y: e.clientY - 6 });
-  };
-
-  const handleCloseContextMenu = () => {
-    setContextMenu(null);
-  };
-
-  const handleOpenInNewTab = () => {
-    if (href) {
-      window.open(href, '_blank', 'noopener,noreferrer');
+  const open = () => {
+    if (isLink && url) {
+      window.open(url, '_blank', 'noopener,noreferrer');
+    } else {
+      onOpenText?.(bookmark);
     }
-    handleCloseContextMenu();
   };
 
-  const handleCopyLink = () => {
-    if (href) {
-      navigator.clipboard
-        .writeText(href)
-        .then(() => showSuccess('链接已复制到剪贴板'))
-        .catch(() => showError('复制失败'));
-    }
-    handleCloseContextMenu();
+  const copy = () => {
+    const value = isLink ? url : (bookmark.content ?? '');
+    navigator.clipboard
+      .writeText(value)
+      .then(() => showSuccess(isLink ? '链接已复制' : '内容已复制'))
+      .catch(() => showError('复制失败'));
   };
 
-  const handleEdit = () => {
-    onEdit?.();
-    handleCloseContextMenu();
-  };
+  const openMenuAt = (x: number, y: number) => setMenuAnchor({ x, y });
+
+  const menuItems: MenuItemSpec[] = [
+    ...(isLink
+      ? [
+          {
+            key: 'open',
+            label: '在新标签页打开',
+            icon: <OpenExternalIcon size={15} />,
+            onSelect: open,
+          },
+        ]
+      : [
+          {
+            key: 'view',
+            label: '查看内容',
+            icon: <TextIcon size={15} />,
+            onSelect: () => onOpenText?.(bookmark),
+          },
+        ]),
+    { key: 'copy', label: isLink ? '复制链接' : '复制内容', icon: <CopyIcon size={15} />, onSelect: copy },
+    ...(onEdit
+      ? [{ key: 'edit', label: '编辑', icon: <EditIcon size={15} />, onSelect: () => onEdit(bookmark) }]
+      : []),
+  ];
 
   return (
     <>
-      <a
-        href={href}
-        target="_blank"
-        rel="noopener noreferrer"
-        className="block"
-        onClick={handleClick}
-        onContextMenu={handleContextMenu}
+      <div
+        role="button"
+        tabIndex={0}
+        onClick={open}
+        onKeyDown={(e) => {
+          if (e.key === 'Enter' || e.key === ' ') {
+            e.preventDefault();
+            open();
+          }
+        }}
+        onContextMenu={(e) => {
+          e.preventDefault();
+          openMenuAt(e.clientX, e.clientY);
+        }}
+        className="group relative flex cursor-pointer items-start gap-3 rounded-xl border border-slate-200 bg-white p-3.5 transition-all hover:border-slate-300 hover:shadow-md hover:shadow-slate-900/5 focus-visible:border-indigo-400 dark:border-slate-700/70 dark:bg-slate-800/60 dark:hover:border-slate-600 dark:hover:bg-slate-800"
       >
-        <div className="h-full cursor-pointer rounded-lg border border-slate-200 bg-white p-4 shadow-sm transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md dark:border-slate-700 dark:bg-[#1e1e1e]">
-          <p className="overflow-hidden text-ellipsis whitespace-nowrap font-medium text-slate-900 dark:text-white">
-            {link.title}
+        {isLink ? (
+          <Favicon url={url} title={bookmark.title} size={32} />
+        ) : (
+          <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-md bg-slate-100 text-slate-500 dark:bg-slate-700 dark:text-slate-300">
+            <TextIcon size={16} />
+          </span>
+        )}
+
+        <div className="min-w-0 flex-1 pt-0.5">
+          <p className="truncate text-sm font-medium text-slate-800 dark:text-slate-100">
+            {bookmark.title}
           </p>
-          <p className="mt-0.5 overflow-hidden text-ellipsis whitespace-nowrap text-sm text-slate-500 dark:text-slate-400">
-            {href}
+          <p className="mt-0.5 truncate text-xs text-slate-400 dark:text-slate-500">
+            {isLink ? getDisplayHost(url) : (bookmark.content ?? '').replace(/\s+/g, ' ').slice(0, 90)}
           </p>
         </div>
-      </a>
-      {contextMenu && (
-        <>
-          <div className="fixed inset-0 z-[9990]" onClick={handleCloseContextMenu} />
-          <div
-            className="fixed z-[9991] min-w-[160px] overflow-hidden rounded-md border border-slate-200 bg-white py-1 shadow-lg dark:border-slate-700 dark:bg-slate-800"
-            style={{ top: contextMenu.y, left: contextMenu.x }}
-          >
-            <MenuItem icon={<OpenInNewIcon size={16} />} onClick={handleOpenInNewTab}>
-              在新标签页打开
-            </MenuItem>
-            <MenuItem icon={<ContentCopyIcon size={16} />} onClick={handleCopyLink}>
-              复制链接
-            </MenuItem>
-            {onEdit && (
-              <MenuItem icon={<EditIcon size={16} />} onClick={handleEdit}>
-                编辑
-              </MenuItem>
-            )}
-          </div>
-        </>
-      )}
-    </>
-  );
-};
 
-function MenuItem({
-  icon,
-  onClick,
-  children,
-}: {
-  icon: React.ReactNode;
-  onClick: () => void;
-  children: React.ReactNode;
-}) {
-  return (
-    <button
-      onClick={onClick}
-      className="flex w-full items-center gap-3 px-4 py-2 text-left text-sm text-slate-700 hover:bg-slate-100 dark:text-slate-200 dark:hover:bg-slate-700"
-    >
-      <span className="text-slate-500 dark:text-slate-400">{icon}</span>
-      {children}
-    </button>
+        <button
+          onClick={(e) => {
+            e.stopPropagation();
+            const rect = (e.currentTarget as HTMLElement).getBoundingClientRect();
+            openMenuAt(rect.right - 4, rect.bottom + 4);
+          }}
+          aria-label="更多操作"
+          className="shrink-0 rounded-md p-1 text-slate-400 opacity-0 transition-all group-hover:opacity-100 focus-visible:opacity-100 hover:bg-slate-100 hover:text-slate-600 dark:hover:bg-slate-700 dark:hover:text-slate-200"
+        >
+          <MoreIcon size={16} />
+        </button>
+      </div>
+
+      <Menu items={menuItems} anchor={menuAnchor} onClose={() => setMenuAnchor(null)} />
+    </>
   );
 }

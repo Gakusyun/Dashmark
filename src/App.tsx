@@ -1,284 +1,355 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useMemo, useRef, useCallback } from 'react';
 import Clarity from '@microsoft/clarity';
 import { useData } from './contexts/DataContext';
-import { SearchBox } from './components/SearchBox';
-import { GroupSection, AllBookmarks } from './components/GroupSection';
-import { ManagePanel } from './components/ManagePanel';
 import { useConfirmDialog } from './hooks/useConfirmDialog';
-import { SettingsIcon, CloseIcon, AddIcon } from './components/Icons';
-
-type ViewMode = 'all' | 'group' | null;
-type SelectedGroup = string | 'all' | null;
+import { usePinyin } from './hooks/usePinyin';
+import { searchBookmarks } from './utils/searchScorer';
+import { isTopEscapeLayer, popEscapeLayer, pushEscapeLayer } from './utils/escapeStack';
+import { CommandBar } from './components/CommandBar';
+import { GroupTabs, type GroupFilter } from './components/GroupTabs';
+import { BookmarkGrid } from './components/BookmarkGrid';
+import { BookmarkEditor } from './components/BookmarkEditor';
+import { Manager, type ManagerTab } from './components/Manager';
+import {
+  SettingsIcon,
+  PlusIcon,
+  SpinnerIcon,
+  BookmarkTabIcon,
+} from './components/Icons';
+import { Button } from './components/ui/Button';
+import { SunIcon, MoonIcon } from './components/Icons';
+import { useTheme } from './contexts/ThemeContext';
+import type { Bookmark } from './types';
 
 const projectId = import.meta.env.VITE_CLARITY_PROJECT_ID || 'vay8fvwhta';
 
 // 防止重复初始化 Clarity
 let clarityInitialized = false;
 
+function initClarity() {
+  if (clarityInitialized) return;
+  try {
+    Clarity.init(projectId);
+    clarityInitialized = true;
+  } catch (error) {
+    console.warn('[DashMark] Clarity 初始化失败（可能是广告拦截器）:', error);
+  }
+}
+
 const App: React.FC = () => {
   const { data, loading, updateSettings } = useData();
-  const [managePanelOpen, setManagePanelOpen] = useState(false);
-  const [viewMode, setViewMode] = useState<ViewMode>(null);
-  const [selectedGroup, setSelectedGroup] = useState<SelectedGroup>(null);
-  const [searchQuery, setSearchQuery] = useState('');
-  const [showConsent, setShowConsent] = useState(false);
-  const [autoAdd, setAutoAdd] = useState(0);
+
+  const [query, setQuery] = useState('');
+  const [activeGroup, setActiveGroup] = useState<GroupFilter>('all');
+  const [editorOpen, setEditorOpen] = useState(false);
+  const [editing, setEditing] = useState<Bookmark | null>(null);
+  const [managerOpen, setManagerOpen] = useState(false);
+  const [managerTab, setManagerTab] = useState<ManagerTab>('bookmarks');
+  const [addNonce, setAddNonce] = useState(0);
+
   const { confirm, ConfirmDialog } = useConfirmDialog();
 
-  // 创建一个ref来存储updateSettings函数，避免在useEffect依赖中引起循环
   const updateSettingsRef = useRef(updateSettings);
   useEffect(() => {
     updateSettingsRef.current = updateSettings;
   }, [updateSettings]);
 
-  // Cookie同意对话框逻辑
-  useEffect(() => {
-    if (loading) return;
+  const trimmedQuery = query.trim();
+  const pinyin = usePinyin(trimmedQuery.length > 0);
 
-    if (data.settings.cookieConsent === null) {
-      const timer = setTimeout(() => {
-        setShowConsent(true);
-      }, 0);
-      return () => clearTimeout(timer);
-    } else if (data.settings.cookieConsent === true) {
-      if (!clarityInitialized) {
-        try {
-          Clarity.init(projectId);
-          clarityInitialized = true;
-          console.log('[DashMark] Clarity 分析已初始化');
-        } catch (error) {
-          console.warn('[DashMark] Clarity 初始化失败（可能是广告拦截器）:', error);
-        }
-      }
+  // ==================== Cookie 同意 ====================
+  const consentAsked = useRef(false);
+  useEffect(() => {
+    if (loading || consentAsked.current) return;
+    if (data.settings.cookieConsent === true) {
+      initClarity();
+      return;
     }
-  }, [data.settings.cookieConsent, loading]);
-
-  // 全局键盘快捷键
-  useEffect(() => {
-    const handleKeyDown = (e: KeyboardEvent) => {
-      // Ctrl+K: 聚焦页内搜索
-      if ((e.ctrlKey || e.metaKey) && e.key === 'k') {
-        e.preventDefault();
-        document.getElementById('dashmark-search')?.focus();
-        return;
-      }
-
-      // /: 聚焦页内搜索（仅当焦点不在输入框中时）
-      if (e.key === '/' && !['INPUT', 'TEXTAREA'].includes((e.target as HTMLElement)?.tagName)) {
-        e.preventDefault();
-        document.getElementById('dashmark-search')?.focus();
-        return;
-      }
-
-      // Escape: 关闭管理面板
-      if (e.key === 'Escape') {
-        if (managePanelOpen) {
-          setManagePanelOpen(false);
-        }
-      }
-    };
-
-    window.addEventListener('keydown', handleKeyDown);
-    return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [managePanelOpen]);
-
-  useEffect(() => {
-    if (showConsent) {
-      const handleConfirm = () => {
-        updateSettingsRef.current({ cookieConsent: true });
-        if (!clarityInitialized) {
-          try {
-            Clarity.init(projectId);
-            clarityInitialized = true;
-            console.log('[DashMark] Clarity 分析已初始化');
-          } catch (error) {
-            console.warn('[DashMark] Clarity 初始化失败（可能是广告拦截器）:', error);
-          }
-        }
-        setShowConsent(false);
-      };
-
-      const handleCancel = () => {
-        updateSettingsRef.current({ cookieConsent: false });
-        setShowConsent(false);
-      };
-
+    if (data.settings.cookieConsent === null) {
+      consentAsked.current = true;
       const timer = setTimeout(() => {
         confirm({
-          title: 'Cookie 同意',
+          title: '是否允许匿名统计？',
           content:
-            '我们使用 Microsoft Clarity 来分析网站使用情况，以改善用户体验。是否同意使用 Cookie 进行分析？（可在设置中随时关闭）',
-          confirmText: '同意',
-          cancelText: '拒绝',
-          confirmColor: 'primary',
-          confirmVariant: 'solid',
-          cancelVariant: 'outline',
-          onConfirm: handleConfirm,
-          onCancel: handleCancel,
+            '我们使用 Microsoft Clarity 了解功能使用情况以持续改进。不会收集书签内容，你也可以随时在设置中关闭。',
+          confirmText: '允许',
+          cancelText: '不允许',
+          tone: 'primary',
+          onConfirm: () => {
+            updateSettingsRef.current({ cookieConsent: true });
+            initClarity();
+          },
+          onCancel: () => updateSettingsRef.current({ cookieConsent: false }),
         });
-      }, 0);
-
+      }, 600);
       return () => clearTimeout(timer);
     }
-  }, [showConsent, confirm]);
+  }, [loading, data.settings.cookieConsent, confirm]);
 
-  const handleGroupClick = (groupId: string) => {
-    setSelectedGroup(groupId);
-    setViewMode('group');
-    window.scrollTo({ top: 0, behavior: 'smooth' });
-  };
-
-  const handleAllClick = () => {
-    setSelectedGroup('all');
-    setViewMode('all');
-    window.scrollTo({ top: 0, behavior: 'smooth' });
-  };
-
-  const handleBack = () => {
-    setViewMode(null);
-    setSelectedGroup(null);
-  };
-
-  const handleFabClick = () => {
-    setAutoAdd((prev) => prev + 1);
-    setManagePanelOpen(true);
-  };
-
-  const renderContent = () => {
-    // 搜索结果视图
-    if (searchQuery.trim()) {
-      return <AllBookmarks isFullscreen={false} searchQuery={searchQuery} />;
-    }
-
-    // 单分组视图
-    if (viewMode === 'group' && selectedGroup && selectedGroup !== 'all') {
-      const group = data.groups.find((g) => g.id === selectedGroup);
-      if (group) {
-        return <GroupSection group={group} isFullscreen onBack={handleBack} />;
+  // ==================== 分组计数 ====================
+  const counts = useMemo(() => {
+    const map = new Map<string, number>();
+    for (const bookmark of data.bookmarks) {
+      for (const gid of bookmark.groupIds) {
+        map.set(gid, (map.get(gid) ?? 0) + 1);
       }
     }
+    return map;
+  }, [data.bookmarks]);
 
-    // 所有收藏视图
-    if (viewMode === 'all' || selectedGroup === 'all') {
-      return <AllBookmarks isFullscreen onBack={handleBack} />;
-    }
+  // ==================== 当前展示的收藏 ====================
+  // 搜索优先：跨分组检索全部收藏。若当前分组已被删除，则退回到"全部"。
+  const effectiveGroup: GroupFilter =
+    activeGroup === 'all' || data.groups.some((g) => g.id === activeGroup) ? activeGroup : 'all';
 
-    // 默认视图
-    if (data.groups.length === 0) {
-      return (
-        <div className="py-16 text-center">
-          <p className="mb-1 text-slate-500 dark:text-slate-400">暂无分组和链接</p>
-          <p className="text-sm text-slate-500 dark:text-slate-400">点击右上角设置按钮开始添加</p>
-        </div>
+  const visible = useMemo(() => {
+    if (trimmedQuery) {
+      return searchBookmarks(data.bookmarks, trimmedQuery, data.groups, pinyin).hits.map(
+        (h) => h.bookmark
       );
     }
+    if (effectiveGroup === 'all') return data.bookmarks;
+    return data.bookmarks.filter((b) => b.groupIds.includes(effectiveGroup));
+  }, [data.bookmarks, data.groups, trimmedQuery, effectiveGroup, pinyin]);
 
-    return (
-      <>
-        <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
-          {data.groups.map((group) => (
-            <GroupSection key={group.id} group={group} onClick={() => handleGroupClick(group.id)} />
-          ))}
-        </div>
-        <div className="mt-4">
-          <AllBookmarks onClick={handleAllClick} />
-        </div>
-      </>
-    );
-  };
+  const openNewEditor = useCallback(() => {
+    setEditing(null);
+    setEditorOpen(true);
+  }, []);
+
+  const openEditEditor = useCallback((bookmark: Bookmark) => {
+    setEditing(bookmark);
+    setEditorOpen(true);
+  }, []);
+
+  const openManager = useCallback((tab: ManagerTab) => {
+    setManagerTab(tab);
+    setManagerOpen(true);
+  }, []);
+
+  // Esc 关闭管理台。
+  // 若其中打开了弹窗（如收藏编辑器），该弹窗会成为更上层，
+  // 此时管理台不应响应 Esc，否则会一次关掉两层。
+  useEffect(() => {
+    if (!managerOpen) return;
+    const layer = pushEscapeLayer();
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key !== 'Escape') return;
+      if (!isTopEscapeLayer(layer)) return;
+      setManagerOpen(false);
+    };
+    window.addEventListener('keydown', onKey);
+    return () => {
+      window.removeEventListener('keydown', onKey);
+      popEscapeLayer(layer);
+    };
+  }, [managerOpen]);
 
   if (loading) {
     return (
-      <div className="flex min-h-screen flex-col items-center justify-center gap-4">
-        <div className="h-10 w-10 animate-spin rounded-full border-4 border-slate-200 border-t-blue-600 dark:border-slate-700 dark:border-t-blue-400" />
-        <p className="text-slate-500 dark:text-slate-400">正在加载数据...</p>
+      <div className="flex min-h-screen flex-col items-center justify-center gap-3">
+        <SpinnerIcon size={24} className="animate-spin text-slate-400" />
+        <p className="text-sm text-slate-400 dark:text-slate-500">正在加载数据…</p>
       </div>
     );
   }
 
+  const isEmpty = data.bookmarks.length === 0 && data.groups.length === 0;
+
   return (
     <>
-      {/* 顶部导航栏 */}
-      <header className="mb-8 border-b border-slate-200 bg-white dark:border-slate-700 dark:bg-[#121212]">
-        <div className="mx-auto flex max-w-[1200px] items-center gap-4 px-4 py-3">
-          <h1 className="flex-1 cursor-pointer text-2xl font-medium text-slate-900 dark:text-white">
-            DashMark
-          </h1>
-          <div className="flex items-center gap-1 border-b border-slate-300 transition-colors focus-within:border-blue-500 dark:border-slate-600">
-            <input
-              id="dashmark-search"
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              placeholder="页内搜索"
-              className="w-[180px] bg-transparent px-1 py-1.5 text-sm text-slate-900 outline-none placeholder:text-slate-400 dark:text-white"
-            />
-            {searchQuery && (
-              <button
-                onClick={() => setSearchQuery('')}
-                aria-label="清除搜索"
-                className="rounded p-1 text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-700"
-              >
-                <CloseIcon size={14} />
-              </button>
-            )}
-          </div>
+      <header className="sticky top-0 z-30 border-b border-slate-200/80 bg-slate-50/80 backdrop-blur-md dark:border-slate-800 dark:bg-slate-950/80">
+        <div className="mx-auto flex max-w-6xl items-center gap-2 px-3 py-3 sm:gap-3 sm:px-4">
           <button
-            onClick={() => setManagePanelOpen(true)}
-            aria-label="设置"
-            className="rounded p-2 text-slate-600 hover:bg-slate-100 dark:text-slate-300 dark:hover:bg-slate-700"
+            onClick={() => {
+              setQuery('');
+              setActiveGroup('all');
+            }}
+            className="flex shrink-0 items-center gap-2 text-base font-semibold text-slate-900 transition-opacity hover:opacity-70 dark:text-white"
+            aria-label="回到首页"
           >
-            <SettingsIcon size={22} />
+            <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-indigo-600 text-white">
+              <BookmarkTabIcon size={16} />
+            </span>
+            <span className="hidden md:inline">DashMark</span>
           </button>
+
+          <div className="min-w-0 flex-1">
+            <CommandBar query={query} onQueryChange={setQuery} />
+          </div>
+
+          <div className="flex shrink-0 items-center gap-0.5 sm:gap-1">
+            {/* 新建：移动端由右下角悬浮按钮承担，避免顶栏拥挤 */}
+            <span className="hidden sm:inline-flex">
+              <Button
+                variant="ghost"
+                size="icon"
+                onClick={openNewEditor}
+                aria-label="新建收藏"
+                title="新建收藏"
+              >
+                <PlusIcon size={18} />
+              </Button>
+            </span>
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={() => openManager('settings')}
+              aria-label="设置"
+              title="设置"
+            >
+              <SettingsIcon size={18} />
+            </Button>
+            <ThemeToggle />
+          </div>
         </div>
       </header>
 
-      <main className="mx-auto max-w-[1200px] px-4 pb-8">
-        <SearchBox />
-        <div className="min-h-[50vh]">{renderContent()}</div>
-
-        {!data.settings.hideLegalInfo && (
-          <footer className="mt-8 border-t border-slate-200 pt-4 text-center text-sm text-slate-500 dark:border-slate-700 dark:text-slate-400">
-            <a
-              href="https://beian.miit.gov.cn/"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="hover:underline"
-            >
-              鄂 ICP 备 2024069158 号
-            </a>
-            <div className="mt-1 flex items-center justify-center gap-1.5">
-              <img src="/police.webp" alt="备案图标" className="h-[16.5px]" />
-              <a
-                href="https://beian.mps.gov.cn/#/query/webSearch?code=42050002420933"
-                rel="noreferrer"
-                target="_blank"
-                className="hover:underline"
-              >
-                鄂公网安备 42050002420933 号
-              </a>
+      <main className="mx-auto w-full max-w-6xl flex-1 px-4 py-5">
+        {isEmpty ? (
+          <WelcomeEmpty onCreate={openNewEditor} onManage={() => openManager('groups')} />
+        ) : (
+          <>
+            <div className="mb-4 flex items-center gap-3">
+              <div className="min-w-0 flex-1">
+                <GroupTabs
+                  groups={data.groups}
+                  active={effectiveGroup}
+                  counts={counts}
+                  totalCount={data.bookmarks.length}
+                  onChange={setActiveGroup}
+                />
+              </div>
+              <span className="hidden shrink-0 sm:inline-flex">
+                <Button variant="ghost" size="sm" onClick={() => openManager('bookmarks')}>
+                  管理
+                </Button>
+              </span>
             </div>
-          </footer>
+
+            {trimmedQuery && (
+              <p className="mb-3 text-xs text-slate-400 dark:text-slate-500">
+                找到 {visible.length} 个匹配「{trimmedQuery}」的收藏
+              </p>
+            )}
+
+            <BookmarkGrid
+              bookmarks={visible}
+              searching={Boolean(trimmedQuery)}
+              onEdit={openEditEditor}
+              onAdd={openNewEditor}
+            />
+          </>
         )}
+
+        {!data.settings.hideLegalInfo && <Footer />}
       </main>
 
-      {/* 悬浮添加按钮 */}
-      <button
-        aria-label="添加收藏"
-        onClick={handleFabClick}
-        className="fixed bottom-4 right-4 flex h-14 w-14 items-center justify-center rounded-full bg-blue-600 text-white shadow-lg transition-colors hover:bg-blue-700"
-      >
-        <AddIcon size={24} />
-      </button>
-
-      <ManagePanel
-        open={managePanelOpen}
-        onClose={() => setManagePanelOpen(false)}
-        autoAdd={autoAdd}
-        onAutoAddConsumed={() => setAutoAdd(0)}
+      <BookmarkEditor
+        open={editorOpen}
+        editing={editing}
+        defaultGroupIds={effectiveGroup === 'all' ? [] : [effectiveGroup]}
+        onClose={() => {
+          setEditorOpen(false);
+          setEditing(null);
+        }}
       />
+
+      <Manager
+        open={managerOpen}
+        initialTab={managerTab}
+        autoAdd={addNonce > 0}
+        autoAddNonce={addNonce}
+        onAutoAddConsumed={() => setAddNonce(0)}
+        onClose={() => setManagerOpen(false)}
+      />
+
+      {/* 移动端悬浮新建按钮 */}
+      {!isEmpty && (
+        <button
+          onClick={openNewEditor}
+          aria-label="新建收藏"
+          className="fixed right-4 bottom-4 z-20 flex h-13 w-13 items-center justify-center rounded-full bg-indigo-600 text-white shadow-lg shadow-indigo-600/25 transition-transform hover:scale-105 active:scale-95 sm:hidden"
+          style={{ height: '3.25rem', width: '3.25rem' }}
+        >
+          <PlusIcon size={22} />
+        </button>
+      )}
+
       <ConfirmDialog />
     </>
   );
 };
+
+/** 顶栏主题快捷切换：在浅色 / 深色之间切换，跟随系统状态保留在设置里 */
+function ThemeToggle() {
+  const { actualMode, setMode } = useTheme();
+  const isDark = actualMode === 'dark';
+  return (
+    <Button
+      variant="ghost"
+      size="icon"
+      onClick={() => setMode(isDark ? 'light' : 'dark')}
+      aria-label={isDark ? '切换到浅色模式' : '切换到深色模式'}
+      title={isDark ? '切换到浅色模式' : '切换到深色模式'}
+    >
+      {isDark ? <SunIcon size={18} /> : <MoonIcon size={18} />}
+    </Button>
+  );
+}
+
+function WelcomeEmpty({
+  onCreate,
+  onManage,
+}: {
+  onCreate: () => void;
+  onManage: () => void;
+}) {
+  return (
+    <div className="flex min-h-[60vh] flex-col items-center justify-center text-center">
+      <span className="mb-5 flex h-14 w-14 items-center justify-center rounded-2xl bg-indigo-50 text-indigo-600 dark:bg-indigo-950/50 dark:text-indigo-400">
+        <BookmarkTabIcon size={26} />
+      </span>
+      <h2 className="text-lg font-semibold text-slate-900 dark:text-white">欢迎使用 DashMark</h2>
+      <p className="mt-1.5 max-w-sm text-sm leading-relaxed text-slate-500 dark:text-slate-400">
+        把常用的链接收进分组，用 Ctrl/⌘ + K 随时唤出命令栏，几秒内抵达任何地方。
+      </p>
+      <div className="mt-6 flex flex-wrap items-center justify-center gap-2">
+        <Button variant="primary" size="lg" icon={<PlusIcon size={16} />} onClick={onCreate}>
+          添加第一个收藏
+        </Button>
+        <Button variant="secondary" size="lg" onClick={onManage}>
+          先创建分组
+        </Button>
+      </div>
+    </div>
+  );
+}
+
+function Footer() {
+  return (
+    <footer className="mt-10 border-t border-slate-200 py-5 text-center text-xs text-slate-400 dark:border-slate-800 dark:text-slate-500">
+      <div className="flex flex-col items-center gap-1">
+        <a
+          href="https://beian.miit.gov.cn/"
+          target="_blank"
+          rel="noopener noreferrer"
+          className="transition-colors hover:text-slate-600 dark:hover:text-slate-300"
+        >
+          鄂 ICP 备 2024069158 号
+        </a>
+        <a
+          href="https://beian.mps.gov.cn/#/query/webSearch?code=42050002420933"
+          rel="noreferrer"
+          target="_blank"
+          className="inline-flex items-center gap-1.5 transition-colors hover:text-slate-600 dark:hover:text-slate-300"
+        >
+          <img src="/police.webp" alt="" className="h-3.5" />
+          鄂公网安备 42050002420933 号
+        </a>
+      </div>
+    </footer>
+  );
+}
 
 export default App;

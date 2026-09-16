@@ -1,153 +1,133 @@
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { useToast } from '../contexts/ToastContext';
 import { useData } from '../contexts/DataContext';
-import { ContentCopyIcon, CloseIcon, EditIcon, SaveIcon, CancelIcon } from './Icons';
-import type { TextRecord, Bookmark } from '../types';
+import { Modal } from './ui/Modal';
+import { Button } from './ui/Button';
+import { CopyIcon, EditIcon, SaveIcon, TextIcon } from './Icons';
+import type { Bookmark } from '../types';
 
 interface TextRecordCardProps {
-  record: TextRecord | Bookmark;
-  isFullscreen: boolean;
-  onOpenFullscreen: () => void;
-  onCloseFullscreen: () => void;
+  bookmark: Bookmark;
+  open: boolean;
+  onOpen: () => void;
+  onClose: () => void;
 }
 
-export const TextRecordCard: React.FC<TextRecordCardProps> = ({
-  record,
-  isFullscreen,
-  onOpenFullscreen,
-  onCloseFullscreen,
-}) => {
+/**
+ * 文字记录卡片 + 阅读/编辑弹窗。
+ *
+ * 旧版使用整屏覆盖，容易迷失上下文；这里改为居中弹窗，
+ * 保留页面背景，编辑与阅读在同一处切换。
+ */
+export function TextRecordCard({ bookmark, open, onOpen, onClose }: TextRecordCardProps) {
   const { showSuccess } = useToast();
   const { updateBookmark } = useData();
 
-  const content = ('type' in record ? record.content : (record as TextRecord).content) || '';
+  const content = bookmark.content ?? '';
+  const [editing, setEditing] = useState(false);
+  const [draft, setDraft] = useState(content);
 
-  const [isEditing, setIsEditing] = useState(false);
-  const [editContent, setEditContent] = useState(content);
+  /** 打开弹窗时重置为最新内容（由用户事件触发，避免在 effect 中同步 setState） */
+  const handleOpen = () => {
+    setDraft(content);
+    setEditing(false);
+    onOpen();
+  };
 
-  useEffect(() => {
-    setEditContent(content);
-  }, [content]);
+  const close = () => {
+    setEditing(false);
+    onClose();
+  };
 
-  const handleCopy = () => {
+  const copy = () => {
     navigator.clipboard.writeText(content);
-    showSuccess('内容已复制到剪贴板');
+    showSuccess('内容已复制');
   };
 
-  const handleStartEdit = () => {
-    setEditContent(content);
-    setIsEditing(true);
+  const save = () => {
+    if (!draft.trim()) return;
+    updateBookmark(bookmark.id, 'text', bookmark.title, bookmark.groupIds, undefined, draft.trim());
+    setEditing(false);
+    showSuccess('已保存');
   };
 
-  const handleCancelEdit = () => {
-    setIsEditing(false);
-    setEditContent(content);
-  };
-
-  const handleSaveEdit = () => {
-    if (!editContent.trim()) {
-      return;
-    }
-    if ('type' in record) {
-      const bookmark = record as Bookmark;
-      updateBookmark(bookmark.id, 'text', bookmark.title, bookmark.groupIds, undefined, editContent.trim());
-    }
-    setIsEditing(false);
-    showSuccess('内容已保存');
-  };
-
-  const handleClose = () => {
-    setIsEditing(false);
-    onCloseFullscreen();
-  };
+  const preview = content.replace(/\s+/g, ' ').slice(0, 140);
 
   return (
     <>
       <div
-        className="flex h-full cursor-pointer flex-col rounded-lg border border-slate-200 bg-white p-4 shadow-sm transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md dark:border-slate-700 dark:bg-[#1e1e1e]"
-        onClick={(e) => {
-          e.stopPropagation();
-          onOpenFullscreen();
+        role="button"
+        tabIndex={0}
+        onClick={handleOpen}
+        onKeyDown={(e) => {
+          if (e.key === 'Enter' || e.key === ' ') {
+            e.preventDefault();
+            handleOpen();
+          }
         }}
+        className="group flex cursor-pointer flex-col rounded-xl border border-slate-200 bg-white p-3.5 transition-all hover:border-slate-300 hover:shadow-md hover:shadow-slate-900/5 focus-visible:border-indigo-400 dark:border-slate-700/70 dark:bg-slate-800/60 dark:hover:border-slate-600"
       >
-        <p className="mb-1 overflow-hidden text-ellipsis whitespace-nowrap font-medium text-slate-900 dark:text-white">
-          {record.title}
-        </p>
-        <p className="line-clamp-3 flex-1 whitespace-pre-wrap break-words text-sm text-slate-500 dark:text-slate-400">
-          {content}
+        <div className="flex items-start gap-3">
+          <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-md bg-slate-100 text-slate-500 dark:bg-slate-700 dark:text-slate-300">
+            <TextIcon size={16} />
+          </span>
+          <p className="min-w-0 flex-1 truncate pt-1.5 text-sm font-medium text-slate-800 dark:text-slate-100">
+            {bookmark.title}
+          </p>
+        </div>
+        <p className="mt-2 line-clamp-3 text-xs leading-relaxed text-slate-500 dark:text-slate-400">
+          {preview}
         </p>
       </div>
 
-      {/* 全屏显示对话框 */}
-      {isFullscreen && (
-        <div className="fixed inset-0 z-[9990] flex flex-col bg-white dark:bg-[#121212]">
-          {/* 顶部工具栏 */}
-          <div className="sticky top-0 flex items-center gap-2 border-b border-slate-200 bg-white px-4 py-3 shadow-sm dark:border-slate-700 dark:bg-[#1e1e1e]">
-            <button
-              onClick={handleClose}
-              aria-label="close"
-              className="rounded p-2 text-slate-600 hover:bg-slate-100 dark:text-slate-300 dark:hover:bg-slate-700"
-            >
-              <CloseIcon size={20} />
-            </button>
-            <h2 className="ml-2 flex-1 truncate text-lg font-semibold text-slate-900 dark:text-white">
-              {record.title}
-            </h2>
-            {isEditing ? (
-              <>
-                <button
-                  onClick={handleCancelEdit}
-                  className="mr-1 flex items-center gap-1.5 rounded-md border border-slate-300 px-4 py-2 text-sm font-medium text-slate-700 hover:bg-slate-100 dark:border-slate-600 dark:text-slate-200 dark:hover:bg-slate-700"
-                >
-                  <CancelIcon size={16} />
-                  取消
-                </button>
-                <button
-                  onClick={handleSaveEdit}
-                  className="flex items-center gap-1.5 rounded-md bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700"
-                >
-                  <SaveIcon size={16} />
-                  保存
-                </button>
-              </>
-            ) : (
-              <>
-                <button
-                  onClick={handleStartEdit}
-                  className="mr-1 flex items-center gap-1.5 rounded-md border border-slate-300 px-4 py-2 text-sm font-medium text-slate-700 hover:bg-slate-100 dark:border-slate-600 dark:text-slate-200 dark:hover:bg-slate-700"
-                >
-                  <EditIcon size={16} />
-                  编辑
-                </button>
-                <button
-                  onClick={handleCopy}
-                  className="flex items-center gap-1.5 rounded-md border border-slate-300 px-4 py-2 text-sm font-medium text-slate-700 hover:bg-slate-100 dark:border-slate-600 dark:text-slate-200 dark:hover:bg-slate-700"
-                >
-                  <ContentCopyIcon size={16} />
-                  复制
-                </button>
-              </>
-            )}
-          </div>
-
-          {/* 内容区域 */}
-          <div className="flex-1 overflow-auto px-4 pt-6">
-            {isEditing ? (
-              <textarea
-                autoFocus
-                value={editContent}
-                onChange={(e) => setEditContent(e.target.value)}
-                className="h-[70vh] w-full resize-none rounded-lg border border-slate-300 bg-transparent p-4 text-[1.1rem] leading-relaxed text-slate-900 outline-none focus:border-blue-500 dark:border-slate-600 dark:text-white"
-                style={{ whiteSpace: 'pre-wrap' }}
-              />
-            ) : (
-              <p className="whitespace-pre-wrap break-words text-[1.1rem] leading-relaxed text-slate-900 dark:text-white">
-                {content}
-              </p>
-            )}
-          </div>
-        </div>
-      )}
+      <Modal
+        open={open}
+        title={bookmark.title}
+        description={editing ? '编辑内容' : undefined}
+        size="lg"
+        onClose={close}
+        footer={
+          editing ? (
+            <>
+              <Button variant="ghost" onClick={() => setEditing(false)}>
+                取消
+              </Button>
+              <Button variant="primary" icon={<SaveIcon size={15} />} onClick={save}>
+                保存
+              </Button>
+            </>
+          ) : (
+            <>
+              <Button variant="ghost" icon={<CopyIcon size={15} />} onClick={copy}>
+                复制
+              </Button>
+              <Button
+                variant="secondary"
+                icon={<EditIcon size={15} />}
+                onClick={() => {
+                  setDraft(content);
+                  setEditing(true);
+                }}
+              >
+                编辑
+              </Button>
+            </>
+          )
+        }
+      >
+        {editing ? (
+          <textarea
+            autoFocus
+            value={draft}
+            onChange={(e) => setDraft(e.target.value)}
+            className="scrollbar-thin h-[50vh] w-full resize-none rounded-lg border border-slate-200 bg-white p-3.5 font-sans text-sm leading-relaxed text-slate-800 outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/20 dark:border-slate-700 dark:bg-slate-900/40 dark:text-slate-100"
+          />
+        ) : (
+          <p className="text-sm leading-relaxed whitespace-pre-wrap break-words text-slate-700 dark:text-slate-200">
+            {content || <span className="text-slate-400">（空内容）</span>}
+          </p>
+        )}
+      </Modal>
     </>
   );
-};
+}

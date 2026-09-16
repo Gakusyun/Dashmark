@@ -1,125 +1,133 @@
 import packageJson from '../../package.json';
 import { GitHubIcon } from './Icons';
 
-function Chip({ label, outlined = false }: { label: string; outlined?: boolean }) {
-  return (
-    <span
-      className={`rounded-full px-3 py-1 text-xs ${
-        outlined
-          ? 'border border-slate-300 text-slate-600 dark:border-slate-600 dark:text-slate-300'
-          : 'bg-slate-100 text-slate-700 dark:bg-slate-700 dark:text-slate-200'
-      }`}
-    >
-      {label}
-    </span>
-  );
+interface Entry {
+  version: string;
+  items: string[];
 }
 
-function SectionTitle({ children }: { children: React.ReactNode }) {
-  return (
-    <h3 className="mt-4 mb-2 text-base font-semibold text-slate-900 dark:text-white">{children}</h3>
-  );
-}
+const CHANGELOG: Entry[] = [
+  {
+    version: '3.2.0',
+    items: [
+      '全新的统一命令栏：一个输入框同时完成页内检索与网络搜索',
+      '分组改为顶部标签栏，切换无需跳转与返回',
+      '收藏卡片改用网站图标与域名，支持悬停操作与右键菜单',
+      '管理台改为整屏布局，左侧导航，新增筛选、批量与排序',
+      '文字记录改用弹窗阅读/编辑，保留页面上下文',
+      '全面重绘图标与视觉，去掉 Material 风格残留',
+    ],
+  },
+  {
+    version: '3.1.0',
+    items: ['迁移至 Tailwind CSS，移除 Material UI 依赖'],
+  },
+  {
+    version: '2.0.0',
+    items: ['迁移至 IndexedDB 存储，支持更大数据量', '新增 PWA 支持，可添加到主屏幕'],
+  },
+];
 
 export const About: React.FC = () => {
   return (
-    <div>
-      <h2 className="mb-3 text-lg font-semibold text-slate-900 dark:text-white">关于 DashMark</h2>
+    <div className="space-y-8">
+      <section>
+        <h3 className="text-sm font-semibold text-slate-900 dark:text-white">DashMark</h3>
+        <p className="mt-1.5 text-sm leading-relaxed text-slate-500 dark:text-slate-400">
+          链接有序，即刻可达。一个安静的起始页：把常用链接收进分组，用键盘快速抵达。
+        </p>
+        <p className="mt-2 text-xs text-slate-400 dark:text-slate-500">版本 {packageJson.version}</p>
+      </section>
 
-      <div className="mb-4">
-        <p className="text-sm leading-relaxed text-slate-700 dark:text-slate-300">
-          DashMark
-          是一个专注于分组书签的极简起始页应用。它安静、迅速、不打扰，只在你需要时，将你带到正确的地方。
-          <br />
+      <section>
+        <h3 className="mb-2 text-sm font-semibold text-slate-900 dark:text-white">快捷键</h3>
+        <ul className="divide-y divide-slate-100 overflow-hidden rounded-xl border border-slate-200 dark:divide-slate-800 dark:border-slate-700/70">
+          {[
+            ['Ctrl / ⌘ + K', '聚焦命令栏'],
+            ['/', '聚焦命令栏（未在输入时）'],
+            ['↑ / ↓', '在搜索结果间移动'],
+            ['Enter', '打开选中项'],
+            ['Ctrl / ⌘ + Enter', '用搜索引擎搜索当前关键词'],
+            ['Esc', '清空搜索 / 关闭弹层'],
+          ].map(([keys, desc]) => (
+            <li key={keys} className="flex items-center gap-3 px-3 py-2">
+              <kbd className="min-w-[7.5rem] rounded border border-slate-200 px-2 py-1 font-sans text-xs font-medium text-slate-500 dark:border-slate-700 dark:text-slate-400">
+                {keys}
+              </kbd>
+              <span className="text-sm text-slate-600 dark:text-slate-300">{desc}</span>
+            </li>
+          ))}
+        </ul>
+      </section>
+
+      <section>
+        <h3 className="mb-2 text-sm font-semibold text-slate-900 dark:text-white">技术栈</h3>
+        <div className="flex flex-wrap gap-2">
+          {['React 19', 'TypeScript', 'Tailwind CSS', 'Vite', 'Dexie', 'PWA'].map((tech) => (
+            <span
+              key={tech}
+              className="rounded-full border border-slate-200 px-2.5 py-1 text-xs text-slate-500 dark:border-slate-700 dark:text-slate-400"
+            >
+              {tech}
+            </span>
+          ))}
+        </div>
+      </section>
+
+      <section>
+        <h3 className="mb-2 text-sm font-semibold text-slate-900 dark:text-white">链接</h3>
+        <div className="flex flex-col gap-2 text-sm">
+          <a
+            href="https://github.com/Gakusyun/Dashmark"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="inline-flex items-center gap-2 text-indigo-600 hover:underline dark:text-indigo-400"
+          >
+            <GitHubIcon size={16} />
+            GitHub 仓库
+          </a>
           <a
             href="https://start.gxj62.cn"
             target="_blank"
             rel="noopener noreferrer"
-            className="text-blue-600 hover:underline dark:text-blue-400"
+            className="text-indigo-600 hover:underline dark:text-indigo-400"
           >
-            master分支
+            稳定版 (master)
           </a>
-          <br />
           <a
             href="https://next.gxj62.cn"
             target="_blank"
             rel="noopener noreferrer"
-            className="text-blue-600 hover:underline dark:text-blue-400"
+            className="text-indigo-600 hover:underline dark:text-indigo-400"
           >
-            beta分支
+            预览版 (beta)
           </a>
-        </p>
-        <p className="mt-1 text-xs text-slate-500 dark:text-slate-400">
-          版本 {packageJson.version}
-        </p>
-      </div>
+        </div>
+      </section>
 
-      <hr className="my-4 border-slate-200 dark:border-slate-700" />
-
-      <SectionTitle>核心功能</SectionTitle>
-      <div className="mb-4 flex flex-wrap gap-2">
-        <Chip label="📁 分组管理" />
-        <Chip label="🔍 快速搜索" />
-        <Chip label="🌙 深色主题" />
-        <Chip label="💾 数据备份" />
-        <Chip label="🔖 自定义搜索引擎" />
-      </div>
-
-      <hr className="my-4 border-slate-200 dark:border-slate-700" />
-
-      <SectionTitle>技术栈</SectionTitle>
-      <div className="mb-4 flex flex-wrap gap-2">
-        <Chip label="React 19" outlined />
-        <Chip label="TypeScript" outlined />
-        <Chip label="Tailwind CSS" outlined />
-        <Chip label="Vite" outlined />
-      </div>
-
-      <hr className="my-4 border-slate-200 dark:border-slate-700" />
-
-      <SectionTitle>相关链接</SectionTitle>
-      <div className="mb-4 flex flex-col gap-2">
-        <a
-          href="https://github.com/Gakusyun/Dashmark"
-          target="_blank"
-          rel="noopener noreferrer"
-          className="flex items-center gap-1.5 text-sm text-blue-600 hover:underline dark:text-blue-400"
-        >
-          <GitHubIcon size={16} />
-          GitHub 仓库
-        </a>
-      </div>
-
-      <hr className="my-4 border-slate-200 dark:border-slate-700" />
-
-      <SectionTitle>更新日志</SectionTitle>
-      <div className="flex flex-col gap-1 text-sm leading-relaxed text-slate-600 dark:text-slate-300">
-        <p>3.1.0</p>
-        <p>迁移至 Tailwind CSS，移除 Material UI 依赖</p>
-        <p>2.2.0</p>
-        <p>修复 TypeScript 编译错误（MUI v9 兼容、未使用导入）</p>
-        <p>修复搜索引擎删除后默认切换不一致</p>
-        <p>修复文字记录编辑后内容不刷新</p>
-        <p>修复 storage-v2 硬编码版本号和默认搜索引擎</p>
-        <p>修复 updateBookmark 可能丢失字段的问题</p>
-        <p>新增搜索框清除按钮</p>
-        <p>优化拼音库动态加载，避免重复请求</p>
-        <p>2.1.0</p>
-        <p>修复搜索占位符模板解析、全选切换、状态变异等问题</p>
-        <p>新增文字记录全屏编辑功能</p>
-        <p>修复 MUI v9 图标兼容性问题</p>
-        <p>清理冗余代码，优化构建产物</p>
-        <p>2.0.0</p>
-        <p>迁移至 IndexedDB 存储，支持更大数据量</p>
-        <p>新增 PWA 支持，可添加到主屏幕</p>
-        <p>修复已知 Bug</p>
-        <p>1.4.0</p>
-        <p>新增App离线可用，防止服务器问题到处资料无法取回</p>
-        <p>修复已知 Bug</p>
-        <p>1.3.0</p>
-        <p>新增页内查找功能</p>
-        <p>修复已知 Bug</p>
-      </div>
+      <section>
+        <h3 className="mb-2 text-sm font-semibold text-slate-900 dark:text-white">更新日志</h3>
+        <div className="space-y-4">
+          {CHANGELOG.map((entry) => (
+            <div key={entry.version}>
+              <p className="text-xs font-semibold text-slate-700 dark:text-slate-200">
+                v{entry.version}
+              </p>
+              <ul className="mt-1 space-y-0.5">
+                {entry.items.map((item) => (
+                  <li
+                    key={item}
+                    className="flex gap-2 text-xs leading-relaxed text-slate-500 dark:text-slate-400"
+                  >
+                    <span className="text-slate-300 dark:text-slate-600">•</span>
+                    {item}
+                  </li>
+                ))}
+              </ul>
+            </div>
+          ))}
+        </div>
+      </section>
     </div>
   );
 };
