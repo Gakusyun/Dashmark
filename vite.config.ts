@@ -16,8 +16,8 @@ export default defineConfig({
         name: 'DashMark',
         short_name: 'DashMark',
         description: '现代化书签管理器 - 支持 PWA、标签、云同步',
-        theme_color: '#4f46e5',
-        background_color: '#f6f7f9',
+        theme_color: '#0284c7',
+        background_color: '#ffffff',
         display: 'standalone',
         icons: [
           {

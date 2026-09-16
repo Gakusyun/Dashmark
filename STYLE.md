@@ -8,21 +8,23 @@
 
 ## 色彩
 
-**只用 Tailwind 内置色板，不自定义颜色。** 中性色为 `slate`，全站单一强调色为 `indigo`。
+**只用 Tailwind 内置色板，不自定义颜色。** 中性色为 `slate`，全站单一强调色为 `sky`。
+
+> 视觉语言与同作者的 [salary-calc](https://github.com/Kailoinf/salary-calc) 保持一致：
+> `sky` 强调色、纯白/纯黑底、`slate` 中性色、细边框 + 极淡阴影。改动配色前请先看该项目的 `STYLE.md`。
 
 | 用途 | class |
 |------|-------|
-| 页面背景 | 由 `body` 指定（浅 `#f6f7f9` / 深 `#0c0d10`），不在组件里写 |
-| 卡片/面板背景 | `bg-white`（深色 `dark:bg-slate-800/60` 或 `dark:bg-slate-900/40`） |
-| 主体文字 | `text-slate-800` / `text-slate-900`（深色 `dark:text-slate-100` / `dark:text-white`） |
+| 页面背景 | 由 `body` 指定（浅 `#ffffff` / 深 `#000000`），不在组件里写 |
+| 卡片/面板背景 | `bg-white`（深色 `dark:bg-black`） |
+| 主体文字 | `text-slate-800` / `text-slate-900`（深色 `dark:text-slate-100`） |
 | 次要文字 | `text-slate-500` / `text-slate-400` |
 | 占位/极弱文字 | `text-slate-400`（深色 `dark:text-slate-500`） |
-| 边框 | `border-slate-200`（深色 `dark:border-slate-700`） |
-| 强调色（主按钮/聚焦） | `indigo` 系列：`bg-indigo-600`、`border-indigo-500`、`text-indigo-600` |
-| 强调色浅底 | `bg-indigo-50`（深色 `dark:bg-indigo-950/40`） |
+| 边框 | `border-slate-200` / `border-slate-300`（深色 `dark:border-slate-600` / `dark:border-slate-700`） |
+| 强调色（主按钮/聚焦） | `sky` 系列：`bg-sky-600`、`border-sky-500`、`text-sky-600` |
+| 强调色浅底 | `bg-sky-50`（深色 `dark:bg-sky-950/40`） |
 | 危险操作 | `rose` 系列：`bg-rose-600`、`text-rose-600`、`hover:bg-rose-50` |
 | 成功 / 警告 | `emerald` / `amber`，仅用于状态提示与 Toast |
-| 反色标签（选中分组） | `bg-slate-900 text-white`（深色 `dark:bg-white dark:text-slate-900`） |
 
 **禁止**：引入新的色相；或用「每个组件一个语义变量」这类未被使用的抽象色板
 （历史上 `@theme` 里曾声明一批语义色变量但零处引用，已移除）。
@@ -48,9 +50,9 @@
 统一样式由 `ui/Field.tsx` 的 `baseField` 常量提供，勿手写：
 
 ```
-w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm
-focus:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-500/20
-dark:border-slate-700 dark:bg-slate-900/40
+w-full rounded-md border border-slate-300 bg-white px-3 py-2 text-sm
+focus:border-sky-500 focus:outline-none focus:ring-1 focus:ring-sky-500
+dark:border-slate-600 dark:bg-black
 ```
 
 > ⚠️ 输入类元素**不要**再叠全局 `outline`——那会出现「双框」。
@@ -126,7 +128,7 @@ dark:border-slate-700 dark:bg-slate-900/40
 
 - ❌ 不在 `index.css` 写组件级自定义 CSS（全局基础样式除外）
 - ❌ 不使用 inline `style`（除动态计算的尺寸/色相，如 `Favicon` 的首字母底色）
-- ❌ 不引入新的颜色值——只用 Tailwind 默认 `slate / indigo / rose / emerald / amber`
+- ❌ 不引入新的颜色值——只用 Tailwind 默认 `slate / sky / rose / emerald / amber`
 - ❌ 不新建共享组件前先检查 `ui/` 是否已有
 - ❌ 不把 `hidden` 直接传给 `Button`（基础类的 `inline-flex` 会覆盖它）——
   用外层 `<span className="hidden sm:inline-flex">` 包裹

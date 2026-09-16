@@ -32,7 +32,7 @@ export const About: React.FC = () => {
   return (
     <div className="space-y-8">
       <section>
-        <h3 className="text-sm font-semibold text-slate-900 dark:text-white">DashMark</h3>
+        <h3 className="text-sm font-semibold text-slate-900 dark:text-slate-100">DashMark</h3>
         <p className="mt-1.5 text-sm leading-relaxed text-slate-500 dark:text-slate-400">
           链接有序，即刻可达。一个安静的起始页：把常用链接收进分组，用键盘快速抵达。
         </p>
@@ -40,8 +40,8 @@ export const About: React.FC = () => {
       </section>
 
       <section>
-        <h3 className="mb-2 text-sm font-semibold text-slate-900 dark:text-white">快捷键</h3>
-        <ul className="divide-y divide-slate-100 overflow-hidden rounded-xl border border-slate-200 dark:divide-slate-800 dark:border-slate-700/70">
+        <h3 className="mb-2 text-sm font-semibold text-slate-900 dark:text-slate-100">快捷键</h3>
+        <ul className="divide-y divide-slate-200 overflow-hidden rounded-xl border border-slate-200 dark:divide-slate-700 dark:border-slate-700">
           {[
             ['Ctrl / ⌘ + K', '聚焦命令栏'],
             ['/', '聚焦命令栏（未在输入时）'],
@@ -61,7 +61,7 @@ export const About: React.FC = () => {
       </section>
 
       <section>
-        <h3 className="mb-2 text-sm font-semibold text-slate-900 dark:text-white">技术栈</h3>
+        <h3 className="mb-2 text-sm font-semibold text-slate-900 dark:text-slate-100">技术栈</h3>
         <div className="flex flex-wrap gap-2">
           {['React 19', 'TypeScript', 'Tailwind CSS', 'Vite', 'Dexie', 'PWA'].map((tech) => (
             <span
@@ -75,13 +75,13 @@ export const About: React.FC = () => {
       </section>
 
       <section>
-        <h3 className="mb-2 text-sm font-semibold text-slate-900 dark:text-white">链接</h3>
+        <h3 className="mb-2 text-sm font-semibold text-slate-900 dark:text-slate-100">链接</h3>
         <div className="flex flex-col gap-2 text-sm">
           <a
             href="https://github.com/Gakusyun/Dashmark"
             target="_blank"
             rel="noopener noreferrer"
-            className="inline-flex items-center gap-2 text-indigo-600 hover:underline dark:text-indigo-400"
+            className="inline-flex items-center gap-2 text-sky-600 hover:underline dark:text-sky-400"
           >
             <GitHubIcon size={16} />
             GitHub 仓库
@@ -90,7 +90,7 @@ export const About: React.FC = () => {
             href="https://start.gxj62.cn"
             target="_blank"
             rel="noopener noreferrer"
-            className="text-indigo-600 hover:underline dark:text-indigo-400"
+            className="text-sky-600 hover:underline dark:text-sky-400"
           >
             稳定版 (master)
           </a>
@@ -98,7 +98,7 @@ export const About: React.FC = () => {
             href="https://next.gxj62.cn"
             target="_blank"
             rel="noopener noreferrer"
-            className="text-indigo-600 hover:underline dark:text-indigo-400"
+            className="text-sky-600 hover:underline dark:text-sky-400"
           >
             预览版 (beta)
           </a>
@@ -106,7 +106,7 @@ export const About: React.FC = () => {
       </section>
 
       <section>
-        <h3 className="mb-2 text-sm font-semibold text-slate-900 dark:text-white">更新日志</h3>
+        <h3 className="mb-2 text-sm font-semibold text-slate-900 dark:text-slate-100">更新日志</h3>
         <div className="space-y-4">
           {CHANGELOG.map((entry) => (
             <div key={entry.version}>

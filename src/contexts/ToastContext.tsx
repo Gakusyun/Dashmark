@@ -41,7 +41,7 @@ const severityStyles: Record<ToastSeverity, { icon: ReactNode; ring: string }> =
   success: { icon: <CheckIcon size={15} />, ring: 'text-emerald-600 dark:text-emerald-400' },
   error: { icon: <ErrorIcon size={15} />, ring: 'text-rose-600 dark:text-rose-400' },
   warning: { icon: <WarningIcon size={15} />, ring: 'text-amber-600 dark:text-amber-400' },
-  info: { icon: <InfoIcon size={15} />, ring: 'text-indigo-600 dark:text-indigo-400' },
+  info: { icon: <InfoIcon size={15} />, ring: 'text-sky-600 dark:text-sky-400' },
 };
 
 export const ToastProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
@@ -96,10 +96,10 @@ function ToastItem({ toast, onDismiss }: { toast: Toast; onDismiss: (id: string)
   return (
     <div
       role="status"
-      className="animate-rise pointer-events-auto flex max-w-md items-center gap-2.5 rounded-xl border border-slate-200 bg-white py-2.5 pr-2 pl-3.5 shadow-lg shadow-slate-900/10 dark:border-slate-700 dark:bg-slate-800"
+      className="animate-rise pointer-events-auto flex max-w-md items-center gap-2.5 rounded-xl border border-slate-200 bg-white py-2.5 pr-2 pl-3.5 shadow-lg shadow-slate-900/10 dark:border-slate-700 dark:bg-black dark:shadow-none"
     >
       <span className={cn('shrink-0', ring)}>{icon}</span>
-      <span className="flex-1 text-sm text-slate-700 dark:text-slate-200">{toast.message}</span>
+      <span className="flex-1 text-sm text-slate-700 dark:text-slate-300">{toast.message}</span>
       <button
         onClick={() => onDismiss(toast.id)}
         aria-label="关闭提示"

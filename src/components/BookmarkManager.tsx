@@ -235,7 +235,7 @@ export function BookmarkManager({ autoAdd, autoAddNonce, onAutoAddConsumed }: Bo
           renderItem={(bookmark) => <RowContent bookmark={bookmark} />}
         />
       ) : (
-        <ul className="divide-y divide-slate-100 overflow-hidden rounded-xl border border-slate-200 bg-white dark:divide-slate-800 dark:border-slate-700/70 dark:bg-slate-900/40">
+        <ul className="divide-y divide-slate-200 overflow-hidden rounded-xl border border-slate-200 bg-white dark:divide-slate-700 dark:border-slate-700 dark:bg-black">
           {filtered.map((bookmark) => {
             const selected = selectedIds.has(bookmark.id);
             return (
@@ -243,7 +243,7 @@ export function BookmarkManager({ autoAdd, autoAddNonce, onAutoAddConsumed }: Bo
                 key={bookmark.id}
                 className={cn(
                   'group flex items-center gap-3 px-3 py-2.5 transition-colors',
-                  selected ? 'bg-indigo-50/60 dark:bg-indigo-950/30' : 'hover:bg-slate-50 dark:hover:bg-slate-800/40'
+                  selected ? 'bg-sky-50/60 dark:bg-sky-950/30' : 'hover:bg-slate-100 dark:hover:bg-slate-900'
                 )}
               >
                 <input
@@ -251,13 +251,13 @@ export function BookmarkManager({ autoAdd, autoAddNonce, onAutoAddConsumed }: Bo
                   checked={selected}
                   onChange={() => toggleSelect(bookmark.id)}
                   aria-label={`选择 ${bookmark.title}`}
-                  className="h-4 w-4 shrink-0 accent-indigo-600"
+                  className="h-4 w-4 shrink-0 accent-sky-600"
                 />
 
                 {bookmark.type === 'link' ? (
                   <Favicon url={bookmark.url ?? ''} title={bookmark.title} size={28} />
                 ) : (
-                  <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-md bg-slate-100 text-slate-500 dark:bg-slate-700 dark:text-slate-300">
+                  <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-md bg-slate-100 text-slate-500 dark:bg-slate-900 dark:text-slate-400">
                     <TextIcon size={14} />
                   </span>
                 )}

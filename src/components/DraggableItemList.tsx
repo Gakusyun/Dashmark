@@ -154,11 +154,11 @@ export function DraggableItemList<T>({
             onDragEnd={handleDragEnd}
             onTouchMove={handleTouchMove}
             onTouchEnd={handleTouchEnd}
-            className={`flex items-center gap-2 rounded-xl border-2 bg-white px-2.5 py-2 dark:bg-slate-900/40 ${
-              isSelected ? 'bg-indigo-50 dark:bg-indigo-950/30' : ''
+            className={`flex items-center gap-2 rounded-xl border-2 bg-white px-2.5 py-2 dark:bg-black ${
+              isSelected ? 'bg-sky-50 dark:bg-sky-950/30' : ''
             } ${
               isDragOver || isTouchOver
-                ? 'border-dashed border-indigo-500'
+                ? 'border-dashed border-sky-500'
                 : 'border-transparent'
             } ${
               isDragged || isTouchDragging ? 'rotate-1 opacity-60' : ''
@@ -174,7 +174,7 @@ export function DraggableItemList<T>({
                 checked={isSelected}
                 onChange={() => onToggleSelect(id)}
                 onClick={(e) => e.stopPropagation()}
-                className="h-4 w-4 accent-blue-600"
+                className="h-4 w-4 accent-sky-600"
               />
             )}
             <div className="min-w-0 flex-1">{renderItem(item)}</div>

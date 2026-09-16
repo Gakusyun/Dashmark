@@ -65,13 +65,13 @@ export function TextRecordCard({ bookmark, open, onOpen, onClose }: TextRecordCa
             handleOpen();
           }
         }}
-        className="group flex h-full min-h-[4.5rem] cursor-pointer flex-col rounded-xl border border-slate-200 bg-white p-3.5 transition-all hover:border-slate-300 hover:shadow-md hover:shadow-slate-900/5 focus-visible:border-indigo-400 dark:border-slate-700/70 dark:bg-slate-800/60 dark:hover:border-slate-600"
+        className="group flex h-full min-h-[4.5rem] cursor-pointer flex-col rounded-xl border border-slate-200 bg-white p-3.5 shadow-sm transition-all hover:border-slate-300 hover:shadow-md focus-visible:border-sky-400 dark:border-slate-700 dark:bg-black dark:shadow-none dark:hover:border-slate-600"
       >
         <div className="flex items-start gap-3">
-          <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-md bg-slate-100 text-slate-500 dark:bg-slate-700 dark:text-slate-300">
+          <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-md bg-slate-100 text-slate-500 dark:bg-slate-900 dark:text-slate-400">
             <TextIcon size={16} />
           </span>
-          <p className="min-w-0 flex-1 truncate pt-1.5 text-sm font-medium text-slate-800 dark:text-slate-100">
+          <p className="min-w-0 flex-1 truncate pt-1.5 text-sm font-medium text-slate-900 dark:text-slate-100">
             {bookmark.title}
           </p>
         </div>
@@ -120,10 +120,10 @@ export function TextRecordCard({ bookmark, open, onOpen, onClose }: TextRecordCa
             autoFocus
             value={draft}
             onChange={(e) => setDraft(e.target.value)}
-            className="scrollbar-thin h-[50vh] w-full resize-none rounded-lg border border-slate-200 bg-white p-3.5 font-sans text-sm leading-relaxed text-slate-800 outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/20 dark:border-slate-700 dark:bg-slate-900/40 dark:text-slate-100"
+            className="scrollbar-thin h-[50vh] w-full resize-none rounded-md border border-slate-300 bg-white p-3.5 font-sans text-sm leading-relaxed text-slate-800 outline-none focus:border-sky-500 focus:ring-1 focus:ring-sky-500 dark:border-slate-600 dark:bg-black dark:text-slate-100 dark:focus:border-sky-400 dark:focus:ring-sky-400"
           />
         ) : (
-          <p className="text-sm leading-relaxed whitespace-pre-wrap break-words text-slate-700 dark:text-slate-200">
+          <p className="text-sm leading-relaxed whitespace-pre-wrap break-words text-slate-700 dark:text-slate-300">
             {content || <span className="text-slate-400">（空内容）</span>}
           </p>
         )}

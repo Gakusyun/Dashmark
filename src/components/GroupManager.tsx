@@ -108,11 +108,11 @@ export function GroupManager() {
           renderItem={(group) => <GroupRow group={group} counts={countsFor(group.id)} />}
         />
       ) : (
-        <ul className="divide-y divide-slate-100 overflow-hidden rounded-xl border border-slate-200 bg-white dark:divide-slate-800 dark:border-slate-700/70 dark:bg-slate-900/40">
+        <ul className="divide-y divide-slate-200 overflow-hidden rounded-xl border border-slate-200 bg-white dark:divide-slate-700 dark:border-slate-700 dark:bg-black">
           {groups.map((group) => (
             <li
               key={group.id}
-              className="group flex items-center gap-3 px-3 py-2.5 transition-colors hover:bg-slate-50 dark:hover:bg-slate-800/40"
+              className="group flex items-center gap-3 px-3 py-2.5 transition-colors hover:bg-slate-100 dark:hover:bg-slate-900"
             >
               <div className="min-w-0 flex-1">
                 <GroupRow group={group} counts={countsFor(group.id)} />
@@ -121,7 +121,7 @@ export function GroupManager() {
                 <button
                   onClick={() => openEdit(group)}
                   aria-label={`编辑分组 ${group.name}`}
-                  className="rounded-md p-1.5 text-slate-400 transition-colors hover:bg-slate-100 hover:text-slate-600 sm:opacity-0 sm:group-hover:opacity-100 sm:focus-visible:opacity-100 dark:hover:bg-slate-700 dark:hover:text-slate-200"
+                  className="rounded-md p-1.5 text-slate-400 transition-colors hover:bg-slate-100 hover:text-slate-600 sm:opacity-0 sm:group-hover:opacity-100 sm:focus-visible:opacity-100 dark:hover:bg-slate-900 dark:hover:text-slate-200"
                 >
                   <EditIcon size={16} />
                 </button>

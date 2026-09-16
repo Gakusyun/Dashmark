@@ -58,7 +58,7 @@ export function Modal({
 
   return createPortal(
     <div
-      className="fixed inset-0 z-[9995] flex items-end justify-center bg-slate-900/40 p-0 backdrop-blur-[2px] sm:items-center sm:p-4"
+      className="fixed inset-0 z-[9995] flex items-end justify-center bg-black/50 p-0 sm:items-center sm:p-4"
       onMouseDown={(e) => {
         if (e.target === e.currentTarget) onClose();
       }}
@@ -69,13 +69,13 @@ export function Modal({
         aria-modal="true"
         aria-label={title}
         className={cn(
-          'animate-rise w-full rounded-t-2xl bg-white shadow-2xl sm:rounded-2xl dark:bg-slate-800',
+          'animate-rise w-full rounded-t-2xl border border-slate-200 bg-white shadow-xl sm:rounded-xl dark:border-slate-700 dark:bg-black dark:shadow-none',
           sizes[size]
         )}
       >
         <header className="flex items-start gap-3 px-5 pt-5">
           <div className="min-w-0 flex-1">
-            <h2 className="text-base font-semibold text-slate-900 dark:text-white">{title}</h2>
+            <h2 className="text-base font-semibold text-slate-900 dark:text-slate-100">{title}</h2>
             {description && (
               <p className="mt-0.5 text-xs text-slate-500 dark:text-slate-400">{description}</p>
             )}
@@ -83,7 +83,7 @@ export function Modal({
           <button
             onClick={onClose}
             aria-label="关闭"
-            className="-mr-1 -mt-1 rounded-lg p-1.5 text-slate-400 transition-colors hover:bg-slate-100 hover:text-slate-600 dark:hover:bg-slate-700 dark:hover:text-slate-200"
+            className="-mr-1 -mt-1 rounded-lg p-1.5 text-slate-400 transition-colors hover:bg-slate-100 hover:text-slate-600 dark:hover:bg-slate-900 dark:hover:text-slate-200"
           >
             <CloseIcon size={18} />
           </button>
@@ -92,7 +92,7 @@ export function Modal({
         <div className="scrollbar-thin max-h-[65vh] overflow-y-auto px-5 py-4">{children}</div>
 
         {footer && (
-          <footer className="flex justify-end gap-2 border-t border-slate-100 px-5 py-3.5 dark:border-slate-700">
+          <footer className="flex justify-end gap-2 border-t border-slate-200 px-5 py-3.5 dark:border-slate-700">
             {footer}
           </footer>
         )}

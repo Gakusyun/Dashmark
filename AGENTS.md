@@ -36,6 +36,7 @@ src/
     ToastContext.tsx       轻量提示
   hooks/
     useConfirmDialog.tsx   命令式确认框，返回 confirm + ConfirmDialog
+                           （取消按钮 / Esc / 点遮罩都会触发 onCancel）
     useBatchSelection.ts   列表多选
     usePinyin.ts           按需加载拼音库（首屏不加载）
     useDebouncedValue.ts   防抖
@@ -88,8 +89,10 @@ src/
 > 完整的样式规范（色彩、圆角、间距、层级、禁止事项）见根目录 **[`STYLE.md`](./STYLE.md)**，
 > 改动 UI 前请先阅读。以下仅列关键原则。
 
-- **色彩**：中性灰基底 + 单一强调色 indigo（`indigo-600`）。语义色仅用于状态
+- **色彩**：中性灰基底 + 单一强调色 `sky`（`sky-600`）。语义色仅用于状态
   （rose=危险、emerald=成功、amber=警告）。不要为装饰引入新色相。
+  视觉语言与同作者的 [salary-calc](https://github.com/Kailoinf/salary-calc) 一致：
+  同一套 `sky` 强调色、纯白/纯黑底、`slate` 中性色、细边框 + 极淡阴影。
 - **图标**：全部经 `components/Icons.tsx` 导入，按语义命名（如 `PlusIcon`、`TrashIcon`）。
   不要在业务组件里直接从 `lucide-react` 导入。品牌图标（GitHub）以 inline SVG 提供。
 - **圆角/层次**：卡片与面板用 `rounded-xl`，控件 `rounded-lg`。层次靠边框与极淡阴影表达，

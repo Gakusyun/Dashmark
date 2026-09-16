@@ -56,8 +56,8 @@ export function GroupPicker({ groups, selectedIds, onChange }: GroupPickerProps)
             className={cn(
               'inline-flex items-center gap-1 rounded-full border px-2.5 py-1 text-xs font-medium transition-colors',
               active
-                ? 'border-indigo-500 bg-indigo-50 text-indigo-700 dark:border-indigo-500 dark:bg-indigo-950/40 dark:text-indigo-300'
-                : 'border-slate-200 text-slate-600 hover:border-slate-300 hover:bg-slate-50 dark:border-slate-700 dark:text-slate-300 dark:hover:bg-slate-700/50'
+                ? 'border-sky-500 bg-sky-50 text-sky-600 dark:border-sky-500 dark:bg-sky-950/40 dark:text-sky-400'
+                : 'border-slate-300 text-slate-600 hover:border-slate-400 hover:bg-slate-100 dark:border-slate-600 dark:text-slate-400 dark:hover:bg-slate-900'
             )}
           >
             {active && <CheckIcon size={12} />}
@@ -67,7 +67,7 @@ export function GroupPicker({ groups, selectedIds, onChange }: GroupPickerProps)
       })}
 
       {creating ? (
-        <span className="inline-flex items-center gap-1 rounded-full border border-indigo-400 px-2 py-0.5 dark:border-indigo-500">
+        <span className="inline-flex items-center gap-1 rounded-full border border-sky-400 px-2 py-0.5 dark:border-sky-500">
           <input
             autoFocus
             value={name}
@@ -91,7 +91,7 @@ export function GroupPicker({ groups, selectedIds, onChange }: GroupPickerProps)
         <button
           type="button"
           onClick={() => setCreating(true)}
-          className="inline-flex items-center gap-1 rounded-full border border-dashed border-slate-300 px-2.5 py-1 text-xs font-medium text-slate-500 transition-colors hover:border-indigo-400 hover:text-indigo-600 dark:border-slate-600 dark:text-slate-400 dark:hover:border-indigo-500 dark:hover:text-indigo-400"
+          className="inline-flex items-center gap-1 rounded-full border border-dashed border-slate-300 px-2.5 py-1 text-xs font-medium text-slate-500 transition-colors hover:border-sky-400 hover:text-sky-600 dark:border-slate-600 dark:text-slate-400 dark:hover:border-sky-500 dark:hover:text-sky-400"
         >
           <PlusIcon size={12} />
           新建分组

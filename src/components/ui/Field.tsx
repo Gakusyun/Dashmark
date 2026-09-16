@@ -2,7 +2,7 @@ import { forwardRef, type InputHTMLAttributes, type TextareaHTMLAttributes, type
 import { cn } from '../../utils/cn';
 
 const baseField =
-  'w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm text-slate-900 transition-colors placeholder:text-slate-400 focus:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-500/20 dark:border-slate-700 dark:bg-slate-900/40 dark:text-white dark:placeholder:text-slate-500';
+  'w-full rounded-md border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 transition-colors placeholder:text-slate-400 focus:border-sky-500 focus:outline-none focus:ring-1 focus:ring-sky-500 dark:border-slate-600 dark:bg-black dark:text-slate-100 dark:placeholder:text-slate-500 dark:focus:border-sky-400 dark:focus:ring-sky-400';
 
 export function Field({
   label,
@@ -58,7 +58,7 @@ export function Switch({
       onClick={() => onChange(!checked)}
       className={cn(
         'relative h-6 w-11 shrink-0 rounded-full transition-colors',
-        checked ? 'bg-indigo-600' : 'bg-slate-300 dark:bg-slate-600'
+        checked ? 'bg-sky-600' : 'bg-slate-300 dark:bg-slate-600'
       )}
     >
       <span
@@ -92,7 +92,7 @@ export function Segmented<T extends string>({
     <div
       role="radiogroup"
       className={cn(
-        'inline-flex rounded-lg bg-slate-100 p-0.5 dark:bg-slate-800',
+        'inline-flex rounded-lg bg-slate-100 p-0.5 dark:bg-slate-900',
         className
       )}
     >
@@ -108,7 +108,7 @@ export function Segmented<T extends string>({
             className={cn(
               'inline-flex flex-1 items-center justify-center gap-1.5 rounded-[0.4rem] px-3 py-1.5 text-xs font-medium transition-colors',
               active
-                ? 'bg-white text-slate-900 shadow-sm dark:bg-slate-700 dark:text-white'
+                ? 'bg-white text-slate-900 shadow-sm dark:bg-slate-700 dark:text-slate-100'
                 : 'text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-200'
             )}
           >

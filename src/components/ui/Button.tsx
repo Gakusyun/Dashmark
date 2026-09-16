@@ -7,13 +7,13 @@ type Size = 'sm' | 'md' | 'lg' | 'icon' | 'icon-sm';
 
 const variants: Record<Variant, string> = {
   primary:
-    'bg-indigo-600 text-white shadow-sm hover:bg-indigo-700 active:bg-indigo-800 disabled:bg-indigo-400',
+    'border border-sky-600 bg-sky-600 text-white hover:bg-sky-700 active:bg-sky-800 disabled:bg-sky-400',
   secondary:
-    'border border-slate-200 bg-white text-slate-700 hover:bg-slate-50 active:bg-slate-100 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-200 dark:hover:bg-slate-700',
+    'border border-slate-200 bg-white text-slate-700 hover:bg-slate-100 active:bg-slate-200 dark:border-slate-700 dark:bg-black dark:text-slate-300 dark:hover:bg-slate-900',
   ghost:
-    'text-slate-600 hover:bg-slate-100 active:bg-slate-200 dark:text-slate-300 dark:hover:bg-slate-800 dark:active:bg-slate-700',
+    'text-slate-600 hover:bg-slate-100 active:bg-slate-200 dark:text-slate-400 dark:hover:bg-slate-900 dark:active:bg-slate-800',
   subtle:
-    'bg-slate-100 text-slate-700 hover:bg-slate-200 active:bg-slate-300 dark:bg-slate-800 dark:text-slate-200 dark:hover:bg-slate-700',
+    'bg-slate-100 text-slate-700 hover:bg-slate-200 active:bg-slate-300 dark:bg-slate-900 dark:text-slate-300 dark:hover:bg-slate-800',
   danger:
     'bg-rose-600 text-white shadow-sm hover:bg-rose-700 active:bg-rose-800 disabled:bg-rose-400',
 };

@@ -32,9 +32,11 @@ export function useConfirmDialog() {
   const [state, setState] = useState<ConfirmState>(INITIAL);
   // 持有最新回调，避免闭包捕获过期引用
   const confirmRef = useRef<() => void>(() => {});
+  const cancelRef = useRef<() => void>(() => {});
 
   const confirm = useCallback((options: ConfirmOptions) => {
     confirmRef.current = options.onConfirm;
+    cancelRef.current = options.onCancel ?? (() => {});
     setState({
       ...INITIAL,
       ...options,
@@ -47,16 +49,24 @@ export function useConfirmDialog() {
 
   const close = useCallback(() => setState((prev) => ({ ...prev, open: false })), []);
 
+  // 取消：关闭弹窗并触发 onCancel。
+  // 取消按钮、Esc、点击遮罩都应走这里，否则像 Cookie 同意这类
+  // “选否也要落库”的场景会因为没有回调而反复询问。
+  const handleCancel = useCallback(() => {
+    close();
+    cancelRef.current();
+  }, [close]);
+
   const ConfirmDialog = useCallback(
     () => (
       <Modal
         open={state.open}
         title={state.title}
-        onClose={close}
+        onClose={handleCancel}
         size="sm"
         footer={
           <>
-            <Button variant="ghost" onClick={close}>
+            <Button variant="ghost" onClick={handleCancel}>
               {state.cancelText}
             </Button>
             <Button
@@ -80,7 +90,7 @@ export function useConfirmDialog() {
         )}
       </Modal>
     ),
-    [state, close]
+    [state, close, handleCancel]
   );
 
   return { confirm, ConfirmDialog };

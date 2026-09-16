@@ -134,17 +134,17 @@ export function CommandBar({ query, onQueryChange, onPanelOpenChange }: CommandB
       */}
       <div
         className={cn(
-          'flex h-10 items-center gap-2 rounded-xl border bg-white px-3 shadow-sm transition-[border-color,box-shadow] duration-150 sm:h-11 sm:gap-2.5 sm:px-3.5 dark:bg-slate-800/70',
+          'flex h-10 items-center gap-2 rounded-xl border bg-white px-3 shadow-sm transition-[border-color,box-shadow] duration-150 sm:h-11 sm:gap-2.5 sm:px-3.5 dark:bg-black',
           focused
-            ? 'border-indigo-500 ring-2 ring-indigo-500/15 dark:border-indigo-500'
-            : 'border-slate-200 hover:border-slate-300 dark:border-slate-700 dark:hover:border-slate-600'
+            ? 'border-sky-500 ring-2 ring-sky-500/15 dark:border-sky-400'
+            : 'border-slate-300 hover:border-slate-400 dark:border-slate-600 dark:hover:border-slate-500'
         )}
       >
         <SearchIcon
           size={17}
           className={cn(
             'shrink-0 transition-colors',
-            focused ? 'text-indigo-500' : 'text-slate-400'
+            focused ? 'text-sky-500' : 'text-slate-400'
           )}
         />
         <input
@@ -159,7 +159,7 @@ export function CommandBar({ query, onQueryChange, onPanelOpenChange }: CommandB
           autoComplete="off"
           spellCheck={false}
           aria-label="搜索收藏或搜索网络"
-          className="h-full min-w-0 flex-1 bg-transparent text-sm text-slate-900 outline-none placeholder:text-slate-400 focus:outline-none focus-visible:outline-none dark:text-white dark:placeholder:text-slate-500"
+          className="h-full min-w-0 flex-1 bg-transparent text-sm text-slate-900 outline-none placeholder:text-slate-400 focus:outline-none focus-visible:outline-none dark:text-slate-100 dark:placeholder:text-slate-500"
         />
         {query ? (
           <button
@@ -169,19 +169,19 @@ export function CommandBar({ query, onQueryChange, onPanelOpenChange }: CommandB
               inputRef.current?.focus();
             }}
             aria-label="清空搜索"
-            className="-mr-1 shrink-0 rounded-md p-1 text-slate-400 transition-colors hover:bg-slate-100 hover:text-slate-600 dark:hover:bg-slate-700 dark:hover:text-slate-200"
+            className="-mr-1 shrink-0 rounded-md p-1 text-slate-400 transition-colors hover:bg-slate-100 hover:text-slate-600 dark:hover:bg-slate-900 dark:hover:text-slate-200"
           >
             <CloseIcon size={15} />
           </button>
         ) : (
-          <kbd className="hidden shrink-0 rounded border border-slate-200 px-1.5 py-0.5 font-sans text-[10px] font-medium text-slate-400 sm:block dark:border-slate-700 dark:text-slate-500">
+          <kbd className="hidden shrink-0 rounded border border-slate-300 px-1.5 py-0.5 font-sans text-[10px] font-medium text-slate-400 sm:block dark:border-slate-600 dark:text-slate-500">
             ⌘K
           </kbd>
         )}
       </div>
 
       {showPanel && (
-        <div className="animate-rise absolute inset-x-0 top-full z-40 mt-2 overflow-hidden rounded-xl border border-slate-200/90 bg-white shadow-2xl shadow-slate-900/15 ring-1 ring-black/[0.03] dark:border-slate-700 dark:bg-slate-800 dark:shadow-black/50 dark:ring-white/[0.04]">
+        <div className="animate-rise absolute inset-x-0 top-full z-40 mt-2 overflow-hidden rounded-xl border border-slate-200 bg-white shadow-xl shadow-slate-900/10 dark:border-slate-700 dark:bg-black dark:shadow-none">
           {hits.length > 0 && (
             <ul className="max-h-[min(60vh,20rem)] overflow-y-auto p-1.5 scrollbar-thin">
               {hits.map((hit, index) => (
@@ -195,13 +195,13 @@ export function CommandBar({ query, onQueryChange, onPanelOpenChange }: CommandB
                     }}
                     className={cn(
                       'flex w-full items-center gap-3 rounded-lg px-2.5 py-2 text-left transition-colors',
-                      index === activeIndex ? 'bg-indigo-50 dark:bg-indigo-950/40' : ''
+                      index === activeIndex ? 'bg-sky-50 dark:bg-sky-950/40' : ''
                     )}
                   >
                     {hit.bookmark.type === 'link' ? (
                       <Favicon url={hit.bookmark.url ?? ''} title={hit.bookmark.title} size={26} />
                     ) : (
-                      <span className="flex h-[26px] w-[26px] shrink-0 items-center justify-center rounded-md bg-slate-100 text-slate-500 dark:bg-slate-700 dark:text-slate-300">
+                      <span className="flex h-[26px] w-[26px] shrink-0 items-center justify-center rounded-md bg-slate-100 text-slate-500 dark:bg-slate-900 dark:text-slate-400">
                         <TextIcon size={14} />
                       </span>
                     )}
@@ -233,10 +233,10 @@ export function CommandBar({ query, onQueryChange, onPanelOpenChange }: CommandB
           <button
             onMouseDown={(e) => e.preventDefault()}
             onClick={() => openWebSearch(trimmed)}
-            className="flex w-full items-center gap-3 border-t border-slate-100 px-3.5 py-2.5 text-left transition-colors hover:bg-slate-50 dark:border-slate-700 dark:hover:bg-slate-700/50"
+            className="flex w-full items-center gap-3 border-t border-slate-200 px-3.5 py-2.5 text-left transition-colors hover:bg-slate-100 dark:border-slate-700 dark:hover:bg-slate-900"
           >
             <GlobeIcon size={16} className="shrink-0 text-slate-400" />
-            <span className="min-w-0 flex-1 truncate text-sm text-slate-600 dark:text-slate-300">
+            <span className="min-w-0 flex-1 truncate text-sm text-slate-600 dark:text-slate-400">
               用 <span className="font-medium">{engine?.name ?? '网络'}</span> 搜索「{trimmed}」
             </span>
             <span className="hidden shrink-0 text-[10px] text-slate-400 sm:block">

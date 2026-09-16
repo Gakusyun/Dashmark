@@ -54,8 +54,8 @@ export function GroupTabs({ groups, active, counts, totalCount, onChange }: Grou
             className={cn(
               'inline-flex shrink-0 items-center gap-1.5 rounded-lg px-3 py-1.5 text-sm font-medium whitespace-nowrap transition-colors',
               isActive
-                ? 'bg-indigo-50 text-indigo-700 dark:bg-indigo-950/50 dark:text-indigo-300'
-                : 'text-slate-500 hover:bg-slate-100 hover:text-slate-700 dark:text-slate-400 dark:hover:bg-slate-800 dark:hover:text-slate-200'
+                ? 'bg-sky-50 text-sky-600 dark:bg-sky-950/40 dark:text-sky-400'
+                : 'text-slate-500 hover:bg-slate-100 hover:text-slate-700 dark:text-slate-400 dark:hover:bg-slate-900 dark:hover:text-slate-200'
             )}
           >
             {tab.label}
@@ -63,8 +63,8 @@ export function GroupTabs({ groups, active, counts, totalCount, onChange }: Grou
               className={cn(
                 'rounded-full px-1.5 text-[10px] tabular-nums',
                 isActive
-                  ? 'bg-indigo-100 text-indigo-600 dark:bg-indigo-500/20 dark:text-indigo-300'
-                  : 'bg-slate-100 text-slate-400 dark:bg-slate-800 dark:text-slate-500'
+                  ? 'bg-sky-100 text-sky-600 dark:bg-sky-500/20 dark:text-sky-400'
+                  : 'bg-slate-100 text-slate-400 dark:bg-slate-900 dark:text-slate-500'
               )}
             >
               {tab.count}

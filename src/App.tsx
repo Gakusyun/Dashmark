@@ -60,6 +60,9 @@ const App: React.FC = () => {
   const pinyin = usePinyin(trimmedQuery.length > 0);
 
   // ==================== Cookie 同意 ====================
+  // 仅在 `cookieConsent === null`（从未询问）时弹窗；
+  // 无论允许（true）还是不允许（false）都视为已询问，不再重复弹出。
+  // 点击“不允许”或关闭弹窗都会写入 false，因此需要 onCancel 落库。
   const consentAsked = useRef(false);
   useEffect(() => {
     if (loading || consentAsked.current) return;
@@ -67,25 +70,27 @@ const App: React.FC = () => {
       initClarity();
       return;
     }
-    if (data.settings.cookieConsent === null) {
-      consentAsked.current = true;
-      const timer = setTimeout(() => {
-        confirm({
-          title: '是否允许匿名统计？',
-          content:
-            '我们使用 Microsoft Clarity 了解功能使用情况以持续改进。不会收集书签内容，你也可以随时在设置中关闭。',
-          confirmText: '允许',
-          cancelText: '不允许',
-          tone: 'primary',
-          onConfirm: () => {
-            updateSettingsRef.current({ cookieConsent: true });
-            initClarity();
-          },
-          onCancel: () => updateSettingsRef.current({ cookieConsent: false }),
-        });
-      }, 600);
-      return () => clearTimeout(timer);
+    if (data.settings.cookieConsent != null) {
+      // 已拒绝（false）：不再询问
+      return;
     }
+    consentAsked.current = true;
+    const timer = setTimeout(() => {
+      confirm({
+        title: '是否允许匿名统计？',
+        content:
+          '我们使用 Microsoft Clarity 了解功能使用情况以持续改进。不会收集书签内容，你也可以随时在设置中关闭。',
+        confirmText: '允许',
+        cancelText: '不允许',
+        tone: 'primary',
+        onConfirm: () => {
+          updateSettingsRef.current({ cookieConsent: true });
+          initClarity();
+        },
+        onCancel: () => updateSettingsRef.current({ cookieConsent: false }),
+      });
+    }, 600);
+    return () => clearTimeout(timer);
   }, [loading, data.settings.cookieConsent, confirm]);
 
   // ==================== 分组计数 ====================
@@ -160,17 +165,17 @@ const App: React.FC = () => {
 
   return (
     <>
-      <header className="sticky top-0 z-30 border-b border-slate-200/80 bg-slate-50/80 backdrop-blur-md dark:border-slate-800 dark:bg-slate-950/80">
+      <header className="sticky top-0 z-30 border-b border-slate-200 bg-white/80 backdrop-blur-md dark:border-slate-700 dark:bg-black/80">
         <div className="mx-auto flex max-w-6xl items-center gap-2 px-3 py-3 sm:gap-3 sm:px-4">
           <button
             onClick={() => {
               setQuery('');
               setActiveGroup('all');
             }}
-            className="flex shrink-0 items-center gap-2 text-base font-semibold text-slate-900 transition-opacity hover:opacity-70 dark:text-white"
+            className="flex shrink-0 items-center gap-2 text-base font-semibold text-slate-900 transition-opacity hover:opacity-70 dark:text-slate-100"
             aria-label="回到首页"
           >
-            <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-indigo-600 text-white">
+            <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-sky-600 text-white">
               <BookmarkTabIcon size={16} />
             </span>
             <span className="hidden md:inline">DashMark</span>
@@ -290,7 +295,7 @@ const App: React.FC = () => {
         <button
           onClick={openNewEditor}
           aria-label="新建收藏"
-          className="fixed right-4 bottom-4 z-20 flex h-13 w-13 items-center justify-center rounded-full bg-indigo-600 text-white shadow-lg shadow-indigo-600/25 transition-transform hover:scale-105 active:scale-95 sm:hidden"
+          className="fixed right-4 bottom-4 z-20 flex h-13 w-13 items-center justify-center rounded-full bg-sky-600 text-white shadow-lg shadow-sky-600/25 transition-transform hover:scale-105 active:scale-95 sm:hidden"
           style={{ height: '3.25rem', width: '3.25rem' }}
         >
           <PlusIcon size={22} />
@@ -328,10 +333,10 @@ function WelcomeEmpty({
 }) {
   return (
     <div className="flex min-h-[60vh] flex-col items-center justify-center text-center">
-      <span className="mb-5 flex h-14 w-14 items-center justify-center rounded-2xl bg-indigo-50 text-indigo-600 dark:bg-indigo-950/50 dark:text-indigo-400">
+      <span className="mb-5 flex h-14 w-14 items-center justify-center rounded-2xl bg-sky-50 text-sky-600 dark:bg-sky-950/50 dark:text-sky-400">
         <BookmarkTabIcon size={26} />
       </span>
-      <h2 className="text-lg font-semibold text-slate-900 dark:text-white">欢迎使用 DashMark</h2>
+      <h2 className="text-lg font-semibold text-slate-900 dark:text-slate-100">欢迎使用 DashMark</h2>
       <p className="mt-1.5 max-w-sm text-sm leading-relaxed text-slate-500 dark:text-slate-400">
         把常用的链接收进分组，用 Ctrl/⌘ + K 随时唤出命令栏，几秒内抵达任何地方。
       </p>
@@ -349,7 +354,7 @@ function WelcomeEmpty({
 
 function Footer() {
   return (
-    <footer className="mt-auto border-t border-slate-200 pt-5 pb-2 text-center text-xs text-slate-400 dark:border-slate-800 dark:text-slate-500">
+    <footer className="mt-auto border-t border-slate-200 pt-5 pb-2 text-center text-xs text-slate-400 dark:border-slate-700 dark:text-slate-500">
       <div className="flex flex-col items-center gap-1">
         <a
           href="https://beian.miit.gov.cn/"

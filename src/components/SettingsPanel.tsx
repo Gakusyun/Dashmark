@@ -162,7 +162,7 @@ export function SettingsPanel() {
           <select
             value={data.settings.searchEngine}
             onChange={(e) => updateSettings({ searchEngine: e.target.value })}
-            className="h-9 rounded-lg border border-slate-200 bg-white px-2.5 text-sm text-slate-700 outline-none focus:border-indigo-500 dark:border-slate-700 dark:bg-slate-900/40 dark:text-slate-200"
+            className="h-9 rounded-md border border-slate-300 bg-white px-2.5 text-sm text-slate-700 outline-none focus:border-sky-500 dark:border-slate-600 dark:bg-black dark:text-slate-300 dark:focus:border-sky-400"
           >
             {allSearchEngines.map((engine) => (
               <option key={engine.id} value={engine.id}>
@@ -187,7 +187,7 @@ export function SettingsPanel() {
               还没有自定义引擎，内置的 Google / Bing / 百度 / 夸克始终可用
             </p>
           ) : (
-            <ul className="divide-y divide-slate-100 overflow-hidden rounded-lg border border-slate-200 dark:divide-slate-800 dark:border-slate-700/70">
+            <ul className="divide-y divide-slate-200 overflow-hidden rounded-lg border border-slate-200 dark:divide-slate-700 dark:border-slate-700">
               {customEngines.map((engine) => (
                 <li key={engine.id} className="group flex items-center gap-3 px-3 py-2">
                   <SearchIcon size={15} className="shrink-0 text-slate-400" />
@@ -330,12 +330,12 @@ function Section({
   return (
     <section>
       <header className="mb-3">
-        <h3 className="text-sm font-semibold text-slate-900 dark:text-white">{title}</h3>
+        <h3 className="text-sm font-semibold text-slate-900 dark:text-slate-100">{title}</h3>
         {description && (
           <p className="mt-0.5 text-xs text-slate-400 dark:text-slate-500">{description}</p>
         )}
       </header>
-      <div className="space-y-3 rounded-xl border border-slate-200 bg-white p-4 dark:border-slate-700/70 dark:bg-slate-900/40">
+      <div className="space-y-3 rounded-xl border border-slate-200 bg-white p-4 shadow-sm dark:border-slate-700 dark:bg-black dark:shadow-none">
         {children}
       </div>
     </section>

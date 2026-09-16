@@ -1,4 +1,3 @@
-@import url('https://font.sec.miui.com/font/css?family=MiSans:400,500,600,700:MiSans');
 @import 'tailwindcss';
 
 /* 启用基于 class 的暗色模式（由 ThemeContext 控制 <html>.dark） */
@@ -6,8 +5,9 @@
 
 @theme {
   --font-sans:
-    'MiSans', 'PingFang SC', 'Microsoft YaHei', system-ui, -apple-system,
-    'BlinkMacSystemFont', 'Segoe UI', 'Helvetica Neue', Arial, sans-serif;
+    'Inter', 'Noto Sans SC', 'PingFang SC', 'Microsoft YaHei', system-ui,
+    -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Helvetica Neue', Arial,
+    sans-serif;
 }
 
 /*
@@ -19,7 +19,7 @@
  *
  * 实际约定（详见根目录 STYLE.md）：
  *  - 中性色：slate
- *  - 强调色：indigo
+ *  - 强调色：sky
  *  - 危险/错误：rose
  *  - 成功：emerald　警告：amber
  *
@@ -37,12 +37,12 @@ body {
   font-family: var(--font-sans);
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
-  background-color: #f6f7f9;
+  background-color: #ffffff;
   overscroll-behavior-y: none;
 }
 
 .dark body {
-  background-color: #0c0d10;
+  background-color: #000000;
 }
 
 #root {
@@ -89,7 +89,7 @@ a {
  * 因此此处排除 input / textarea / select，它们各自的样式负责焦点反馈。
  */
 :focus-visible {
-  outline: 2px solid #4f46e5;
+  outline: 2px solid #0284c7;
   outline-offset: 2px;
 }
 

@@ -57,12 +57,12 @@ export class ErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoundarySt
           <span className="flex h-14 w-14 items-center justify-center rounded-2xl bg-rose-50 text-rose-500 dark:bg-rose-950/40">
             <ErrorIcon size={28} />
           </span>
-          <h1 className="text-xl font-semibold text-slate-900 dark:text-white">出了点问题</h1>
+          <h1 className="text-xl font-semibold text-slate-900 dark:text-slate-100">出了点问题</h1>
           <p className="max-w-sm text-sm text-slate-500 dark:text-slate-400">
             应用遇到了意外错误。可以尝试重试，如果问题持续存在请刷新页面。
           </p>
           {this.state.error && (
-            <p className="max-w-full overflow-auto rounded-lg bg-slate-100 px-3.5 py-2 font-mono text-xs text-slate-500 dark:bg-slate-800 dark:text-slate-400">
+            <p className="max-w-full overflow-auto rounded-lg bg-slate-100 px-3.5 py-2 font-mono text-xs text-slate-500 dark:bg-slate-900 dark:text-slate-400">
               {this.state.error.message}
             </p>
           )}

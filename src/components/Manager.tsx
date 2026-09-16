@@ -58,10 +58,10 @@ export function Manager({
   if (!open) return null;
 
   return (
-    <div className="animate-fade-in fixed inset-0 z-[9980] flex flex-col bg-slate-50 dark:bg-slate-950">
+    <div className="animate-fade-in fixed inset-0 z-[9980] flex flex-col bg-white dark:bg-black">
       {/* 顶栏 */}
-      <header className="flex shrink-0 items-center gap-3 border-b border-slate-200 bg-white px-4 py-3 dark:border-slate-800 dark:bg-slate-900">
-        <h2 className="flex-1 text-base font-semibold text-slate-900 dark:text-white">管理</h2>
+      <header className="flex shrink-0 items-center gap-3 border-b border-slate-200 bg-white px-4 py-3 dark:border-slate-700 dark:bg-black">
+        <h2 className="flex-1 text-base font-semibold text-slate-900 dark:text-slate-100">管理</h2>
         <Button variant="ghost" size="icon" onClick={onClose} aria-label="关闭管理台">
           <CloseIcon size={18} />
         </Button>
@@ -69,7 +69,7 @@ export function Manager({
 
       <div className="flex min-h-0 flex-1 flex-col sm:flex-row">
         {/* 导航 */}
-        <nav className="shrink-0 border-b border-slate-200 bg-white px-2 py-2 sm:w-56 sm:border-r sm:border-b-0 sm:py-4 dark:border-slate-800 dark:bg-slate-900">
+        <nav className="shrink-0 border-b border-slate-200 bg-white px-2 py-2 sm:w-56 sm:border-r sm:border-b-0 sm:py-4 dark:border-slate-700 dark:bg-black">
           <div className="scrollbar-none flex gap-1 overflow-x-auto sm:flex-col sm:overflow-visible">
             {NAV.map((item) => {
               const active = tab === item.id;
@@ -81,8 +81,8 @@ export function Manager({
                   className={cn(
                     'flex shrink-0 items-center gap-2.5 rounded-lg px-3 py-2 text-sm font-medium transition-colors sm:w-full',
                     active
-                      ? 'bg-indigo-50 text-indigo-700 dark:bg-indigo-950/50 dark:text-indigo-300'
-                      : 'text-slate-600 hover:bg-slate-100 dark:text-slate-400 dark:hover:bg-slate-800'
+                      ? 'bg-sky-50 text-sky-600 dark:bg-sky-950/40 dark:text-sky-400'
+                      : 'text-slate-600 hover:bg-slate-100 dark:text-slate-400 dark:hover:bg-slate-900'
                   )}
                 >
                   {item.icon}
