@@ -1,4 +1,4 @@
-// 从Vite环境变量获取版本号
+// 从 Vite 环境变量获取版本号
 export const getVersion = (): string => {
   return import.meta.env.VITE_APP_VERSION || 'unknown';
 };

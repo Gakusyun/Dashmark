@@ -1,14 +1,5 @@
-import React, { useState, useRef, useCallback } from 'react';
-import {
-  List,
-  ListItem,
-  IconButton,
-  Typography,
-  Checkbox,
-} from '@mui/material';
-import {
-  DragHandle as DragHandleIcon,
-} from '@mui/icons-material';
+import { useState, useRef, useCallback } from 'react';
+import { DragHandleIcon } from './Icons';
 
 export interface DraggableItemListProps<T> {
   items: T[];
@@ -40,14 +31,6 @@ export function DraggableItemList<T>({
     currentOverIndex: number | null;
   } | null>(null);
 
-  if (items.length === 0) {
-    return (
-      <Typography color="text.secondary" sx={{ py: 3, textAlign: 'center' }}>
-        {emptyMessage}
-      </Typography>
-    );
-  }
-
   // 处理拖拽开始
   const handleDragStart = (e: React.DragEvent, index: number) => {
     e.dataTransfer.setData('text/plain', index.toString());
@@ -70,19 +53,17 @@ export function DraggableItemList<T>({
   const handleDrop = (e: React.DragEvent, dropIndex: number) => {
     e.preventDefault();
     const dragIndex = parseInt(e.dataTransfer.getData('text/plain'), 10);
-    
+
     if (dragIndex !== dropIndex) {
-      // 重新排序数组
       const newItems = [...items];
-      const draggedItem = newItems[dragIndex];
+      const dragged = newItems[dragIndex];
       newItems.splice(dragIndex, 1);
-      newItems.splice(dropIndex, 0, draggedItem);
-      
-      // 获取重新排序后的ID列表
-      const orderedIds = newItems.map(item => getItemId(item));
+      newItems.splice(dropIndex, 0, dragged);
+
+      const orderedIds = newItems.map((item) => getItemId(item));
       onOrderChange(orderedIds);
     }
-    
+
     setDraggedItem(null);
     setDragOverIndex(null);
   };
@@ -114,16 +95,19 @@ export function DraggableItemList<T>({
   }, []);
 
   // Touch move — detect which item is under the finger
-  const handleTouchMove = useCallback((e: React.TouchEvent) => {
-    if (!touchState.current) return;
-    e.preventDefault(); // prevent scroll while dragging
-    const touch = e.touches[0];
-    const overIndex = findIndexAtPoint(touch.clientX, touch.clientY);
-    if (overIndex !== null && overIndex !== touchState.current.currentOverIndex) {
-      touchState.current.currentOverIndex = overIndex;
-      setTouchOverIndex(overIndex);
-    }
-  }, [findIndexAtPoint]);
+  const handleTouchMove = useCallback(
+    (e: React.TouchEvent) => {
+      if (!touchState.current) return;
+      e.preventDefault(); // prevent scroll while dragging
+      const touch = e.touches[0];
+      const overIndex = findIndexAtPoint(touch.clientX, touch.clientY);
+      if (overIndex !== null && overIndex !== touchState.current.currentOverIndex) {
+        touchState.current.currentOverIndex = overIndex;
+        setTouchOverIndex(overIndex);
+      }
+    },
+    [findIndexAtPoint]
+  );
 
   // Touch end — finalize the reorder
   const handleTouchEnd = useCallback(() => {
@@ -134,7 +118,7 @@ export function DraggableItemList<T>({
       const dragged = newItems[startIndex];
       newItems.splice(startIndex, 1);
       newItems.splice(currentOverIndex, 0, dragged);
-      const orderedIds = newItems.map(item => getItemId(item));
+      const orderedIds = newItems.map((item) => getItemId(item));
       onOrderChange(orderedIds);
     }
     touchState.current = null;
@@ -142,8 +126,14 @@ export function DraggableItemList<T>({
     setTouchOverIndex(null);
   }, [items, getItemId, onOrderChange]);
 
+  if (items.length === 0) {
+    return (
+      <p className="py-6 text-center text-slate-500 dark:text-slate-400">{emptyMessage}</p>
+    );
+  }
+
   return (
-    <List>
+    <ul>
       {items.map((item, index) => {
         const id = getItemId(item);
         const isSelected = selectedIds?.has(id);
@@ -153,7 +143,7 @@ export function DraggableItemList<T>({
         const isTouchOver = touchOverIndex === index && touchDraggingIndex !== index;
 
         return (
-          <ListItem
+          <li
             key={id}
             data-drag-index={index}
             draggable
@@ -164,44 +154,43 @@ export function DraggableItemList<T>({
             onDragEnd={handleDragEnd}
             onTouchMove={handleTouchMove}
             onTouchEnd={handleTouchEnd}
-            secondaryAction={
-              <IconButton
-                edge="end"
-                onTouchStart={(e) => handleTouchStart(e, index)}
-                sx={{
-                  cursor: 'move',
-                  opacity: (isDragged || isTouchDragging) ? 0.5 : 1,
-                  touchAction: 'none',
-                }}
-              >
-                <DragHandleIcon />
-              </IconButton>
-            }
-            sx={{
-              bgcolor: isSelected ? 'action.selected' : 'transparent',
-              borderRadius: 1,
-              opacity: (isDragged || isTouchDragging) ? 0.5 : 1,
-              border: (isDragOver || isTouchOver) ? '2px dashed #1976d2' : 'none',
-              transform: (isDragged || isTouchDragging) ? 'rotate(5deg)' : 'none',
-              transition: touchDraggingIndex !== null ? 'border 0.15s ease, opacity 0.15s ease' : 'all 0.2s ease',
-              cursor: 'grab',
+            className={`flex items-center gap-1 rounded-md px-1 py-1.5 ${
+              isSelected ? 'bg-blue-50 dark:bg-blue-900/20' : ''
+            } ${
+              isDragOver || isTouchOver
+                ? 'border-2 border-dashed border-blue-500'
+                : 'border-2 border-transparent'
+            } ${
+              isDragged || isTouchDragging ? 'rotate-3 opacity-50' : ''
+            } cursor-grab active:cursor-grabbing`}
+            style={{
               touchAction: touchDraggingIndex !== null ? 'none' : 'auto',
-              '&:active': {
-                cursor: 'grabbing',
-              },
+              transition: touchDraggingIndex !== null ? 'border 0.15s ease, opacity 0.15s ease' : 'all 0.2s ease',
             }}
           >
             {selectedIds && onToggleSelect && (
-              <Checkbox
+              <input
+                type="checkbox"
                 checked={isSelected}
                 onChange={() => onToggleSelect(id)}
                 onClick={(e) => e.stopPropagation()}
+                className="h-4 w-4 accent-blue-600"
               />
             )}
-            {renderItem(item)}
-          </ListItem>
+            <div className="min-w-0 flex-1">{renderItem(item)}</div>
+            <button
+              aria-label="拖动排序"
+              onTouchStart={(e) => handleTouchStart(e, index)}
+              className={`shrink-0 cursor-move rounded p-2 text-slate-500 hover:bg-slate-100 dark:text-slate-400 dark:hover:bg-slate-700 ${
+                isDragged || isTouchDragging ? 'opacity-50' : ''
+              }`}
+              style={{ touchAction: 'none' }}
+            >
+              <DragHandleIcon size={18} />
+            </button>
+          </li>
         );
       })}
-    </List>
+    </ul>
   );
 }

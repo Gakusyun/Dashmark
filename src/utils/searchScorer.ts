@@ -31,38 +31,28 @@ function convertToPinyin(text: string, pinyinModule: PinyinModule | null): strin
  */
 function containsAllChars(text: string, queryChars: string[]): boolean {
   const lowerText = text.toLowerCase();
-  return queryChars.every(char => lowerText.includes(char));
+  return queryChars.every((char) => lowerText.includes(char));
 }
 
 /**
  * 检查文本的拼音是否包含所有搜索字符（拼音匹配）
  */
-function containsAllCharsInPinyin(text: string, queryChars: string[], pinyinModule: PinyinModule | null): boolean {
+function containsAllCharsInPinyin(
+  text: string,
+  queryChars: string[],
+  pinyinModule: PinyinModule | null
+): boolean {
   if (!pinyinModule) {
     return false;
   }
   const pinyinText = convertToPinyin(text, pinyinModule);
-  return queryChars.every(char => pinyinText.toLowerCase().includes(char));
+  return queryChars.every((char) => pinyinText.toLowerCase().includes(char));
 }
 
 // ==================== 主函数 ====================
 
 /**
  * 计算搜索查询与项目内容的匹配度分数
- *
- * 评分规则：
- * - 标题完全匹配：100分
- * - 标题包含完整搜索词：80分
- * - 标题包含所有字符：60分
- * - URL/内容包含完整搜索词：50分
- * - URL/内容包含所有字符：30分
- * - 拼音匹配：20分（标题）/ 10分（内容）
- *
- * @param item - 要评分的项目（Link 或 TextRecord）
- * @param query - 搜索查询字符串
- * @param groupNames - 分组ID到名称的映射
- * @param pinyinModule - 拼音模块（可选）
- * @returns 相关度分数（0-100）
  */
 export function calculateRelevanceScore(
   item: Link | TextRecord,
@@ -76,7 +66,7 @@ export function calculateRelevanceScore(
 
   let score = 0;
   const lowerQuery = query.toLowerCase();
-  const queryChars = lowerQuery.split('').filter(c => c.trim());
+  const queryChars = lowerQuery.split('').filter((c) => c.trim());
 
   // 判断项目类型
   const hasUrl = 'url' in item;

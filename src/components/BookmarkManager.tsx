@@ -1,17 +1,4 @@
-import React, { useState, useCallback, useEffect, useRef } from 'react';
-import {
-  Box,
-  Button,
-  TextField,
-  FormControlLabel,
-  Checkbox,
-  Typography,
-  ListItemText,
-  Radio,
-  RadioGroup,
-  FormControl,
-  FormLabel,
-} from '@mui/material';
+import { useState, useCallback, useEffect, useRef } from 'react';
 import { useData } from '../contexts/DataContext';
 import { useToast } from '../contexts/ToastContext';
 import { DialogBox } from './DialogBox';
@@ -30,7 +17,15 @@ interface BookmarkManagerProps {
 }
 
 export const BookmarkManager: React.FC<BookmarkManagerProps> = ({ autoAdd, onAutoAddConsumed }) => {
-  const { data, deleteBookmark, updateBookmark, addBookmark, batchDeleteBookmarks, addGroup, updateBookmarkOrder } = useData();
+  const {
+    data,
+    deleteBookmark,
+    updateBookmark,
+    addBookmark,
+    batchDeleteBookmarks,
+    addGroup,
+    updateBookmarkOrder,
+  } = useData();
   const { showError, showWarning } = useToast();
 
   // 使用批量选择 Hook
@@ -59,7 +54,7 @@ export const BookmarkManager: React.FC<BookmarkManagerProps> = ({ autoAdd, onAut
     content: '',
     groupIds: [] as string[],
   });
-  
+
   // 添加排序模式状态
   const [isSortingMode, setIsSortingMode] = useState(false);
 
@@ -174,7 +169,7 @@ export const BookmarkManager: React.FC<BookmarkManagerProps> = ({ autoAdd, onAut
   };
 
   const handleGroupCreated = useCallback((group: { id: string }) => {
-    setFormData(prev => ({
+    setFormData((prev) => ({
       ...prev,
       groupIds: [...prev.groupIds, group.id],
     }));
@@ -202,40 +197,54 @@ export const BookmarkManager: React.FC<BookmarkManagerProps> = ({ autoAdd, onAut
     setIsSortingMode(!isSortingMode);
   };
 
+  const inputCls =
+    'w-full rounded-md border border-slate-300 bg-transparent px-3 py-2 text-sm text-slate-900 outline-none focus:border-blue-500 dark:border-slate-600 dark:text-white';
+
   return (
-    <Box>
-      <Box sx={{ display: 'flex', gap: 2, mb: 2 }}>
-        <Button variant="contained" onClick={handleAdd}>
+    <div>
+      <div className="mb-4 flex flex-wrap gap-3">
+        <button
+          onClick={handleAdd}
+          className="rounded-md bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700"
+        >
           添加收藏
-        </Button>
-        <Button variant="outlined" onClick={toggleSortingMode}>
+        </button>
+        <button
+          onClick={toggleSortingMode}
+          className="rounded-md border border-slate-300 px-4 py-2 text-sm font-medium text-slate-700 hover:bg-slate-100 dark:border-slate-600 dark:text-slate-200 dark:hover:bg-slate-700"
+        >
           {isSortingMode ? '完成排序' : '修改次序'}
-        </Button>
+        </button>
         {selectedCount > 0 && (
-          <Button variant="contained" color="error" onClick={handleBatchDelete}>
+          <button
+            onClick={handleBatchDelete}
+            className="rounded-md bg-red-600 px-4 py-2 text-sm font-medium text-white hover:bg-red-700"
+          >
             批量删除 ({selectedCount})
-          </Button>
+          </button>
         )}
-      </Box>
+      </div>
 
       {(data.bookmarks?.length ?? 0) === 0 ? (
-        <Typography color="text.secondary" sx={{ py: 3, textAlign: 'center' }}>
+        <p className="py-6 text-center text-slate-500 dark:text-slate-400">
           暂无收藏，点击"添加收藏"开始添加
-        </Typography>
+        </p>
       ) : (
         <>
-          <Box>
-            <FormControlLabel
-              control={
-                <Checkbox
-                  checked={isAllSelected}
-                  indeterminate={isIndeterminate}
-                  onChange={selectAll}
-                />
-              }
-              label="全选"
-            />
-          </Box>
+          <div className="mb-1">
+            <label className="flex cursor-pointer items-center gap-2 text-sm text-slate-700 dark:text-slate-200">
+              <input
+                type="checkbox"
+                checked={isAllSelected}
+                ref={(el) => {
+                  if (el) el.indeterminate = isIndeterminate;
+                }}
+                onChange={selectAll}
+                className="h-4 w-4 accent-blue-600"
+              />
+              全选
+            </label>
+          </div>
           {isSortingMode ? (
             <DraggableItemList
               items={[...(data.bookmarks || [])].sort((a, b) => a.order - b.order)}
@@ -243,11 +252,14 @@ export const BookmarkManager: React.FC<BookmarkManagerProps> = ({ autoAdd, onAut
               emptyMessage='暂无收藏，点击"添加收藏"开始添加'
               onOrderChange={updateBookmarkOrder}
               renderItem={(bookmark) => (
-                <ListItemText
-                  primary={bookmark.title}
-                  secondary={getSecondaryText(bookmark)}
-                  sx={{ ml: 1 }}
-                />
+                <div className="ml-1">
+                  <p className="truncate text-sm font-medium text-slate-900 dark:text-white">
+                    {bookmark.title}
+                  </p>
+                  <p className="truncate text-xs text-slate-500 dark:text-slate-400">
+                    {getSecondaryText(bookmark)}
+                  </p>
+                </div>
               )}
             />
           ) : (
@@ -260,11 +272,14 @@ export const BookmarkManager: React.FC<BookmarkManagerProps> = ({ autoAdd, onAut
               onEdit={handleEdit}
               onDelete={handleDelete}
               renderItem={(bookmark) => (
-                <ListItemText
-                  primary={bookmark.title}
-                  secondary={getSecondaryText(bookmark)}
-                  sx={{ ml: 1 }}
-                />
+                <div className="ml-1">
+                  <p className="truncate text-sm font-medium text-slate-900 dark:text-white">
+                    {bookmark.title}
+                  </p>
+                  <p className="truncate text-xs text-slate-500 dark:text-slate-400">
+                    {getSecondaryText(bookmark)}
+                  </p>
+                </div>
               )}
             />
           )}
@@ -278,46 +293,54 @@ export const BookmarkManager: React.FC<BookmarkManagerProps> = ({ autoAdd, onAut
         onConfirm={handleSave}
         onClose={() => setModalOpen(false)}
       >
-        <FormControl fullWidth sx={{ mb: 2, mt: 1 }}>
-          <FormLabel sx={{ mb: 1 }}>收藏类型</FormLabel>
-          <RadioGroup
-            row
-            value={formData.type}
-            onChange={handleTypeChange}
-          >
-            <FormControlLabel value="link" control={<Radio />} label="链接" />
-            <FormControlLabel value="text" control={<Radio />} label="文字记录" />
-          </RadioGroup>
-        </FormControl>
+        <div className="mb-3 mt-1">
+          <p className="mb-2 text-sm font-medium text-slate-700 dark:text-slate-200">收藏类型</p>
+          <div className="flex gap-6">
+            <label className="flex cursor-pointer items-center gap-2 text-sm text-slate-700 dark:text-slate-200">
+              <input
+                type="radio"
+                value="link"
+                checked={formData.type === 'link'}
+                onChange={handleTypeChange}
+                className="h-4 w-4 accent-blue-600"
+              />
+              链接
+            </label>
+            <label className="flex cursor-pointer items-center gap-2 text-sm text-slate-700 dark:text-slate-200">
+              <input
+                type="radio"
+                value="text"
+                checked={formData.type === 'text'}
+                onChange={handleTypeChange}
+                className="h-4 w-4 accent-blue-600"
+              />
+              文字记录
+            </label>
+          </div>
+        </div>
 
-        <TextField
+        <input
           autoFocus
-          fullWidth
-          label="标题"
+          className={`${inputCls} mb-3`}
+          placeholder="标题"
           value={formData.title}
           onChange={(e) => setFormData({ ...formData, title: e.target.value })}
-          sx={{ mb: 2 }}
         />
 
         {formData.type === 'link' ? (
-          <TextField
-            fullWidth
-            label="URL"
+          <input
+            className={`${inputCls} mb-3`}
+            placeholder="example.com 或 https://example.com"
             value={formData.url}
             onChange={(e) => setFormData({ ...formData, url: e.target.value })}
-            placeholder="example.com 或 https://example.com"
-            sx={{ mb: 2 }}
           />
         ) : (
-          <TextField
-            fullWidth
-            label="内容"
+          <textarea
+            className={`${inputCls} mb-3 resize-y`}
+            rows={4}
+            placeholder="输入要保存的文字内容"
             value={formData.content}
             onChange={(e) => setFormData({ ...formData, content: e.target.value })}
-            placeholder="输入要保存的文字内容"
-            multiline
-            rows={4}
-            sx={{ mb: 2 }}
           />
         )}
 
@@ -331,6 +354,6 @@ export const BookmarkManager: React.FC<BookmarkManagerProps> = ({ autoAdd, onAut
       </DialogBox>
 
       <ConfirmDialog />
-    </Box>
+    </div>
   );
 };

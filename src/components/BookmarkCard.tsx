@@ -1,9 +1,7 @@
-import React, { useState } from 'react';
-import { Card, CardContent, Typography, Link as MuiLink, Menu, MenuItem, ListItemIcon, ListItemText } from '@mui/material';
-import { OpenInNew as OpenInNewIcon, ContentCopy as ContentCopyIcon, Edit as EditIcon } from '@mui/icons-material';
-import { isLink } from '../utils/typeUtils';
-import type { Link, Bookmark } from '../types';
+import { useState } from 'react';
 import { useToast } from '../contexts/ToastContext';
+import { OpenInNewIcon, ContentCopyIcon, EditIcon } from './Icons';
+import type { Link, Bookmark } from '../types';
 
 interface BookmarkCardProps {
   link: Link | Bookmark;
@@ -11,24 +9,20 @@ interface BookmarkCardProps {
 }
 
 export const BookmarkCard: React.FC<BookmarkCardProps> = ({ link, onEdit }) => {
-  const isBookmark = isLink(link);
-  const href = isBookmark ? (link as Bookmark).url : (link as Link).url;
+  const href = link.url ?? ('url' in link ? link.url : '');
   const { showSuccess, showError } = useToast();
 
-  const [contextMenu, setContextMenu] = useState<{ mouseX: number; mouseY: number } | null>(null);
+  const [contextMenu, setContextMenu] = useState<{ x: number; y: number } | null>(null);
 
   const handleClick = (e: React.MouseEvent) => {
     e.stopPropagation();
+    setContextMenu(null);
   };
 
   const handleContextMenu = (e: React.MouseEvent) => {
     e.preventDefault();
     e.stopPropagation();
-    setContextMenu(
-      contextMenu === null
-        ? { mouseX: e.clientX + 2, mouseY: e.clientY - 6 }
-        : null,
-    );
+    setContextMenu({ x: e.clientX + 2, y: e.clientY - 6 });
   };
 
   const handleCloseContextMenu = () => {
@@ -44,11 +38,10 @@ export const BookmarkCard: React.FC<BookmarkCardProps> = ({ link, onEdit }) => {
 
   const handleCopyLink = () => {
     if (href) {
-      navigator.clipboard.writeText(href).then(() => {
-        showSuccess('链接已复制到剪贴板');
-      }).catch(() => {
-        showError('复制失败');
-      });
+      navigator.clipboard
+        .writeText(href)
+        .then(() => showSuccess('链接已复制到剪贴板'))
+        .catch(() => showError('复制失败'));
     }
     handleCloseContextMenu();
   };
@@ -60,84 +53,64 @@ export const BookmarkCard: React.FC<BookmarkCardProps> = ({ link, onEdit }) => {
 
   return (
     <>
-      <MuiLink
+      <a
         href={href}
         target="_blank"
         rel="noopener noreferrer"
-        underline="none"
-        sx={{ display: 'block' }}
+        className="block"
         onClick={handleClick}
         onContextMenu={handleContextMenu}
       >
-        <Card
-          sx={{
-            height: '100%',
-            cursor: 'pointer',
-            '&:hover': {
-              transform: 'translateY(-2px)',
-            },
-            transition: 'transform 200ms',
-          }}
-        >
-          <CardContent>
-            <Typography
-              variant="body1"
-              sx={{
-                fontWeight: 500,
-                overflow: 'hidden',
-                textOverflow: 'ellipsis',
-                whiteSpace: 'nowrap',
-              }}
-            >
-              {link.title}
-            </Typography>
-            <Typography
-              variant="body2"
-              color="text.secondary"
-              sx={{
-                mt: 0.5,
-                overflow: 'hidden',
-                textOverflow: 'ellipsis',
-                whiteSpace: 'nowrap',
-                fontSize: '0.875rem',
-              }}
-            >
-              {href}
-            </Typography>
-          </CardContent>
-        </Card>
-      </MuiLink>
-      <Menu
-        open={contextMenu !== null}
-        onClose={handleCloseContextMenu}
-        anchorReference="anchorPosition"
-        anchorPosition={
-          contextMenu !== null
-            ? { top: contextMenu.mouseY, left: contextMenu.mouseX }
-            : undefined
-        }
-      >
-        <MenuItem onClick={handleOpenInNewTab}>
-          <ListItemIcon>
-            <OpenInNewIcon fontSize="small" />
-          </ListItemIcon>
-          <ListItemText>在新标签页打开</ListItemText>
-        </MenuItem>
-        <MenuItem onClick={handleCopyLink}>
-          <ListItemIcon>
-            <ContentCopyIcon fontSize="small" />
-          </ListItemIcon>
-          <ListItemText>复制链接</ListItemText>
-        </MenuItem>
-        {onEdit && (
-          <MenuItem onClick={handleEdit}>
-            <ListItemIcon>
-              <EditIcon fontSize="small" />
-            </ListItemIcon>
-            <ListItemText>编辑</ListItemText>
-          </MenuItem>
-        )}
-      </Menu>
+        <div className="h-full cursor-pointer rounded-lg border border-slate-200 bg-white p-4 shadow-sm transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md dark:border-slate-700 dark:bg-[#1e1e1e]">
+          <p className="overflow-hidden text-ellipsis whitespace-nowrap font-medium text-slate-900 dark:text-white">
+            {link.title}
+          </p>
+          <p className="mt-0.5 overflow-hidden text-ellipsis whitespace-nowrap text-sm text-slate-500 dark:text-slate-400">
+            {href}
+          </p>
+        </div>
+      </a>
+      {contextMenu && (
+        <>
+          <div className="fixed inset-0 z-[9990]" onClick={handleCloseContextMenu} />
+          <div
+            className="fixed z-[9991] min-w-[160px] overflow-hidden rounded-md border border-slate-200 bg-white py-1 shadow-lg dark:border-slate-700 dark:bg-slate-800"
+            style={{ top: contextMenu.y, left: contextMenu.x }}
+          >
+            <MenuItem icon={<OpenInNewIcon size={16} />} onClick={handleOpenInNewTab}>
+              在新标签页打开
+            </MenuItem>
+            <MenuItem icon={<ContentCopyIcon size={16} />} onClick={handleCopyLink}>
+              复制链接
+            </MenuItem>
+            {onEdit && (
+              <MenuItem icon={<EditIcon size={16} />} onClick={handleEdit}>
+                编辑
+              </MenuItem>
+            )}
+          </div>
+        </>
+      )}
     </>
   );
 };
+
+function MenuItem({
+  icon,
+  onClick,
+  children,
+}: {
+  icon: React.ReactNode;
+  onClick: () => void;
+  children: React.ReactNode;
+}) {
+  return (
+    <button
+      onClick={onClick}
+      className="flex w-full items-center gap-3 px-4 py-2 text-left text-sm text-slate-700 hover:bg-slate-100 dark:text-slate-200 dark:hover:bg-slate-700"
+    >
+      <span className="text-slate-500 dark:text-slate-400">{icon}</span>
+      {children}
+    </button>
+  );
+}

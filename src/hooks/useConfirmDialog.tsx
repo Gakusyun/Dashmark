@@ -1,126 +1,61 @@
-import React, { useState, useCallback, useMemo } from 'react';
-import { Button } from '@mui/material';
+import { useState, useCallback, useMemo, type ButtonHTMLAttributes } from 'react';
 import { DialogBox } from '../components/DialogBox';
 
 /**
  * 确认对话框选项
  */
 export interface ConfirmOptions {
-  /** 对话框标题 */
   title: string;
-  /** 对话框内容（可选） */
   content?: string;
-  /** 确认按钮的回调函数 */
   onConfirm: () => void;
-  /** 取消按钮的回调函数（可选） */
   onCancel?: () => void;
-  /** 确认按钮文本（默认："确定"） */
   confirmText?: string;
-  /** 取消按钮文本（默认："取消"） */
   cancelText?: string;
-  /** 确认按钮颜色（默认："error"） */
   confirmColor?: 'error' | 'primary' | 'warning' | 'success' | 'info';
-  /** 确认按钮变体（默认："text"） */
-  confirmVariant?: 'text' | 'outlined' | 'contained';
-  /** 取消按钮变体（默认："contained"） */
-  cancelVariant?: 'text' | 'outlined' | 'contained';
-  /** 确认按钮额外属性 */
-  confirmButtonProps?: Partial<React.ComponentProps<typeof Button>>;
-  /** 取消按钮额外属性 */
-  cancelButtonProps?: Partial<React.ComponentProps<typeof Button>>;
+  confirmVariant?: 'solid' | 'outline' | 'ghost';
+  cancelVariant?: 'solid' | 'outline' | 'ghost';
+  confirmButtonProps?: ButtonHTMLAttributes<HTMLButtonElement>;
+  cancelButtonProps?: ButtonHTMLAttributes<HTMLButtonElement>;
 }
 
-/**
- * 确认对话框状态
- */
 interface ConfirmDialogState {
-  /** 对话框是否打开 */
   open: boolean;
-  /** 对话框标题 */
   title: string;
-  /** 对话框内容 */
   content: string;
-  /** 确认回调 */
   onConfirm: () => void;
-  /** 取消回调 */
   onCancel?: () => void;
-  /** 确认按钮文本 */
   confirmText: string;
-  /** 取消按钮文本 */
   cancelText: string;
-  /** 确认按钮颜色 */
   confirmColor: ConfirmOptions['confirmColor'];
-  /** 确认按钮变体 */
   confirmVariant: ConfirmOptions['confirmVariant'];
-  /** 取消按钮变体 */
   cancelVariant: ConfirmOptions['cancelVariant'];
-  /** 确认按钮额外属性 */
-  confirmButtonProps: Partial<React.ComponentProps<typeof Button>> | undefined;
-  /** 取消按钮额外属性 */
-  cancelButtonProps: Partial<React.ComponentProps<typeof Button>> | undefined;
+  confirmButtonProps: ButtonHTMLAttributes<HTMLButtonElement> | undefined;
+  cancelButtonProps: ButtonHTMLAttributes<HTMLButtonElement> | undefined;
 }
 
-/**
- * 确认对话框Hook的返回值
- */
 interface UseConfirmDialogReturn {
-  /**
-   * 触发确认对话框
-   * @param options - 对话框配置选项
-   */
   confirm: (options: ConfirmOptions) => void;
-  /**
-   * 确认对话框组件
-   * 直接渲染在JSX中即可
-   */
   ConfirmDialog: React.ComponentType;
 }
 
 /**
  * 确认对话框Hook
- *
- * 用于管理确认对话框的状态和渲染。提供统一的确认对话框UI，
- * 支持自定义标题、内容、按钮文本和样式。
- *
- * @example
- * ```tsx
- * const { confirm, ConfirmDialog } = useConfirmDialog();
- *
- * const handleDelete = (item: Item) => {
- *   confirm({
- *     title: `确定删除"${item.name}"吗？`,
- *     onConfirm: () => deleteItem(item.id),
- *   });
- * };
- *
- * return (
- *   <>
- *     <Button onClick={() => handleDelete(item)}>删除</Button>
- *     <ConfirmDialog />
- *   </>
- * );
- * ```
- *
- * @returns 确认对话框的方法和组件
  */
 export function useConfirmDialog(): UseConfirmDialogReturn {
   const [state, setState] = useState<ConfirmDialogState>({
     open: false,
     title: '',
     content: '',
-    onConfirm: () => { },
+    onConfirm: () => {},
     confirmText: '删除',
     cancelText: '取消',
     confirmColor: 'error',
-    confirmVariant: 'text',
-    cancelVariant: 'contained',
+    confirmVariant: 'solid',
+    cancelVariant: 'outline',
     confirmButtonProps: undefined,
     cancelButtonProps: undefined,
   });
 
-  /**
-   * 触发确认对话框
-   */
   const confirm = useCallback((options: ConfirmOptions) => {
     setState({
       open: true,
@@ -131,19 +66,15 @@ export function useConfirmDialog(): UseConfirmDialogReturn {
       confirmText: options.confirmText || '删除',
       cancelText: options.cancelText || '取消',
       confirmColor: options.confirmColor || 'error',
-      confirmVariant: options.confirmVariant || 'text',
-      cancelVariant: options.cancelVariant || 'contained',
+      confirmVariant: options.confirmVariant || 'solid',
+      cancelVariant: options.cancelVariant || 'outline',
       confirmButtonProps: options.confirmButtonProps,
       cancelButtonProps: options.cancelButtonProps,
     });
   }, []);
 
-  /**
-   * 关闭对话框
-   */
   const handleClose = useCallback((callCancel: boolean = true) => {
-    setState(prev => {
-      // 使用 setTimeout 将回调延迟到下一个事件循环，避免在渲染期间调用 setState
+    setState((prev) => {
       if (callCancel && prev.onCancel) {
         setTimeout(() => {
           if (prev.onCancel) {
@@ -155,9 +86,6 @@ export function useConfirmDialog(): UseConfirmDialogReturn {
     });
   }, []);
 
-  /**
-   * 确认对话框组件
-   */
   const ConfirmDialog = useMemo(() => {
     return () => (
       <DialogBox
@@ -172,9 +100,8 @@ export function useConfirmDialog(): UseConfirmDialogReturn {
         confirmButtonProps={state.confirmButtonProps}
         cancelButtonProps={state.cancelButtonProps}
         onConfirm={() => {
-          // 同样使用 setTimeout 避免渲染期间调用 setState
           setTimeout(() => state.onConfirm(), 0);
-          handleClose(false); // 点击确认时，不调用onCancel
+          handleClose(false);
         }}
         onClose={handleClose}
       />

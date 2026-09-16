@@ -34,6 +34,8 @@ CLAUDE.md
 .claude/
 nul
 
+# 旧版本代码归档
+legacy/
 dashmark-old/
 
 .vite

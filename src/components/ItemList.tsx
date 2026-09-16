@@ -1,6 +1,4 @@
-import React from 'react';
-import { List, ListItem, IconButton, Typography, Checkbox } from '@mui/material';
-import { Delete as DeleteIcon, Edit as EditIcon } from '@mui/icons-material';
+import { DeleteIcon, EditIcon } from './Icons';
 
 export interface ItemListProps<T> {
   items: T[];
@@ -25,50 +23,55 @@ export function ItemList<T>({
 }: ItemListProps<T>) {
   if (items.length === 0) {
     return (
-      <Typography color="text.secondary" sx={{ py: 3, textAlign: 'center' }}>
-        {emptyMessage}
-      </Typography>
+      <p className="py-6 text-center text-slate-500 dark:text-slate-400">{emptyMessage}</p>
     );
   }
 
   return (
-    <List>
-      {items.map(item => {
+    <ul className="divide-y divide-slate-100 dark:divide-slate-700">
+      {items.map((item) => {
         const id = getItemId(item);
         const isSelected = selectedIds?.has(id);
         return (
-          <ListItem
+          <li
             key={id}
-            secondaryAction={
-              <>
-                {onEdit && (
-                  <IconButton edge="end" onClick={() => onEdit(item)}>
-                    <EditIcon />
-                  </IconButton>
-                )}
-                {onDelete && (
-                  <IconButton edge="end" onClick={() => onDelete(item)}>
-                    <DeleteIcon />
-                  </IconButton>
-                )}
-              </>
-            }
-            sx={{
-              bgcolor: isSelected ? 'action.selected' : 'transparent',
-              borderRadius: 1,
-            }}
+            className={`flex items-center gap-1 rounded-md px-1 py-1.5 ${
+              isSelected ? 'bg-blue-50 dark:bg-blue-900/20' : ''
+            }`}
           >
             {selectedIds && onToggleSelect && (
-              <Checkbox
+              <input
+                type="checkbox"
                 checked={isSelected}
                 onChange={() => onToggleSelect(id)}
                 onClick={(e) => e.stopPropagation()}
+                className="h-4 w-4 accent-blue-600"
               />
             )}
-            {renderItem(item)}
-          </ListItem>
+            <div className="min-w-0 flex-1">{renderItem(item)}</div>
+            <div className="flex shrink-0 items-center">
+              {onEdit && (
+                <button
+                  onClick={() => onEdit(item)}
+                  aria-label="编辑"
+                  className="rounded p-2 text-slate-500 hover:bg-slate-100 dark:text-slate-400 dark:hover:bg-slate-700"
+                >
+                  <EditIcon size={18} />
+                </button>
+              )}
+              {onDelete && (
+                <button
+                  onClick={() => onDelete(item)}
+                  aria-label="删除"
+                  className="rounded p-2 text-slate-500 hover:bg-slate-100 dark:text-slate-400 dark:hover:bg-slate-700"
+                >
+                  <DeleteIcon size={18} />
+                </button>
+              )}
+            </div>
+          </li>
         );
       })}
-    </List>
+    </ul>
   );
 }

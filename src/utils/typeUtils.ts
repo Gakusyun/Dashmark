@@ -1,12 +1,15 @@
 import type { Bookmark, Link, TextRecord, Group } from '../types';
 
 // 定义联合类型，可以接受链接、文字记录或收藏
-export type Item = (Link | TextRecord) | (Omit<Bookmark, 'content'> & { content: string }) | (Omit<Bookmark, 'url'> & { url: string }) | Bookmark;
+export type Item =
+  | Link
+  | TextRecord
+  | Bookmark;
 
 /**
  * 判断项目是否为链接类型
  */
-export function isLink(item: Item): item is (Link | Bookmark) {
+export function isLink(item: Item): item is Link | Bookmark {
   if ('type' in item) {
     // 这是新的收藏类型
     return (item as Bookmark).type === 'link';
@@ -19,7 +22,7 @@ export function isLink(item: Item): item is (Link | Bookmark) {
 /**
  * 判断项目是否为文字记录类型
  */
-export function isTextRecord(item: Item): item is (TextRecord | Bookmark) {
+export function isTextRecord(item: Item): item is TextRecord | Bookmark {
   if ('type' in item) {
     // 这是新的收藏类型
     return (item as Bookmark).type === 'text';

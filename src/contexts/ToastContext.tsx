@@ -1,6 +1,4 @@
-/* eslint-disable react-refresh/only-export-components */
-import React, { createContext, useContext, useState, useCallback } from 'react';
-import { Snackbar, Alert } from '@mui/material';
+import { createContext, useContext, useState, useCallback, useEffect, type ReactNode } from 'react';
 
 export type ToastSeverity = 'success' | 'error' | 'warning' | 'info';
 
@@ -29,8 +27,22 @@ export const useToast = () => {
   return context;
 };
 
+const severityClasses: Record<ToastSeverity, string> = {
+  success: 'bg-green-600 text-white',
+  error: 'bg-red-600 text-white',
+  warning: 'bg-amber-500 text-white',
+  info: 'bg-blue-600 text-white',
+};
+
+const severityIcons: Record<ToastSeverity, string> = {
+  success: '✓',
+  error: '✕',
+  warning: '⚠',
+  info: 'ℹ',
+};
+
 interface ToastProviderProps {
-  children: React.ReactNode;
+  children: ReactNode;
 }
 
 export const ToastProvider: React.FC<ToastProviderProps> = ({ children }) => {
@@ -65,23 +77,35 @@ export const ToastProvider: React.FC<ToastProviderProps> = ({ children }) => {
     <ToastContext.Provider value={value}>
       {children}
       {toast && (
-        <Snackbar
-          open={true}
-          autoHideDuration={toast.autoHideDuration}
-          onClose={handleClose}
-          anchorOrigin={{ vertical: 'bottom', horizontal: 'center' }}
-          sx={{ zIndex: 10000 }}
-        >
-          <Alert
-            onClose={handleClose}
-            severity={toast.severity}
-            variant="filled"
-            sx={{ width: '100%' }}
+        <div className="fixed bottom-6 left-1/2 z-[10000] -translate-x-1/2">
+          <div
+            key={toast.id}
+            className={`flex items-center gap-2 rounded-md px-4 py-3 text-sm font-medium shadow-lg ${severityClasses[toast.severity]}`}
+            role="alert"
           >
-            {toast.message}
-          </Alert>
-        </Snackbar>
+            <span className="flex h-5 w-5 items-center justify-center rounded-full bg-white/20 text-xs font-bold">
+              {severityIcons[toast.severity]}
+            </span>
+            <span>{toast.message}</span>
+            <button
+              onClick={handleClose}
+              className="ml-2 rounded p-0.5 opacity-70 hover:opacity-100"
+              aria-label="关闭"
+            >
+              ✕
+            </button>
+          </div>
+        </div>
       )}
+      {toast && <AutoCloseToast duration={toast.autoHideDuration || 4000} onClose={handleClose} />}
     </ToastContext.Provider>
   );
 };
+
+function AutoCloseToast({ duration, onClose }: { duration: number; onClose: () => void }) {
+  useEffect(() => {
+    const t = setTimeout(onClose, duration);
+    return () => clearTimeout(t);
+  }, [duration, onClose]);
+  return null;
+}

@@ -19,8 +19,8 @@ DashMark 是一个专注于分组书签的极简起始页应用。它安静、�
 - 💾 **数据备份与导入**
   - 本地数据存储（localStorage）
   - 支持 `.json` 与 `.json.gz`（gzip 压缩）格式
-- 🎨 **Material UI 设计**
-  - 基于 MUI 组件与设计规范
+- 🎨 **现代化 UI**
+  - 基于 React 19 + Tailwind CSS
   - 简洁、一致、响应式
 
 ---

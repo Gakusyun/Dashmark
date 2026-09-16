@@ -1,10 +1,7 @@
-import pako from 'pako';
+import { gzip, ungzip } from 'pako';
 import { getVersion } from './version';
-import { db, getAllData, initDatabase } from '../db';
-import type {
-  Data,
-  SearchEngine,
-} from '../types';
+import { db, getAllData } from '../db';
+import type { Data, SearchEngine } from '../types';
 
 const V2_MIGRATION_KEY = 'dashmark_v2_migrated';
 const V1_STORAGE_KEY = 'dashmark_data';
@@ -15,7 +12,7 @@ export const DEFAULT_SEARCH_ENGINES: SearchEngine[] = [
   { id: 'google', name: 'Google', url: 'https://www.google.com/search?q=' },
   { id: 'bing', name: 'Bing', url: 'https://www.bing.com/search?q=' },
   { id: 'baidu', name: '百度', url: 'https://www.baidu.com/s?wd=' },
-  { id: 'quark', name: '夸克', url: 'https://ai.quark.cn/s?q=' }
+  { id: 'quark', name: '夸克', url: 'https://ai.quark.cn/s?q=' },
 ];
 
 export const DEFAULT_DATA: Data = {
@@ -27,8 +24,8 @@ export const DEFAULT_DATA: Data = {
     searchEngine: 'baidu',
     darkMode: 'auto',
     hideLegalInfo: false,
-    cookieConsent: null
-  }
+    cookieConsent: null,
+  },
 };
 
 // ==================== 工具函数 ====================
@@ -39,66 +36,48 @@ export function generateId(): string {
 
 // ==================== 存储操作 ====================
 
-export async function loadData(): Promise<Data> {
+async function initDatabase(v1Data: Data): Promise<void> {
   try {
-    const migrated = localStorage.getItem(V2_MIGRATION_KEY);
-    if (migrated === 'true') {
-      const data = await getAllData();
-      return {
-        version: getVersion(),
-        ...data
-      };
+    const count = await db.bookmarks.count();
+    if (count > 0) {
+      console.log('[DashMark] 数据库已初始化，跳过迁移');
+      return;
     }
 
-    // 首次访问：从 v1.6 localStorage 迁移
-    console.log('[DashMark] 检测到 v1.6 数据，开始迁移到 IndexedDB...');
-    const v1Data = loadV1Data();
-    await initDatabase(v1Data);
-    localStorage.setItem(V2_MIGRATION_KEY, 'true');
+    console.log('[DashMark] 开始迁移 v1.6 数据到 IndexedDB...');
 
-    const migratedData = await getAllData();
-    return {
-      version: getVersion(),
-      ...migratedData
-    };
+    if (v1Data.bookmarks && Array.isArray(v1Data.bookmarks)) {
+      const bookmarks = v1Data.bookmarks.map((b) => ({
+        ...b,
+        tags: b.tags || [],
+        createdAt: b.createdAt || Date.now(),
+        updatedAt: b.updatedAt || Date.now(),
+      }));
+      await db.bookmarks.bulkAdd(bookmarks);
+      console.log(`[DashMark] 迁移了 ${bookmarks.length} 个书签`);
+    }
+
+    if (v1Data.groups && Array.isArray(v1Data.groups)) {
+      await db.groups.bulkAdd(v1Data.groups);
+      console.log(`[DashMark] 迁移了 ${v1Data.groups.length} 个分组`);
+    }
+
+    if (v1Data.searchEngines && Array.isArray(v1Data.searchEngines)) {
+      await db.searchEngines.bulkAdd(v1Data.searchEngines);
+      console.log(`[DashMark] 迁移了 ${v1Data.searchEngines.length} 个搜索引擎`);
+    }
+
+    if (v1Data.settings) {
+      await db.settings.put({ ...v1Data.settings, key: 'main' });
+      console.log('[DashMark] 迁移了设置');
+    }
+
+    console.log('[DashMark] ✅ 数据迁移完成！');
   } catch (error) {
-    console.error('[DashMark] IndexedDB 加载失败，回退到 localStorage:', error);
-    return loadV1Data();
-  }
-}
-
-export async function saveData(data: Data): Promise<void> {
-  try {
-    const dataToSave = {
-      ...data,
-      version: data.version || getVersion()
-    };
-
-    await db.transaction('rw', [db.bookmarks, db.groups, db.searchEngines, db.settings], async () => {
-      await db.bookmarks.clear();
-      await db.groups.clear();
-      await db.searchEngines.clear();
-      await db.settings.clear();
-
-      if (dataToSave.bookmarks.length > 0) {
-        await db.bookmarks.bulkPut(dataToSave.bookmarks);
-      }
-      if (dataToSave.groups.length > 0) {
-        await db.groups.bulkPut(dataToSave.groups);
-      }
-      if (dataToSave.searchEngines.length > 0) {
-        await db.searchEngines.bulkPut(dataToSave.searchEngines);
-      }
-      await db.settings.put({ ...dataToSave.settings, key: 'main' });
-    });
-  } catch (error) {
-    const errorMessage = error instanceof Error ? error.message : '未知错误';
-    console.error(`[DashMark] 数据保存失败: ${errorMessage}`);
+    console.error('[DashMark] ❌ 数据迁移失败:', error);
     throw error;
   }
 }
-
-// ==================== v1.6 localStorage 迁移 ====================
 
 function loadV1Data(): Data {
   try {
@@ -117,8 +96,8 @@ function loadV1Data(): Data {
         searchEngine: data.settings?.searchEngine || 'baidu',
         darkMode: data.settings?.darkMode || 'auto',
         hideLegalInfo: data.settings?.hideLegalInfo || false,
-        cookieConsent: data.settings?.cookieConsent ?? null
-      }
+        cookieConsent: data.settings?.cookieConsent ?? null,
+      },
     };
   } catch (error) {
     const errorMessage = error instanceof Error ? error.message : '未知错误';
@@ -135,6 +114,69 @@ function loadV1Data(): Data {
   }
 }
 
+export async function loadData(): Promise<Data> {
+  try {
+    const migrated = localStorage.getItem(V2_MIGRATION_KEY);
+    if (migrated === 'true') {
+      const data = await getAllData();
+      return {
+        version: getVersion(),
+        ...data,
+      };
+    }
+
+    // 首次访问：从 v1.6 localStorage 迁移
+    console.log('[DashMark] 检测到 v1.6 数据，开始迁移到 IndexedDB...');
+    const v1Data = loadV1Data();
+    await initDatabase(v1Data);
+    localStorage.setItem(V2_MIGRATION_KEY, 'true');
+
+    const migratedData = await getAllData();
+    return {
+      version: getVersion(),
+      ...migratedData,
+    };
+  } catch (error) {
+    console.error('[DashMark] IndexedDB 加载失败，回退到 localStorage:', error);
+    return loadV1Data();
+  }
+}
+
+export async function saveData(data: Data): Promise<void> {
+  try {
+    const dataToSave = {
+      ...data,
+      version: data.version || getVersion(),
+    };
+
+    await db.transaction(
+      'rw',
+      [db.bookmarks, db.groups, db.searchEngines, db.settings],
+      async () => {
+        await db.bookmarks.clear();
+        await db.groups.clear();
+        await db.searchEngines.clear();
+        await db.settings.clear();
+
+        if (dataToSave.bookmarks.length > 0) {
+          await db.bookmarks.bulkPut(dataToSave.bookmarks);
+        }
+        if (dataToSave.groups.length > 0) {
+          await db.groups.bulkPut(dataToSave.groups);
+        }
+        if (dataToSave.searchEngines.length > 0) {
+          await db.searchEngines.bulkPut(dataToSave.searchEngines);
+        }
+        await db.settings.put({ ...dataToSave.settings, key: 'main' });
+      }
+    );
+  } catch (error) {
+    const errorMessage = error instanceof Error ? error.message : '未知错误';
+    console.error(`[DashMark] 数据保存失败: ${errorMessage}`);
+    throw error;
+  }
+}
+
 // ==================== 导出/导入 ====================
 
 export async function exportData(): Promise<void> {
@@ -145,11 +187,11 @@ export async function exportData(): Promise<void> {
     groups: data.groups,
     bookmarks: data.bookmarks,
     searchEngines: data.searchEngines,
-    settings: data.settings
+    settings: data.settings,
   };
 
   const json = JSON.stringify(exportPayload, null, 2);
-  const compressed = pako.gzip(json);
+  const compressed = gzip(json);
   const blob = new Blob([compressed], { type: 'application/gzip' });
   const url = URL.createObjectURL(blob);
   const a = document.createElement('a');
@@ -179,7 +221,7 @@ export function importData(
           throw new Error('Invalid gzip file content');
         }
         const compressed = new Uint8Array(result);
-        json = pako.ungzip(compressed, { to: 'string' });
+        json = ungzip(compressed, { toText: true });
       } else {
         const result = e.target?.result;
         if (typeof result !== 'string') {
@@ -221,7 +263,7 @@ async function processData(
         throw new Error('数据嵌套层级过深，可能存在恶意构造');
       }
       if (typeof obj === 'object' && obj !== null) {
-        for (const value of Object.values(obj)) {
+        for (const value of Object.values(obj as Record<string, unknown>)) {
           checkDepth(value, currentDepth + 1);
         }
       }
@@ -252,7 +294,7 @@ async function processData(
     }
 
     if (data.bookmarks && Array.isArray(data.bookmarks)) {
-      const linkCount = data.bookmarks.filter((b: { type?: string }) => b.type === 'link').length;
+      const linkCount = data.bookmarks.filter((b) => b.type === 'link').length;
       if (linkCount > MAX_LINKS) {
         throw new Error(`链接数量超出限制（最多 ${MAX_LINKS} 个，实际 ${linkCount} 个）`);
       }
@@ -298,7 +340,7 @@ async function processData(
     }
 
     if (data.bookmarks) {
-      const linkBookmarks = data.bookmarks.filter((b: { type?: string }) => b.type === 'link');
+      const linkBookmarks = data.bookmarks.filter((b) => b.type === 'link');
       for (const link of linkBookmarks) {
         if (typeof link !== 'object' || link === null) {
           throw new Error('链接数据格式错误：应为对象');
@@ -330,7 +372,7 @@ async function processData(
         }
       }
 
-      const textBookmarks = data.bookmarks.filter((b: { type?: string }) => b.type === 'text');
+      const textBookmarks = data.bookmarks.filter((b) => b.type === 'text');
       const textRecordsCount = textBookmarks.length;
 
       if (textRecordsCount > MAX_TEXT_RECORDS) {
@@ -407,22 +449,19 @@ async function processData(
       // 合并模式：与现有数据合并，按 id 去重
       const existing = await loadData();
 
-      const existingGroupIds = new Set(existing.groups.map(g => g.id));
-      const mergedGroups = [
-        ...existing.groups,
-        ...importedGroups.filter(g => !existingGroupIds.has(g.id))
-      ];
+      const existingGroupIds = new Set(existing.groups.map((g) => g.id));
+      const mergedGroups = [...existing.groups, ...importedGroups.filter((g) => !existingGroupIds.has(g.id))];
 
-      const existingBookmarkIds = new Set(existing.bookmarks.map(b => b.id));
+      const existingBookmarkIds = new Set(existing.bookmarks.map((b) => b.id));
       const mergedBookmarks = [
         ...existing.bookmarks,
-        ...importedBookmarks.filter(b => !existingBookmarkIds.has(b.id))
+        ...importedBookmarks.filter((b) => !existingBookmarkIds.has(b.id)),
       ];
 
-      const existingEngineIds = new Set(existing.searchEngines.map(e => e.id));
+      const existingEngineIds = new Set(existing.searchEngines.map((e) => e.id));
       const mergedEngines = [
         ...existing.searchEngines,
-        ...importedEngines.filter(e => !existingEngineIds.has(e.id))
+        ...importedEngines.filter((e) => !existingEngineIds.has(e.id)),
       ];
 
       finalData = {
@@ -430,7 +469,7 @@ async function processData(
         groups: mergedGroups,
         bookmarks: mergedBookmarks,
         searchEngines: mergedEngines,
-        settings: existing.settings
+        settings: existing.settings,
       };
     } else {
       finalData = {
@@ -442,74 +481,19 @@ async function processData(
           searchEngine: data.settings?.searchEngine || 'baidu',
           darkMode: data.settings?.darkMode || 'auto',
           hideLegalInfo: data.settings?.hideLegalInfo || false,
-          cookieConsent: data.settings?.cookieConsent ?? null
-        }
+          cookieConsent: data.settings?.cookieConsent ?? null,
+        },
       };
     }
 
     await saveData(finalData);
-    console.log(`[DashMark] 成功导入 ${finalData.bookmarks.length} 个收藏，${finalData.groups.length} 个分组`);
+    console.log(
+      `[DashMark] 成功导入 ${finalData.bookmarks.length} 个收藏，${finalData.groups.length} 个分组`
+    );
     onSuccess(finalData, warnings);
   } catch (error) {
     const errorMessage = error instanceof Error ? error.message : '未知错误';
     console.error(`[DashMark] 数据处理失败: ${errorMessage}`);
     onError(new Error(errorMessage));
   }
-}
-
-// ==================== 搜索引擎操作 ====================
-
-export async function getAllSearchEngines(): Promise<SearchEngine[]> {
-  const data = await loadData();
-  const allEngines: SearchEngine[] = [...DEFAULT_SEARCH_ENGINES];
-
-  data.searchEngines.forEach((engine, index) => {
-    if (!engine.id) {
-      engine.id = 'custom_' + Date.now() + '_' + index;
-    }
-  });
-
-  allEngines.push(...data.searchEngines);
-  return allEngines;
-}
-
-export async function getSearchEngineConfig(engineId: string): Promise<SearchEngine | undefined> {
-  const allEngines = await getAllSearchEngines();
-  return allEngines.find(e => e.id === engineId);
-}
-
-export async function addSearchEngine(name: string, url: string): Promise<SearchEngine> {
-  const data = await loadData();
-  const engine: SearchEngine = {
-    id: 'custom_' + Date.now(),
-    name: name,
-    url: url
-  };
-  data.searchEngines.push(engine);
-  await saveData(data);
-  return engine;
-}
-
-export async function updateSearchEngine(id: string, name: string, url: string): Promise<boolean> {
-  const data = await loadData();
-  const index = data.searchEngines.findIndex(e => e.id === id);
-  if (index !== -1) {
-    data.searchEngines[index].name = name;
-    data.searchEngines[index].url = url;
-    await saveData(data);
-    return true;
-  }
-  return false;
-}
-
-export async function deleteSearchEngine(id: string): Promise<boolean> {
-  const data = await loadData();
-
-  if (data.settings.searchEngine === id) {
-    data.settings.searchEngine = 'baidu';
-  }
-
-  data.searchEngines = data.searchEngines.filter(e => e.id !== id);
-  await saveData(data);
-  return true;
 }

@@ -1,9 +1,7 @@
-import React, { useState } from 'react';
-import { Card, CardContent, Typography, IconButton, Dialog, DialogContent, Toolbar, AppBar, Button, TextField } from '@mui/material';
-import { ContentCopy as CopyIcon, Close as CloseIcon, Edit as EditIcon, Save as SaveIcon, Cancel as CancelIcon } from '@mui/icons-material';
+import { useState, useEffect } from 'react';
 import { useToast } from '../contexts/ToastContext';
 import { useData } from '../contexts/DataContext';
-import { isTextRecord } from '../utils/typeUtils';
+import { ContentCopyIcon, CloseIcon, EditIcon, SaveIcon, CancelIcon } from './Icons';
 import type { TextRecord, Bookmark } from '../types';
 
 interface TextRecordCardProps {
@@ -17,16 +15,19 @@ export const TextRecordCard: React.FC<TextRecordCardProps> = ({
   record,
   isFullscreen,
   onOpenFullscreen,
-  onCloseFullscreen
+  onCloseFullscreen,
 }) => {
   const { showSuccess } = useToast();
   const { updateBookmark } = useData();
 
-  const isBookmark = 'type' in record && isTextRecord(record);
-  const content = isBookmark ? (record as Bookmark).content || '' : (record as TextRecord).content;
+  const content = ('type' in record ? record.content : (record as TextRecord).content) || '';
 
   const [isEditing, setIsEditing] = useState(false);
   const [editContent, setEditContent] = useState(content);
+
+  useEffect(() => {
+    setEditContent(content);
+  }, [content]);
 
   const handleCopy = () => {
     navigator.clipboard.writeText(content);
@@ -47,7 +48,7 @@ export const TextRecordCard: React.FC<TextRecordCardProps> = ({
     if (!editContent.trim()) {
       return;
     }
-    if (isBookmark) {
+    if ('type' in record) {
       const bookmark = record as Bookmark;
       updateBookmark(bookmark.id, 'text', bookmark.title, bookmark.groupIds, undefined, editContent.trim());
     }
@@ -62,145 +63,91 @@ export const TextRecordCard: React.FC<TextRecordCardProps> = ({
 
   return (
     <>
-      <Card
-        sx={{
-          height: '100%',
-          display: 'flex',
-          flexDirection: 'column',
-          cursor: 'pointer',
-          '&:hover': {
-            transform: 'translateY(-2px)',
-            boxShadow: 4,
-          },
-          transition: 'transform 200ms, box-shadow 200ms',
-        }}
+      <div
+        className="flex h-full cursor-pointer flex-col rounded-lg border border-slate-200 bg-white p-4 shadow-sm transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md dark:border-slate-700 dark:bg-[#1e1e1e]"
         onClick={(e) => {
           e.stopPropagation();
           onOpenFullscreen();
         }}
       >
-        <CardContent sx={{ flex: 1, pb: 1 }}>
-          <Typography
-            variant="body1"
-            sx={{
-              fontWeight: 500,
-              overflow: 'hidden',
-              textOverflow: 'ellipsis',
-              whiteSpace: 'nowrap',
-              mb: 1,
-            }}
-          >
-            {record.title}
-          </Typography>
-          <Typography
-            variant="body2"
-            color="text.secondary"
-            sx={{
-              overflow: 'hidden',
-              display: '-webkit-box',
-              WebkitLineClamp: 3,
-              WebkitBoxOrient: 'vertical',
-              wordBreak: 'break-word',
-              fontSize: '0.875rem',
-              flex: 1,
-            }}
-          >
-            {content}
-          </Typography>
-        </CardContent>
-      </Card>
+        <p className="mb-1 overflow-hidden text-ellipsis whitespace-nowrap font-medium text-slate-900 dark:text-white">
+          {record.title}
+        </p>
+        <p className="line-clamp-3 flex-1 whitespace-pre-wrap break-words text-sm text-slate-500 dark:text-slate-400">
+          {content}
+        </p>
+      </div>
 
       {/* 全屏显示对话框 */}
-      <Dialog
-        fullScreen
-        open={isFullscreen}
-        onClose={handleClose}
-      >
-        <AppBar position="sticky" color="default" elevation={1}>
-          <Toolbar>
-            <IconButton
-              edge="start"
-              color="inherit"
+      {isFullscreen && (
+        <div className="fixed inset-0 z-[9990] flex flex-col bg-white dark:bg-[#121212]">
+          {/* 顶部工具栏 */}
+          <div className="sticky top-0 flex items-center gap-2 border-b border-slate-200 bg-white px-4 py-3 shadow-sm dark:border-slate-700 dark:bg-[#1e1e1e]">
+            <button
               onClick={handleClose}
               aria-label="close"
+              className="rounded p-2 text-slate-600 hover:bg-slate-100 dark:text-slate-300 dark:hover:bg-slate-700"
             >
-              <CloseIcon />
-            </IconButton>
-            <Typography sx={{ ml: 2, flex: 1 }} variant="h6" component="div">
+              <CloseIcon size={20} />
+            </button>
+            <h2 className="ml-2 flex-1 truncate text-lg font-semibold text-slate-900 dark:text-white">
               {record.title}
-            </Typography>
+            </h2>
             {isEditing ? (
               <>
-                <Button
-                  variant="outlined"
-                  startIcon={<CancelIcon />}
+                <button
                   onClick={handleCancelEdit}
-                  sx={{ mr: 1 }}
+                  className="mr-1 flex items-center gap-1.5 rounded-md border border-slate-300 px-4 py-2 text-sm font-medium text-slate-700 hover:bg-slate-100 dark:border-slate-600 dark:text-slate-200 dark:hover:bg-slate-700"
                 >
+                  <CancelIcon size={16} />
                   取消
-                </Button>
-                <Button
-                  variant="contained"
-                  startIcon={<SaveIcon />}
+                </button>
+                <button
                   onClick={handleSaveEdit}
+                  className="flex items-center gap-1.5 rounded-md bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700"
                 >
+                  <SaveIcon size={16} />
                   保存
-                </Button>
+                </button>
               </>
             ) : (
               <>
-                <Button
-                  variant="outlined"
-                  startIcon={<EditIcon />}
+                <button
                   onClick={handleStartEdit}
-                  sx={{ mr: 1 }}
+                  className="mr-1 flex items-center gap-1.5 rounded-md border border-slate-300 px-4 py-2 text-sm font-medium text-slate-700 hover:bg-slate-100 dark:border-slate-600 dark:text-slate-200 dark:hover:bg-slate-700"
                 >
+                  <EditIcon size={16} />
                   编辑
-                </Button>
-                <Button
-                  variant="outlined"
-                  startIcon={<CopyIcon />}
+                </button>
+                <button
                   onClick={handleCopy}
+                  className="flex items-center gap-1.5 rounded-md border border-slate-300 px-4 py-2 text-sm font-medium text-slate-700 hover:bg-slate-100 dark:border-slate-600 dark:text-slate-200 dark:hover:bg-slate-700"
                 >
+                  <ContentCopyIcon size={16} />
                   复制
-                </Button>
+                </button>
               </>
             )}
-          </Toolbar>
-        </AppBar>
-        <DialogContent sx={{ mt: 4 }}>
-          {isEditing ? (
-            <TextField
-              fullWidth
-              multiline
-              value={editContent}
-              onChange={(e) => setEditContent(e.target.value)}
-              variant="outlined"
-              sx={{
-                '& .MuiInputBase-root': {
-                  fontSize: '1.1rem',
-                  lineHeight: 1.6,
-                },
-                '& .MuiInputBase-input': {
-                  whiteSpace: 'pre-wrap',
-                },
-              }}
-            />
-          ) : (
-            <Typography
-              variant="body1"
-              sx={{
-                whiteSpace: 'pre-wrap',
-                wordBreak: 'break-word',
-                lineHeight: 1.6,
-                fontSize: '1.1rem',
-              }}
-            >
-              {isBookmark ? (record as Bookmark).content || '' : (record as TextRecord).content}
-            </Typography>
-          )}
-        </DialogContent>
-      </Dialog>
+          </div>
+
+          {/* 内容区域 */}
+          <div className="flex-1 overflow-auto px-4 pt-6">
+            {isEditing ? (
+              <textarea
+                autoFocus
+                value={editContent}
+                onChange={(e) => setEditContent(e.target.value)}
+                className="h-[70vh] w-full resize-none rounded-lg border border-slate-300 bg-transparent p-4 text-[1.1rem] leading-relaxed text-slate-900 outline-none focus:border-blue-500 dark:border-slate-600 dark:text-white"
+                style={{ whiteSpace: 'pre-wrap' }}
+              />
+            ) : (
+              <p className="whitespace-pre-wrap break-words text-[1.1rem] leading-relaxed text-slate-900 dark:text-white">
+                {content}
+              </p>
+            )}
+          </div>
+        </div>
+      )}
     </>
   );
 };

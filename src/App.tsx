@@ -1,17 +1,16 @@
-import React, { useState, useEffect, useRef } from 'react';
-import { Box, Container, Typography, Toolbar, AppBar, IconButton, Grid, TextField, InputAdornment, Fab, CircularProgress } from '@mui/material';
-import { Settings as SettingsIcon, Close as CloseIcon, Add as AddIcon } from '@mui/icons-material';
+import { useState, useEffect, useRef } from 'react';
+import Clarity from '@microsoft/clarity';
 import { useData } from './contexts/DataContext';
 import { SearchBox } from './components/SearchBox';
 import { GroupSection, AllBookmarks } from './components/GroupSection';
 import { ManagePanel } from './components/ManagePanel';
 import { useConfirmDialog } from './hooks/useConfirmDialog';
-import Clarity from '@microsoft/clarity';
+import { SettingsIcon, CloseIcon, AddIcon } from './components/Icons';
 
 type ViewMode = 'all' | 'group' | null;
 type SelectedGroup = string | 'all' | null;
 
-const projectId = import.meta.env.VITE_CLARITY_PROJECT_ID || "vay8fvwhta";
+const projectId = import.meta.env.VITE_CLARITY_PROJECT_ID || 'vay8fvwhta';
 
 // 防止重复初始化 Clarity
 let clarityInitialized = false;
@@ -34,18 +33,14 @@ const App: React.FC = () => {
 
   // Cookie同意对话框逻辑
   useEffect(() => {
-    // 数据加载中，暂不处理
     if (loading) return;
 
-    // 检查用户是否已设置cookie同意状态
     if (data.settings.cookieConsent === null) {
-      // 在下一个渲染周期显示cookie同意对话框，避免在渲染期间更新状态
       const timer = setTimeout(() => {
         setShowConsent(true);
       }, 0);
       return () => clearTimeout(timer);
     } else if (data.settings.cookieConsent === true) {
-      // 用户已同意，初始化Clarity（带错误处理）
       if (!clarityInitialized) {
         try {
           Clarity.init(projectId);
@@ -53,11 +48,9 @@ const App: React.FC = () => {
           console.log('[DashMark] Clarity 分析已初始化');
         } catch (error) {
           console.warn('[DashMark] Clarity 初始化失败（可能是广告拦截器）:', error);
-          // 不影响应用正常使用
         }
       }
     }
-    // 如果用户拒绝（false），则不初始化Clarity
   }, [data.settings.cookieConsent, loading]);
 
   // 全局键盘快捷键
@@ -66,20 +59,14 @@ const App: React.FC = () => {
       // Ctrl+K: 聚焦页内搜索
       if ((e.ctrlKey || e.metaKey) && e.key === 'k') {
         e.preventDefault();
-        const searchInput = document.getElementById('dashmark-search');
-        if (searchInput) {
-          (searchInput as HTMLInputElement).focus();
-        }
+        document.getElementById('dashmark-search')?.focus();
         return;
       }
 
       // /: 聚焦页内搜索（仅当焦点不在输入框中时）
       if (e.key === '/' && !['INPUT', 'TEXTAREA'].includes((e.target as HTMLElement)?.tagName)) {
         e.preventDefault();
-        const searchInput = document.getElementById('dashmark-search');
-        if (searchInput) {
-          (searchInput as HTMLInputElement).focus();
-        }
+        document.getElementById('dashmark-search')?.focus();
         return;
       }
 
@@ -99,7 +86,6 @@ const App: React.FC = () => {
     if (showConsent) {
       const handleConfirm = () => {
         updateSettingsRef.current({ cookieConsent: true });
-        // 初始化Clarity（带错误处理）
         if (!clarityInitialized) {
           try {
             Clarity.init(projectId);
@@ -117,32 +103,18 @@ const App: React.FC = () => {
         setShowConsent(false);
       };
 
-      // Defer to avoid setState-during-render warning
       const timer = setTimeout(() => {
         confirm({
           title: 'Cookie 同意',
-          content: '我们使用 Microsoft Clarity 来分析网站使用情况，以改善用户体验。是否同意使用 Cookie 进行分析？（可在设置中随时关闭）',
+          content:
+            '我们使用 Microsoft Clarity 来分析网站使用情况，以改善用户体验。是否同意使用 Cookie 进行分析？（可在设置中随时关闭）',
           confirmText: '同意',
           cancelText: '拒绝',
           confirmColor: 'primary',
-          confirmVariant: 'contained',
-          cancelVariant: 'contained',
-          confirmButtonProps: {
-            color: 'primary',
-            variant: 'contained',
-            sx: {
-              color: 'inherit'
-            }
-          },
-          cancelButtonProps: {
-            color: 'primary',
-            variant: 'outlined',
-            sx: {
-              color: 'primary.main'
-            }
-          },
+          confirmVariant: 'solid',
+          cancelVariant: 'outline',
           onConfirm: handleConfirm,
-          onCancel: handleCancel
+          onCancel: handleCancel,
         });
       }, 0);
 
@@ -168,7 +140,7 @@ const App: React.FC = () => {
   };
 
   const handleFabClick = () => {
-    setAutoAdd(prev => prev + 1);
+    setAutoAdd((prev) => prev + 1);
     setManagePanelOpen(true);
   };
 
@@ -180,7 +152,7 @@ const App: React.FC = () => {
 
     // 单分组视图
     if (viewMode === 'group' && selectedGroup && selectedGroup !== 'all') {
-      const group = data.groups.find(g => g.id === selectedGroup);
+      const group = data.groups.find((g) => g.id === selectedGroup);
       if (group) {
         return <GroupSection group={group} isFullscreen onBack={handleBack} />;
       }
@@ -194,139 +166,116 @@ const App: React.FC = () => {
     // 默认视图
     if (data.groups.length === 0) {
       return (
-        <Box sx={{ textAlign: 'center', py: 8 }}>
-          <Typography color="text.secondary" gutterBottom>
-            暂无分组和链接
-          </Typography>
-          <Typography color="text.secondary" variant="body2">
-            点击右上角设置按钮开始添加
-          </Typography>
-        </Box>
+        <div className="py-16 text-center">
+          <p className="mb-1 text-slate-500 dark:text-slate-400">暂无分组和链接</p>
+          <p className="text-sm text-slate-500 dark:text-slate-400">点击右上角设置按钮开始添加</p>
+        </div>
       );
     }
 
     return (
       <>
-        <Grid container spacing={2}>
-          {data.groups.map(group => (
-            <Grid key={group.id} size={{ xs: 12, lg: 6 }}>
-              <GroupSection
-                group={group}
-                onClick={() => handleGroupClick(group.id)}
-              />
-            </Grid>
+        <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
+          {data.groups.map((group) => (
+            <GroupSection key={group.id} group={group} onClick={() => handleGroupClick(group.id)} />
           ))}
-          <Grid size={12}>
-            <AllBookmarks onClick={handleAllClick} />
-          </Grid>
-        </Grid>
+        </div>
+        <div className="mt-4">
+          <AllBookmarks onClick={handleAllClick} />
+        </div>
       </>
     );
   };
 
   if (loading) {
     return (
-      <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', minHeight: '100vh', gap: 2 }}>
-        <CircularProgress />
-        <Typography color="text.secondary">正在加载数据...</Typography>
-      </Box>
+      <div className="flex min-h-screen flex-col items-center justify-center gap-4">
+        <div className="h-10 w-10 animate-spin rounded-full border-4 border-slate-200 border-t-blue-600 dark:border-slate-700 dark:border-t-blue-400" />
+        <p className="text-slate-500 dark:text-slate-400">正在加载数据...</p>
+      </div>
     );
   }
 
   return (
     <>
-      <AppBar position="static" color="default" elevation={0} sx={{ mb: 4 }}>
-        <Container maxWidth="lg">
-          <Toolbar disableGutters sx={{ gap: 2 }}>
-            <Typography variant="h5" component="div" sx={{ flexGrow: 1, cursor: 'pointer' }}>
-              DashMark
-            </Typography>
-            <TextField
+      {/* 顶部导航栏 */}
+      <header className="mb-8 border-b border-slate-200 bg-white dark:border-slate-700 dark:bg-[#121212]">
+        <div className="mx-auto flex max-w-[1200px] items-center gap-4 px-4 py-3">
+          <h1 className="flex-1 cursor-pointer text-2xl font-medium text-slate-900 dark:text-white">
+            DashMark
+          </h1>
+          <div className="flex items-center gap-1 border-b border-slate-300 transition-colors focus-within:border-blue-500 dark:border-slate-600">
+            <input
               id="dashmark-search"
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              label="页内搜索"
-              variant="standard"
-              size='small'
-              sx={{ width: 200 }}
-              slotProps={{
-                input: {
-                  endAdornment: searchQuery ? (
-                    <InputAdornment position="end">
-                      <IconButton
-                        size="small"
-                        onClick={() => setSearchQuery('')}
-                        aria-label="清除搜索"
-                      >
-                        <CloseIcon fontSize="small" />
-                      </IconButton>
-                    </InputAdornment>
-                  ) : null,
-                }
-              }}
+              placeholder="页内搜索"
+              className="w-[180px] bg-transparent px-1 py-1.5 text-sm text-slate-900 outline-none placeholder:text-slate-400 dark:text-white"
             />
-            <IconButton
-              color="inherit"
-              onClick={() => setManagePanelOpen(true)}
-              size="large"
-            >
-              <SettingsIcon />
-            </IconButton>
-          </Toolbar>
-        </Container>
-      </AppBar>
-
-      <Container maxWidth="lg" sx={{ pb: 4 }}>
-        <SearchBox />
-        <Box sx={{ minHeight: '50vh' }}>
-          {renderContent()}
-        </Box>
-        {!data.settings.hideLegalInfo && (
-          <Box sx={{ mt: 4, pt: 2, borderTop: 1, borderColor: 'divider', textAlign: 'center' }}>
-            <Box component="div" sx={{ color: 'text.secondary', fontSize: '0.875rem' }}>
-              <a
-                href="https://beian.miit.gov.cn/"
-                target="_blank"
-                rel="noopener noreferrer"
-                style={{ color: 'inherit', textDecoration: 'none' }}
+            {searchQuery && (
+              <button
+                onClick={() => setSearchQuery('')}
+                aria-label="清除搜索"
+                className="rounded p-1 text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-700"
               >
-                鄂 ICP 备 2024069158 号
-              </a>
-              <br />
-              <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 0.5, mt: 0.5 }}>
-                <img 
-                  src="/police.webp" 
-                  alt="备案图标" 
-                  style={{ height: '16.5px', verticalAlign: 'middle' }}
-                />
-                <a 
-                  href="https://beian.mps.gov.cn/#/query/webSearch?code=42050002420933" 
-                  rel="noreferrer" 
-                  target="_blank"
-                  style={{ color: 'inherit', textDecoration: 'none', verticalAlign: 'middle' }}
-                >
-                  鄂公网安备 42050002420933 号
-                </a>
-              </Box>
-            </Box>
-          </Box>
-        )}
-      </Container>
+                <CloseIcon size={14} />
+              </button>
+            )}
+          </div>
+          <button
+            onClick={() => setManagePanelOpen(true)}
+            aria-label="设置"
+            className="rounded p-2 text-slate-600 hover:bg-slate-100 dark:text-slate-300 dark:hover:bg-slate-700"
+          >
+            <SettingsIcon size={22} />
+          </button>
+        </div>
+      </header>
 
-      <Fab
-        color="primary"
+      <main className="mx-auto max-w-[1200px] px-4 pb-8">
+        <SearchBox />
+        <div className="min-h-[50vh]">{renderContent()}</div>
+
+        {!data.settings.hideLegalInfo && (
+          <footer className="mt-8 border-t border-slate-200 pt-4 text-center text-sm text-slate-500 dark:border-slate-700 dark:text-slate-400">
+            <a
+              href="https://beian.miit.gov.cn/"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="hover:underline"
+            >
+              鄂 ICP 备 2024069158 号
+            </a>
+            <div className="mt-1 flex items-center justify-center gap-1.5">
+              <img src="/police.webp" alt="备案图标" className="h-[16.5px]" />
+              <a
+                href="https://beian.mps.gov.cn/#/query/webSearch?code=42050002420933"
+                rel="noreferrer"
+                target="_blank"
+                className="hover:underline"
+              >
+                鄂公网安备 42050002420933 号
+              </a>
+            </div>
+          </footer>
+        )}
+      </main>
+
+      {/* 悬浮添加按钮 */}
+      <button
         aria-label="添加收藏"
         onClick={handleFabClick}
-        sx={{
-          position: 'fixed',
-          bottom: 16,
-          right: 16,
-        }}
+        className="fixed bottom-4 right-4 flex h-14 w-14 items-center justify-center rounded-full bg-blue-600 text-white shadow-lg transition-colors hover:bg-blue-700"
       >
-        <AddIcon />
-      </Fab>
+        <AddIcon size={24} />
+      </button>
 
-      <ManagePanel open={managePanelOpen} onClose={() => setManagePanelOpen(false)} autoAdd={autoAdd} onAutoAddConsumed={() => setAutoAdd(0)} />
+      <ManagePanel
+        open={managePanelOpen}
+        onClose={() => setManagePanelOpen(false)}
+        autoAdd={autoAdd}
+        onAutoAddConsumed={() => setAutoAdd(0)}
+      />
       <ConfirmDialog />
     </>
   );

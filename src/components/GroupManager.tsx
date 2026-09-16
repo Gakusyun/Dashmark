@@ -1,11 +1,4 @@
-import React, { useState } from 'react';
-import {
-  Box,
-  Button,
-  TextField,
-  ListItemText,
-  Typography,
-} from '@mui/material';
+import { useState } from 'react';
 import { useData } from '../contexts/DataContext';
 import { useToast } from '../contexts/ToastContext';
 import { DialogBox } from './DialogBox';
@@ -27,18 +20,44 @@ export const GroupManager: React.FC<GroupManagerProps> = () => {
   const [formData, setFormData] = useState<Group>({
     id: '',
     name: '',
-    order: 0
+    order: 0,
   });
-  
+
   // 添加排序模式状态
   const [isSortingMode, setIsSortingMode] = useState(false);
 
   // 使用确认对话框 Hook
   const { confirm, ConfirmDialog } = useConfirmDialog();
 
+  const renderGroupItem = (group: Group) => {
+    const linkCount = data.bookmarks.filter(
+      (b) => b.type === 'link' && b.groupIds.includes(group.id)
+    ).length;
+    const textCount = data.bookmarks.filter(
+      (b) => b.type === 'text' && b.groupIds.includes(group.id)
+    ).length;
+
+    const counts = [];
+    if (linkCount > 0) counts.push(`${linkCount} 个链接`);
+    if (textCount > 0) counts.push(`${textCount} 条文字`);
+
+    const secondaryText = counts.length > 0 ? counts.join(', ') : '暂无内容';
+
+    return (
+      <div>
+        <p className="text-sm font-medium text-slate-900 dark:text-white">{group.name}</p>
+        <p className="text-xs text-slate-500 dark:text-slate-400">{secondaryText}</p>
+      </div>
+    );
+  };
+
   const handleDelete = (group: Group) => {
-    const linkCount = data.bookmarks.filter(b => b.type === 'link' && b.groupIds.includes(group.id)).length;
-    const textCount = data.bookmarks.filter(b => b.type === 'text' && b.groupIds.includes(group.id)).length;
+    const linkCount = data.bookmarks.filter(
+      (b) => b.type === 'link' && b.groupIds.includes(group.id)
+    ).length;
+    const textCount = data.bookmarks.filter(
+      (b) => b.type === 'text' && b.groupIds.includes(group.id)
+    ).length;
 
     const itemsDescription = [];
     if (linkCount > 0) {
@@ -76,7 +95,7 @@ export const GroupManager: React.FC<GroupManagerProps> = () => {
   };
 
   const updateFormData = (updates: Partial<Group>) => {
-    setFormData(prev => ({ ...prev, ...updates }));
+    setFormData((prev) => ({ ...prev, ...updates }));
   };
 
   const handleSave = () => {
@@ -93,50 +112,40 @@ export const GroupManager: React.FC<GroupManagerProps> = () => {
 
     close();
   };
-  
+
   // 切换排序模式
   const toggleSortingMode = () => {
     setIsSortingMode(!isSortingMode);
   };
 
   return (
-    <Box>
-      <Box sx={{ display: 'flex', gap: 2, mb: 2 }}>
-        <Button variant="contained" onClick={openAdd}>
+    <div>
+      <div className="mb-4 flex gap-3">
+        <button
+          onClick={openAdd}
+          className="rounded-md bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700"
+        >
           添加分组
-        </Button>
-        <Button variant="outlined" onClick={toggleSortingMode}>
+        </button>
+        <button
+          onClick={toggleSortingMode}
+          className="rounded-md border border-slate-300 px-4 py-2 text-sm font-medium text-slate-700 hover:bg-slate-100 dark:border-slate-600 dark:text-slate-200 dark:hover:bg-slate-700"
+        >
           {isSortingMode ? '完成排序' : '修改次序'}
-        </Button>
-      </Box>
+        </button>
+      </div>
 
       {data.groups.length === 0 ? (
-        <Typography color="text.secondary" sx={{ py: 3, textAlign: 'center' }}>
+        <p className="py-6 text-center text-slate-500 dark:text-slate-400">
           暂无分组，点击"添加分组"开始添加
-        </Typography>
+        </p>
       ) : isSortingMode ? (
         <DraggableItemList
           items={[...data.groups].sort((a, b) => a.order - b.order)}
           getItemId={(group) => group.id}
           emptyMessage='暂无分组，点击"添加分组"开始添加'
           onOrderChange={updateGroupOrder}
-          renderItem={(group) => {
-            const linkCount = data.bookmarks.filter(b => b.type === 'link' && b.groupIds.includes(group.id)).length;
-            const textCount = data.bookmarks.filter(b => b.type === 'text' && b.groupIds.includes(group.id)).length;
-            
-            const counts = [];
-            if (linkCount > 0) counts.push(`${linkCount} 个链接`);
-            if (textCount > 0) counts.push(`${textCount} 条文字`);
-            
-            const secondaryText = counts.length > 0 ? counts.join(', ') : '暂无内容';
-            
-            return (
-              <ListItemText
-                primary={group.name}
-                secondary={secondaryText}
-              />
-            );
-          }}
+          renderItem={renderGroupItem}
         />
       ) : (
         <ItemList
@@ -145,23 +154,7 @@ export const GroupManager: React.FC<GroupManagerProps> = () => {
           emptyMessage='暂无分组，点击"添加分组"开始添加'
           onEdit={openEdit}
           onDelete={handleDelete}
-          renderItem={(group) => {
-            const linkCount = data.bookmarks.filter(b => b.type === 'link' && b.groupIds.includes(group.id)).length;
-            const textCount = data.bookmarks.filter(b => b.type === 'text' && b.groupIds.includes(group.id)).length;
-            
-            const counts = [];
-            if (linkCount > 0) counts.push(`${linkCount} 个链接`);
-            if (textCount > 0) counts.push(`${textCount} 条文字`);
-            
-            const secondaryText = counts.length > 0 ? counts.join(', ') : '暂无内容';
-            
-            return (
-              <ListItemText
-                primary={group.name}
-                secondary={secondaryText}
-              />
-            );
-          }}
+          renderItem={renderGroupItem}
         />
       )}
 
@@ -172,17 +165,16 @@ export const GroupManager: React.FC<GroupManagerProps> = () => {
         onConfirm={handleSave}
         onClose={close}
       >
-        <TextField
+        <input
           autoFocus
-          fullWidth
-          label="分组名称"
+          className="mt-1 w-full rounded-md border border-slate-300 bg-transparent px-3 py-2 text-sm text-slate-900 outline-none focus:border-blue-500 dark:border-slate-600 dark:text-white"
+          placeholder="分组名称"
           value={formData.name}
           onChange={(e) => updateFormData({ name: e.target.value })}
-          sx={{ mt: 1 }}
         />
       </DialogBox>
 
       <ConfirmDialog />
-    </Box>
+    </div>
   );
 };

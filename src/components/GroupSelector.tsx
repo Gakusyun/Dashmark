@@ -1,14 +1,5 @@
-/* eslint-disable react-refresh/only-export-components */
-import React, { useState, useCallback } from 'react';
-import {
-  Box,
-  Typography,
-  IconButton,
-  TextField,
-  FormControlLabel,
-  Checkbox,
-} from '@mui/material';
-import { Add as AddIcon, Check as CheckIcon } from '@mui/icons-material';
+import { useState, useCallback } from 'react';
+import { AddIcon, CheckIcon } from './Icons';
 import type { Group } from '../types';
 
 // ==================== Hook: useGroupSelector ====================
@@ -86,24 +77,6 @@ export interface GroupSelectorProps {
 
 /**
  * 分组选择器组件
- *
- * 功能：
- * - 显示所有分组的 Checkbox 列表
- * - 支持"添加分组"按钮，点击后显示输入框
- * - 支持新建分组，输入名称后按 Enter 或点击确认按钮
- * - 支持按 Escape 取消新建分组
- * - 新建分组后自动选中
- *
- * @example
- * ```tsx
- * <GroupSelector
- *   groups={groups}
- *   selectedIds={formData.groupIds}
- *   onSelectionChange={(ids) => setFormData({ ...formData, groupIds: ids })}
- *   onCreateGroup={(name) => addGroup(name)}
- *   onGroupCreated={(group) => handleToggleGroup(group.id)}
- * />
- * ```
  */
 export const GroupSelector: React.FC<GroupSelectorProps> = ({
   groups,
@@ -124,7 +97,7 @@ export const GroupSelector: React.FC<GroupSelectorProps> = ({
   const handleToggleGroup = useCallback(
     (id: string) => {
       const newIds = selectedIds.includes(id)
-        ? selectedIds.filter(groupId => groupId !== id)
+        ? selectedIds.filter((groupId) => groupId !== id)
         : [...selectedIds, id];
       onSelectionChange(newIds);
     },
@@ -154,57 +127,55 @@ export const GroupSelector: React.FC<GroupSelectorProps> = ({
   return (
     <>
       {/* 标题和添加按钮 */}
-      <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 1 }}>
-        <Typography variant="subtitle2">
-          选择分组：
-        </Typography>
-        <IconButton
-          size="small"
+      <div className="mb-1 flex items-center justify-between">
+        <span className="text-sm font-medium text-slate-700 dark:text-slate-200">选择分组：</span>
+        <button
           onClick={startCreateGroup}
           title="添加分组"
+          className="rounded p-1.5 text-slate-500 hover:bg-slate-100 dark:text-slate-400 dark:hover:bg-slate-700"
         >
-          <AddIcon />
-        </IconButton>
-      </Box>
+          <AddIcon size={18} />
+        </button>
+      </div>
 
       {/* 分组列表 */}
-      <Box sx={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', my: 2 }}>
-        {groups.map(group => (
-          <FormControlLabel
+      <div className="my-2 flex flex-wrap items-center gap-x-4 gap-y-2">
+        {groups.map((group) => (
+          <label
             key={group.id}
-            control={
-              <Checkbox
-                checked={selectedIds.includes(group.id)}
-                onChange={() => handleToggleGroup(group.id)}
-              />
-            }
-            label={group.name}
-          />
+            className="flex cursor-pointer items-center gap-2 text-sm text-slate-700 dark:text-slate-200"
+          >
+            <input
+              type="checkbox"
+              checked={selectedIds.includes(group.id)}
+              onChange={() => handleToggleGroup(group.id)}
+              className="h-4 w-4 accent-blue-600"
+            />
+            {group.name}
+          </label>
         ))}
 
         {/* 新建分组输入框 */}
         {isCreatingGroup && (
-          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-            <TextField
-              size="small"
-              margin="none"
+          <div className="flex items-center gap-1">
+            <input
               placeholder="新建分组"
               value={newGroupName}
               onChange={(e) => setNewGroupName(e.target.value)}
               onKeyDown={handleNewGroupKeyDownWrapper}
               autoFocus
-              variant="standard"
+              className="border-b border-slate-300 bg-transparent px-1 py-0.5 text-sm text-slate-900 outline-none focus:border-blue-500 dark:border-slate-600 dark:text-white"
             />
-            <IconButton
-              size="small"
+            <button
               onClick={handleCreateGroup}
               title="完成"
+              className="rounded p-1.5 text-slate-500 hover:bg-slate-100 dark:text-slate-400 dark:hover:bg-slate-700"
             >
-              <CheckIcon />
-            </IconButton>
-          </Box>
+              <CheckIcon size={16} />
+            </button>
+          </div>
         )}
-      </Box>
+      </div>
     </>
   );
 };

@@ -1,9 +1,13 @@
 @import url('https://font.sec.miui.com/font/css?family=MiSans:400,700:MiSans');
+@import 'tailwindcss';
 
-* {
-  margin: 0;
-  padding: 0;
-  box-sizing: border-box;
+/* 启用基于 class 的暗色模式（由 ThemeContext 控制 <html>.dark） */
+@custom-variant dark (&:where(.dark, .dark *));
+
+@theme {
+  --font-sans:
+    'MiSans', 'PingFang SC', 'Microsoft YaHei', system-ui, -apple-system,
+    'BlinkMacSystemFont', 'Segoe UI', 'Helvetica Neue', Arial, sans-serif;
 }
 
 html,
@@ -14,7 +18,7 @@ body {
 }
 
 body {
-  font-family: 'MiSans', sans-serif;
+  font-family: var(--font-sans);
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
 }
@@ -25,12 +29,7 @@ body {
   flex-direction: column;
 }
 
-/* 移除 MUI 组件的一些默认样式微调 */
-.MuiCard-root {
-  user-select: none;
-}
-
-/* 确保 a 标签继承颜色 */
+/* 确保链接继承颜色 */
 a {
   color: inherit;
   text-decoration: none;
