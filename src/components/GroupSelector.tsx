@@ -46,11 +46,11 @@ export function useGroupSelector(options: UseGroupSelectorOptions = {}) {
   );
 
   const createGroup = useCallback(
-    (name: string, createFn: (name: string) => Group) => {
+    async (name: string, createFn: (name: string) => Group | Promise<Group>) => {
       const trimmedName = name.trim();
       if (!trimmedName) return null;
 
-      const group = createFn(trimmedName);
+      const group = await createFn(trimmedName);
       setIsCreatingGroup(false);
       setNewGroupName('');
 
@@ -80,7 +80,7 @@ export interface GroupSelectorProps {
   groups: Group[];
   selectedIds: string[];
   onSelectionChange: (ids: string[]) => void;
-  onCreateGroup: (name: string) => Group;
+  onCreateGroup: (name: string) => Group | Promise<Group>;
   onGroupCreated?: (group: Group) => void;
 }
 
@@ -132,10 +132,10 @@ export const GroupSelector: React.FC<GroupSelectorProps> = ({
   );
 
   const handleNewGroupKeyDownWrapper = useCallback(
-    (e: React.KeyboardEvent) => {
+    async (e: React.KeyboardEvent) => {
       const result = handleNewGroupKeyDown(e);
       if (result !== null && result.trim()) {
-        const group = createGroup(result, onCreateGroup);
+        const group = await createGroup(result, onCreateGroup);
         if (group && onGroupCreated) {
           onGroupCreated(group);
         }
@@ -144,8 +144,8 @@ export const GroupSelector: React.FC<GroupSelectorProps> = ({
     [handleNewGroupKeyDown, createGroup, onCreateGroup, onGroupCreated]
   );
 
-  const handleCreateGroup = useCallback(() => {
-    const group = createGroup(newGroupName, onCreateGroup);
+  const handleCreateGroup = useCallback(async () => {
+    const group = await createGroup(newGroupName, onCreateGroup);
     if (group && onGroupCreated) {
       onGroupCreated(group);
     }

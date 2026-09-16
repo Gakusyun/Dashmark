@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Box, Container, Typography, Toolbar, AppBar, IconButton, Grid, TextField, InputAdornment, Fab } from '@mui/material';
+import { Box, Container, Typography, Toolbar, AppBar, IconButton, Grid, TextField, InputAdornment, Fab, CircularProgress } from '@mui/material';
 import { Settings as SettingsIcon, Close as CloseIcon, Add as AddIcon } from '@mui/icons-material';
 import { useData } from './contexts/DataContext';
 import { SearchBox } from './components/SearchBox';
@@ -17,7 +17,7 @@ const projectId = import.meta.env.VITE_CLARITY_PROJECT_ID || "vay8fvwhta";
 let clarityInitialized = false;
 
 const App: React.FC = () => {
-  const { data, updateSettings } = useData();
+  const { data, loading, updateSettings } = useData();
   const [managePanelOpen, setManagePanelOpen] = useState(false);
   const [viewMode, setViewMode] = useState<ViewMode>(null);
   const [selectedGroup, setSelectedGroup] = useState<SelectedGroup>(null);
@@ -34,6 +34,9 @@ const App: React.FC = () => {
 
   // Cookie同意对话框逻辑
   useEffect(() => {
+    // 数据加载中，暂不处理
+    if (loading) return;
+
     // 检查用户是否已设置cookie同意状态
     if (data.settings.cookieConsent === null) {
       // 在下一个渲染周期显示cookie同意对话框，避免在渲染期间更新状态
@@ -55,7 +58,7 @@ const App: React.FC = () => {
       }
     }
     // 如果用户拒绝（false），则不初始化Clarity
-  }, [data.settings.cookieConsent]);
+  }, [data.settings.cookieConsent, loading]);
 
   // 全局键盘快捷键
   useEffect(() => {
@@ -220,6 +223,15 @@ const App: React.FC = () => {
       </>
     );
   };
+
+  if (loading) {
+    return (
+      <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', minHeight: '100vh', gap: 2 }}>
+        <CircularProgress />
+        <Typography color="text.secondary">正在加载数据...</Typography>
+      </Box>
+    );
+  }
 
   return (
     <>

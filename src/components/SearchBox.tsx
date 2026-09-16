@@ -2,14 +2,12 @@ import React, { useState } from 'react';
 import { Box, TextField, Button, IconButton, InputAdornment } from '@mui/material';
 import { Search as SearchIcon, Close as CloseIcon } from '@mui/icons-material';
 import { useData } from '../contexts/DataContext';
-import { getAllSearchEngines } from '../utils/storage';
 
 export const SearchBox: React.FC = () => {
-  const { data } = useData();
+  const { data, allSearchEngines } = useData();
   const [searchQuery, setSearchQuery] = useState('');
 
-  const allEngines = getAllSearchEngines();
-  const currentEngine = allEngines.find(e => e.id === data.settings.searchEngine);
+  const currentEngine = allSearchEngines.find(e => e.id === data.settings.searchEngine);
 
   const handleSearch = (e: React.SyntheticEvent<HTMLFormElement>) => {
     e.preventDefault();
