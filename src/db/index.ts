@@ -5,11 +5,19 @@
 import Dexie, { type Table } from 'dexie';
 import type { Bookmark, Group, SearchEngine, Settings } from '../types';
 
+/** 云同步历史快照：仅保存被云端覆盖前的本地版本，供撤回 */
+export interface SyncHistoryEntry {
+  id: string;
+  savedAt: number;
+  payload: Uint8Array; // gzip 后的整包 JSON
+}
+
 export class DashmarkDB extends Dexie {
   bookmarks!: Table<Bookmark, string>;
   groups!: Table<Group, string>;
   searchEngines!: Table<SearchEngine, string>;
   settings!: Table<Settings & { key: string }, string>;
+  syncHistory!: Table<SyncHistoryEntry, string>;
 
   constructor() {
     super('DashmarkDB');
@@ -20,6 +28,15 @@ export class DashmarkDB extends Dexie {
       groups: 'id, name, order',
       searchEngines: 'id, name',
       settings: 'key',
+    });
+
+    // v2：新增云同步历史快照表
+    this.version(2).stores({
+      bookmarks: 'id, type, title, *groupIds, *tags, createdAt, updatedAt',
+      groups: 'id, name, order',
+      searchEngines: 'id, name',
+      settings: 'key',
+      syncHistory: 'id, savedAt',
     });
   }
 }

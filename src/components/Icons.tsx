@@ -54,6 +54,11 @@ export {
   Database as DataIcon,
   Palette as ThemeIcon,
   Keyboard as KeyboardIcon,
+
+  // 云同步
+  Cloud as CloudIcon,
+  RefreshCw as SyncIcon,
+  History as HistoryIcon,
 } from 'lucide-react';
 
 /** GitHub 官方图标（lucide 不含品牌图标） */

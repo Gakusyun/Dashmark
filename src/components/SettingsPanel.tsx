@@ -15,6 +15,7 @@ import {
 } from './Icons';
 import { isValidUrl, normalizeUrl } from '../utils/urlValidator';
 import { getDisplayHost } from '../utils/urlDisplay';
+import { CloudSyncCard } from './CloudSyncCard';
 import type { SearchEngine } from '../types';
 
 /**
@@ -249,6 +250,9 @@ export function SettingsPanel() {
         <p className="pt-1 text-xs leading-relaxed text-slate-400 dark:text-slate-500">
           数据保存在浏览器的 IndexedDB 中，不会上传到服务器。清理浏览器数据会导致丢失，建议定期导出备份。
         </p>
+
+        {/* 云同步：ID + 口令，本地加密后上传 */}
+        <CloudSyncCard />
       </Section>
 
       {/* 搜索引擎编辑 */}

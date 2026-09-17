@@ -497,3 +497,82 @@ async function processData(
     onError(new Error(errorMessage));
   }
 }
+
+// ==================== 云同步：快照与历史 ====================
+
+const HISTORY_LIMIT = 3; // 除当前版本外，最多保留的历史快照数
+
+/** 将当前整包数据序列化并 gzip，作为一次快照 */
+export async function snapshotCurrent(): Promise<Uint8Array> {
+  const data = await loadData();
+  const payload = {
+    version: data.version,
+    groups: data.groups,
+    bookmarks: data.bookmarks,
+    searchEngines: data.searchEngines,
+    settings: data.settings,
+  };
+  return gzip(JSON.stringify(payload));
+}
+
+/** 把当前数据存入历史快照，超出上限的旧快照滚动淘汰 */
+export async function saveHistorySnapshot(): Promise<void> {
+  try {
+    const payload = await snapshotCurrent();
+    await db.syncHistory.add({
+      id: generateId(),
+      savedAt: Date.now(),
+      payload,
+    });
+
+    // 只保留最新 HISTORY_LIMIT 条
+    const all = await db.syncHistory.orderBy('savedAt').reverse().toArray();
+    const stale = all.slice(HISTORY_LIMIT);
+    if (stale.length > 0) {
+      await db.syncHistory.bulkDelete(stale.map((e) => e.id));
+    }
+  } catch (error) {
+    console.error('[DashMark] 保存历史快照失败:', error);
+  }
+}
+
+/** 列出历史快照（新→旧） */
+export async function listHistory(): Promise<{ id: string; savedAt: number }[]> {
+  const all = await db.syncHistory.orderBy('savedAt').reverse().toArray();
+  return all.map((e) => ({ id: e.id, savedAt: e.savedAt }));
+}
+
+/** 解析快照 JSON 为 Data（来自自身云端或历史快照，做基础校验与默认值填充） */
+function parseSnapshot(json: string): Data {
+  if (json.length > 50 * 1024 * 1024) {
+    throw new Error('数据包过大（超过 50MB）');
+  }
+  const data = JSON.parse(json) as Partial<Data>;
+  return {
+    version: getVersion(),
+    groups: Array.isArray(data.groups) ? data.groups : [],
+    bookmarks: Array.isArray(data.bookmarks) ? data.bookmarks : [],
+    searchEngines: Array.isArray(data.searchEngines) ? data.searchEngines : [],
+    settings: {
+      searchEngine: data.settings?.searchEngine || 'baidu',
+      darkMode: data.settings?.darkMode || 'auto',
+      hideLegalInfo: data.settings?.hideLegalInfo ?? false,
+      cookieConsent: data.settings?.cookieConsent ?? null,
+    },
+  };
+}
+
+/** 用快照二进制（gzip JSON）覆盖本地数据 */
+export async function applySnapshot(payload: Uint8Array): Promise<Data> {
+  const json = ungzip(payload, { toText: true });
+  const data = parseSnapshot(json);
+  await saveData(data);
+  return data;
+}
+
+/** 恢复某条历史快照到当前 */
+export async function restoreHistory(id: string): Promise<Data> {
+  const entry = await db.syncHistory.get(id);
+  if (!entry) throw new Error('历史快照不存在');
+  return applySnapshot(entry.payload);
+}

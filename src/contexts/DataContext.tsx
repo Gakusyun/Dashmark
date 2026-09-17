@@ -11,6 +11,7 @@ import {
 import type { Data, Settings, Group, SearchEngine, Bookmark } from '../types';
 import * as storage from '../utils/storage';
 import { getVersion } from '../utils/version';
+import { autoSync, scheduleAutoSync } from '../utils/sync';
 
 interface DataContextType {
   data: Data;
@@ -105,6 +106,15 @@ export const DataProvider: React.FC<DataProviderProps> = ({ children }) => {
           setLoading(false);
         }
       }
+
+      // 打开页面时静默同步一次（云端有新数据则拉取，本地有新数据则上传）；
+      // 若拉取了云端数据，需要把新状态写回 React
+      if (!cancelled) {
+        const outcome = await autoSync();
+        if (outcome === 'pulled' && !cancelled) {
+          setData(await storage.loadData());
+        }
+      }
     }
 
     init();
@@ -132,6 +142,8 @@ export const DataProvider: React.FC<DataProviderProps> = ({ children }) => {
     };
     await storage.saveData(dataWithVersion);
     setData(dataWithVersion);
+    // 数据变更：30 秒防抖后自动上传
+    scheduleAutoSync();
   }, []);
 
   // ==================== 分组操作 ====================
