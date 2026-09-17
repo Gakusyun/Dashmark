@@ -12,8 +12,13 @@
 import * as storage from './storage';
 import { deriveKeys, encrypt, decrypt, sha256Hex } from './syncCrypto';
 
-/** 官方公用 Worker 地址；fork 部署后可在设置里填写自己的服务器 */
-export const DEFAULT_SYNC_SERVER = 'https://dashmark-sync.gakusyun.workers.dev';
+/**
+ * 官方公用 Worker 地址。
+ * 通过构建环境变量 VITE_SYNC_SERVER 注入（如 `.env` 或 CI 里设置），
+ * 未设置时回退到内置默认值；fork 部署后也可在设置里填写自己的服务器。
+ */
+export const DEFAULT_SYNC_SERVER =
+  import.meta.env.VITE_SYNC_SERVER?.trim() || 'https://dashmark-sync.gakusyun.workers.dev';
 
 const CONFIG_KEY = 'dashmark_sync_config';
 const STATE_KEY = 'dashmark_sync_state';
