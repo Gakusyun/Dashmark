@@ -8,6 +8,16 @@ interface Entry {
 
 const CHANGELOG: Entry[] = [
   {
+    version: '4.0.0',
+    items: [
+      '迁移至 React 19 + Tailwind CSS v4，移除 Material UI 依赖',
+      '全面重构交互与界面：统一命令栏、顶部分组标签与整屏管理台',
+      '视觉统一为 sky 主题，明暗随系统自动切换',
+      '优化拖拽排序手感，鼠标与触摸体验一致',
+      '修复 Cookie 同意弹窗可能反复出现的问题',
+    ],
+  },
+  {
     version: '3.2.0',
     items: [
       '全新的统一命令栏：一个输入框同时完成页内检索与网络搜索',
